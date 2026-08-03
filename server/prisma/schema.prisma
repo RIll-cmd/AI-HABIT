@@ -1,0 +1,35 @@
+// This is your Prisma schema file for Ascend OS (SaaS MVP Skeleton)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator pyclient {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  character Character?
+}
+
+model Character {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  avatar    String?
+  theme     String?
+  title     String?
+  createdAt DateTime @default(now())
+}

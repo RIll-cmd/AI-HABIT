@@ -1,0 +1,13 @@
+{
+  "name": "ascend-os-server",
+  "version": "1.0.0",
+  "description": "Ascend OS Backend Engine",
+  "main": "main.py",
+  "scripts": {
+    "dev": "uvicorn main:app --reload --port 8000"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0"
+  }
+}
