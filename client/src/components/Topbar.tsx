@@ -146,7 +146,7 @@ export function Topbar() {
               asChild
               className="cursor-pointer hover:bg-white/10"
             >
-              <Link href="/character" className="flex items-center gap-2">
+              <Link href="/profile" className="flex items-center gap-2">
                 <User className="w-3.5 h-3.5 text-blue-400" />
                 <span>Character Profile</span>
               </Link>

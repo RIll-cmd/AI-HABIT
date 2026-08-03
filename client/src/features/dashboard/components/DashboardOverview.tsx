@@ -126,7 +126,7 @@ export function DashboardOverview() {
               asChild
               className="w-full text-xs text-slate-400 hover:text-white"
             >
-              <Link href="/character">
+              <Link href="/profile">
                 View Full Matrix <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Link>
             </Button>

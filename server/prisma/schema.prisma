@@ -24,12 +24,45 @@ model User {
 }
 
 model Character {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String            @id @default(uuid())
+  userId    String            @unique
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   avatar    String?
   theme     String?
   title     String?
-  createdAt DateTime @default(now())
+  level     Int               @default(1)
+  exp       Int               @default(0)
+  power     Int               @default(0)
+  rank      String            @default("F")
+  gold      Int               @default(0)
+  createdAt DateTime          @default(now())
+
+  stats     CharacterStats?
+  history   ProgressHistory[]
+}
+
+model CharacterStats {
+  id          String    @id @default(uuid())
+  characterId String    @unique
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  strength    Int       @default(1)
+  knowledge   Int       @default(1)
+  discipline  Int       @default(1)
+  focus       Int       @default(1)
+  endurance   Int       @default(1)
+  recovery    Int       @default(1)
+  consistency Int       @default(1)
+}
+
+model ProgressHistory {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  type        String
+  amount      Int
+  description String
+  createdAt   DateTime  @default(now())
 }

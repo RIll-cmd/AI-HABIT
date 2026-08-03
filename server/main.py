@@ -1,9 +1,8 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from prisma import Prisma
-
-db = Prisma()
+from db import db
+from routers import character
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +25,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Domain Routers
+app.include_router(character.router)
 
 @app.get("/")
 def read_root():
@@ -62,13 +64,13 @@ async def get_user(user_id_or_email: str):
     )
     if not user:
         # Fallback query by character name if username/name passed
-        character = await db.character.find_first(
+        char = await db.character.find_first(
             where={"name": user_id_or_email},
             include={"user": True}
         )
-        if character and character.user:
+        if char and char.user:
             user = await db.user.find_unique(
-                where={"id": character.userId},
+                where={"id": char.userId},
                 include={"character": True}
             )
 

@@ -5,15 +5,11 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Character {
-  id: string;
-  userId: string;
-  name: string;
-  avatar?: string;
-  theme?: string;
-  title?: string;
-  createdAt: string;
-}
+export type {
+  Character,
+  CharacterStats,
+  ProgressHistory,
+} from "@/features/character/types/character";
 
 export interface ApiResponse<T> {
   data?: T;
