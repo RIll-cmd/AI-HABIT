@@ -19,11 +19,17 @@ import {
   Skull,
   Check,
   User,
-  Award
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 // 12 RPG Avatars with Icons & Labels
@@ -44,15 +50,51 @@ const AVATAR_OPTIONS = [
 
 // 5 Theme Swatches with Colors & Glows
 const THEME_OPTIONS = [
-  { id: "blue", name: "Blue", hex: "#2563EB", ring: "ring-blue-500", glow: "shadow-blue-500/40" },
-  { id: "purple", name: "Purple", hex: "#9333EA", ring: "ring-purple-500", glow: "shadow-purple-500/40" },
-  { id: "green", name: "Green", hex: "#10B981", ring: "ring-emerald-500", glow: "shadow-emerald-500/40" },
-  { id: "red", name: "Red", hex: "#EF4444", ring: "ring-red-500", glow: "shadow-red-500/40" },
-  { id: "gold", name: "Gold", hex: "#F59E0B", ring: "ring-amber-500", glow: "shadow-amber-500/40" },
+  {
+    id: "blue",
+    name: "Blue",
+    hex: "#2563EB",
+    ring: "ring-blue-500",
+    glow: "shadow-blue-500/40",
+  },
+  {
+    id: "purple",
+    name: "Purple",
+    hex: "#9333EA",
+    ring: "ring-purple-500",
+    glow: "shadow-purple-500/40",
+  },
+  {
+    id: "green",
+    name: "Green",
+    hex: "#10B981",
+    ring: "ring-emerald-500",
+    glow: "shadow-emerald-500/40",
+  },
+  {
+    id: "red",
+    name: "Red",
+    hex: "#EF4444",
+    ring: "ring-red-500",
+    glow: "shadow-red-500/40",
+  },
+  {
+    id: "gold",
+    name: "Gold",
+    hex: "#F59E0B",
+    ring: "ring-amber-500",
+    glow: "shadow-amber-500/40",
+  },
 ];
 
 // Cosmetic Starting Titles
-const TITLE_OPTIONS = ["Wanderer", "Dreamer", "Scholar", "Adventurer", "Rookie"];
+const TITLE_OPTIONS = [
+  "Wanderer",
+  "Dreamer",
+  "Scholar",
+  "Adventurer",
+  "Rookie",
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -89,12 +131,19 @@ export default function OnboardingPage() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold font-heading text-white tracking-wide">CHARACTER CREATION</h1>
-            <p className="text-xs text-blue-400 font-mono -mt-0.5">INITIALIZE ASCENDANT PROFILE</p>
+            <h1 className="text-xl font-bold font-heading text-white tracking-wide">
+              CHARACTER CREATION
+            </h1>
+            <p className="text-xs text-blue-400 font-mono -mt-0.5">
+              INITIALIZE ASCENDANT PROFILE
+            </p>
           </div>
         </div>
 
-        <Badge variant="outline" className="border-white/10 text-slate-400 font-mono px-3 py-1">
+        <Badge
+          variant="outline"
+          className="border-white/10 text-slate-400 font-mono px-3 py-1"
+        >
           STEP 1 OF 1 — IDENTITY
         </Badge>
       </div>
@@ -155,14 +204,18 @@ export default function OnboardingPage() {
                     >
                       <div
                         className={`w-9 h-9 rounded-[12px] flex items-center justify-center transition-transform group-hover:scale-110 ${
-                          isSelected ? "bg-blue-600 text-white" : "bg-white/5 text-slate-400 group-hover:text-white"
+                          isSelected
+                            ? "bg-blue-600 text-white"
+                            : "bg-white/5 text-slate-400 group-hover:text-white"
                         }`}
                       >
                         <Icon className="w-5 h-5" />
                       </div>
                       <span
                         className={`text-[11px] font-mono ${
-                          isSelected ? "text-blue-300 font-semibold" : "text-slate-400"
+                          isSelected
+                            ? "text-blue-300 font-semibold"
+                            : "text-slate-400"
                         }`}
                       >
                         {avatar.label}
@@ -194,12 +247,16 @@ export default function OnboardingPage() {
                         type="button"
                         onClick={() => setSelectedTheme(theme)}
                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
-                          isSelected ? `ring-4 ${theme.ring} scale-110 shadow-lg ${theme.glow}` : "opacity-70 hover:opacity-100 hover:scale-105"
+                          isSelected
+                            ? `ring-4 ${theme.ring} scale-110 shadow-lg ${theme.glow}`
+                            : "opacity-70 hover:opacity-100 hover:scale-105"
                         }`}
                         style={{ backgroundColor: theme.hex }}
                         title={theme.name}
                       >
-                        {isSelected && <Check className="w-5 h-5 text-white drop-shadow-md" />}
+                        {isSelected && (
+                          <Check className="w-5 h-5 text-white drop-shadow-md" />
+                        )}
                       </button>
                     );
                   })}
@@ -250,7 +307,10 @@ export default function OnboardingPage() {
             />
 
             <CardHeader className="text-center pt-8 pb-4">
-              <Badge variant="secondary" className="mx-auto mb-2 text-[10px] uppercase tracking-widest font-mono">
+              <Badge
+                variant="secondary"
+                className="mx-auto mb-2 text-[10px] uppercase tracking-widest font-mono"
+              >
                 CHARACTER PREVIEW
               </Badge>
 
@@ -270,7 +330,10 @@ export default function OnboardingPage() {
                 <Badge variant="gold" className="text-xs">
                   {selectedTitle}
                 </Badge>
-                <Badge variant="outline" className="text-xs border-white/10 text-slate-400">
+                <Badge
+                  variant="outline"
+                  className="text-xs border-white/10 text-slate-400"
+                >
                   Level 1 Ascendant
                 </Badge>
               </div>
@@ -279,13 +342,17 @@ export default function OnboardingPage() {
             <CardContent className="space-y-4">
               {/* STAT PREVIEW MATRIX */}
               <div className="p-4 rounded-[16px] bg-[#0B1020] border border-white/10 space-y-3 font-sans">
-                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-2">Initial Attributes</div>
+                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-2">
+                  Initial Attributes
+                </div>
 
                 <div className="space-y-2">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-slate-300">Strength</span>
-                      <span className="font-mono text-blue-400 font-bold">10 / 100</span>
+                      <span className="font-mono text-blue-400 font-bold">
+                        10 / 100
+                      </span>
                     </div>
                     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-500 w-[10%]" />
@@ -295,7 +362,9 @@ export default function OnboardingPage() {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-slate-300">Discipline</span>
-                      <span className="font-mono text-emerald-400 font-bold">12 / 100</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        12 / 100
+                      </span>
                     </div>
                     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-emerald-500 w-[12%]" />
@@ -305,7 +374,9 @@ export default function OnboardingPage() {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-slate-300">Consistency</span>
-                      <span className="font-mono text-amber-400 font-bold">15 / 100</span>
+                      <span className="font-mono text-amber-400 font-bold">
+                        15 / 100
+                      </span>
                     </div>
                     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-500 w-[15%]" />

@@ -74,15 +74,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       const data: UserData = await res.json();
       setUser(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching user data from backend:", err);
-      setError(err.message || "Failed to connect to FastAPI backend server");
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to connect to FastAPI backend server";
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUser();
   }, []);
 
@@ -97,7 +102,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, error, refetch: fetchUser, toggleMission }}>
+    <UserContext.Provider
+      value={{ user, loading, error, refetch: fetchUser, toggleMission }}
+    >
       {children}
     </UserContext.Provider>
   );

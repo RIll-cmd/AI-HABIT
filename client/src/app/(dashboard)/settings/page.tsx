@@ -11,8 +11,12 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white font-heading tracking-tight">System Settings</h1>
-          <p className="text-xs text-slate-400 mt-1 font-sans">Configure platform preferences and theme controls.</p>
+          <h1 className="text-2xl font-bold text-white font-heading tracking-tight">
+            System Settings
+          </h1>
+          <p className="text-xs text-slate-400 mt-1 font-sans">
+            Configure platform preferences and theme controls.
+          </p>
         </div>
       </div>
 
@@ -23,8 +27,13 @@ export default function SettingsPage() {
               <Moon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white font-heading">Theme Palette</h3>
-              <p className="text-xs text-slate-400">Current theme: <strong className="text-blue-400 uppercase">{theme}</strong></p>
+              <h3 className="text-sm font-bold text-white font-heading">
+                Theme Palette
+              </h3>
+              <p className="text-xs text-slate-400">
+                Current theme:{" "}
+                <strong className="text-blue-400 uppercase">{theme}</strong>
+              </p>
             </div>
           </div>
           <select
@@ -41,4 +50,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

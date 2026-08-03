@@ -42,7 +42,9 @@ export function Sidebar() {
             <h1 className="font-bold tracking-wider text-base font-heading text-white">
               ASCEND OS
             </h1>
-            <p className="text-[10px] text-blue-400 font-mono">LIFE RPG PLATFORM</p>
+            <p className="text-[10px] text-blue-400 font-mono">
+              LIFE RPG PLATFORM
+            </p>
           </div>
         </Link>
       </div>
@@ -51,7 +53,9 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {sidebarNav.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname?.startsWith(item.href));
           return (
             <Link
               key={item.name}
@@ -62,9 +66,13 @@ export function Sidebar() {
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-400"}`} />
+              <Icon
+                className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-400"}`}
+              />
               <span>{item.name}</span>
-              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />}
+              {isActive && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />
+              )}
             </Link>
           );
         })}
@@ -83,4 +91,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

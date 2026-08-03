@@ -5,21 +5,21 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-bg-main: #0B1020;
-  --color-surface-card: #151C33;
+  --color-bg-main: #0b1020;
+  --color-surface-card: #151c33;
 
-  --color-brand-primary: #3B82F6;
-  --color-brand-success: #10B981;
-  --color-brand-danger: #EF4444;
-  --color-brand-gold: #F6C453;
+  --color-brand-primary: #3b82f6;
+  --color-brand-success: #10b981;
+  --color-brand-danger: #ef4444;
+  --color-brand-gold: #f6c453;
 
   --radius-card: 20px;
   --radius-btn: 16px;
   --radius-input: 14px;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.40);
-  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.60);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.6);
 
   --font-heading: var(--font-space-grotesk), sans-serif;
   --font-body: var(--font-inter), sans-serif;
@@ -27,20 +27,20 @@
 }
 
 :root {
-  --surface-card: #151C33;
+  --surface-card: #151c33;
 
-  --primary-blue: #3B82F6;
-  --success-emerald: #10B981;
-  --danger-red: #EF4444;
-  --gold-accent: #F6C453;
+  --primary-blue: #3b82f6;
+  --success-emerald: #10b981;
+  --danger-red: #ef4444;
+  --gold-accent: #f6c453;
 
   --radius-card: 20px;
   --radius-button: 16px;
   --radius-input: 14px;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.40);
-  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.60);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.6);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -77,17 +77,28 @@
 
 body {
   background-color: var(--background);
-  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-inter),
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-space-grotesk), "Space Grotesk", sans-serif;
 }
 
-.font-number, .font-mono {
-  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
+.font-number,
+.font-mono {
+  font-family: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
 }
 
 /* Custom scrollbars */
@@ -96,10 +107,10 @@ h1, h2, h3, h4, h5, h6 {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B1020;
+  background: #0b1020;
 }
 ::-webkit-scrollbar-thumb {
-  background: #151C33;
+  background: #151c33;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -107,15 +118,17 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* SaaS Card & Token Utility Classes */
-.saas-card, .ascend-card {
-  background-color: #151C33;
+.saas-card,
+.ascend-card {
+  background-color: #151c33;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease-in-out;
 }
 
-.saas-card:hover, .ascend-card:hover {
+.saas-card:hover,
+.ascend-card:hover {
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: var(--shadow-md);
 }
@@ -138,7 +151,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .saas-input:focus {
   outline: none;
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 

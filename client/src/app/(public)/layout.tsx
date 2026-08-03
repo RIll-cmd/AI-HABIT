@@ -2,7 +2,11 @@ import React from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default function PublicLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen bg-[#0B1020] text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
       {/* MINIMAL TOP NAV BAR */}
@@ -12,8 +16,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-bold text-lg font-heading text-white tracking-wider">ASCEND OS</span>
-            <span className="text-[10px] text-blue-400 font-mono block -mt-1">LIFE RPG PLATFORM</span>
+            <span className="font-bold text-lg font-heading text-white tracking-wider">
+              ASCEND OS
+            </span>
+            <span className="text-[10px] text-blue-400 font-mono block -mt-1">
+              LIFE RPG PLATFORM
+            </span>
           </div>
         </Link>
       </header>
@@ -22,4 +30,3 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     </div>
   );
 }
-

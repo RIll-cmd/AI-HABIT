@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/context/UserContext";
+import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -37,11 +38,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("dark", "h-full", spaceGrotesk.variable, inter.variable, jetbrainsMono.variable, "font-sans", geist.variable)}
+      className={cn(
+        "dark",
+        "h-full",
+        spaceGrotesk.variable,
+        inter.variable,
+        jetbrainsMono.variable,
+        "font-sans",
+        geist.variable
+      )}
     >
       <body className="h-full bg-[#0B1020] text-slate-100 antialiased selection:bg-blue-500 selection:text-white flex flex-col font-sans">
         <UserProvider>
           {children}
+          <Toaster />
         </UserProvider>
       </body>
     </html>

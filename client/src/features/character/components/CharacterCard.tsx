@@ -23,9 +23,12 @@ export function CharacterCard() {
           <UserCheck className="w-8 h-8" />
         </div>
         <div>
-          <h4 className="text-base font-bold text-white font-heading">{character?.name || "Shadow Monarch"}</h4>
+          <h4 className="text-base font-bold text-white font-heading">
+            {character?.name || "Shadow Monarch"}
+          </h4>
           <p className="text-xs text-blue-400 font-medium flex items-center gap-1.5 mt-0.5 font-sans">
-            <Sparkles className="w-3.5 h-3.5" /> {character?.title || "Shadow Seeker"}
+            <Sparkles className="w-3.5 h-3.5" />{" "}
+            {character?.title || "Shadow Seeker"}
           </p>
         </div>
       </div>

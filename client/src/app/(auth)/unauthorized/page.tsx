@@ -2,7 +2,14 @@ import React from "react";
 import Link from "next/link";
 import { ShieldAlert, ArrowRight, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 
 export default function UnauthorizedPage() {
   return (
@@ -23,19 +30,28 @@ export default function UnauthorizedPage() {
 
       <CardContent className="space-y-4 text-center">
         <div className="p-4 rounded-[14px] bg-[#0B1020] border border-white/10 text-xs text-slate-300 leading-relaxed font-sans">
-          You are attempting to access a protected system domain without an active session token or guest clearance.
+          You are attempting to access a protected system domain without an
+          active session token or guest clearance.
         </div>
       </CardContent>
 
       <CardFooter className="flex flex-col gap-3 pt-2">
-        <Button variant="default" size="lg" asChild className="w-full h-11 text-xs font-bold shadow-lg shadow-blue-600/25">
+        <Button
+          variant="default"
+          size="lg"
+          asChild
+          className="w-full h-11 text-xs font-bold shadow-lg shadow-blue-600/25"
+        >
           <Link href="/login">
             <KeyRound className="w-4 h-4 mr-2" />
             <span>Log In to Continue</span>
           </Link>
         </Button>
 
-        <Link href="/guest" className="text-xs text-slate-500 hover:text-slate-300 font-mono transition-colors text-center">
+        <Link
+          href="/guest"
+          className="text-xs text-slate-500 hover:text-slate-300 font-mono transition-colors text-center"
+        >
           [ Continue as Guest ]
         </Link>
       </CardFooter>

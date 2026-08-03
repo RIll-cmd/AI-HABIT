@@ -2,7 +2,17 @@
 
 import React from "react";
 import Link from "next/link";
-import { Bell, Search, Sun, Moon, Monitor, User, Settings, LogOut, Sparkles } from "lucide-react";
+import {
+  Bell,
+  Search,
+  Sun,
+  Moon,
+  Monitor,
+  User,
+  Settings,
+  LogOut,
+  Sparkles,
+} from "lucide-react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import { Input } from "@/components/ui/input";
@@ -46,7 +56,11 @@ export function Topbar() {
       {/* RIGHT: NOTIFICATIONS, THEME SWITCHER, PROFILE DROPDOWN */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* NOTIFICATIONS BELL */}
-        <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-white hover:bg-white/5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative text-slate-400 hover:text-white hover:bg-white/5"
+        >
           <Bell className="w-4 h-4" />
           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
         </Button>
@@ -54,7 +68,11 @@ export function Topbar() {
         {/* THEME SWITCHER DROPDOWN */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-slate-400 hover:text-white hover:bg-white/5"
+            >
               {theme === "light" ? (
                 <Sun className="w-4 h-4 text-amber-400" />
               ) : theme === "dark" ? (
@@ -64,18 +82,32 @@ export function Topbar() {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#151C33] border-white/10 text-slate-200 text-xs w-36">
-            <DropdownMenuLabel className="text-[10px] text-slate-400 font-mono">SELECT THEME</DropdownMenuLabel>
+          <DropdownMenuContent
+            align="end"
+            className="bg-[#151C33] border-white/10 text-slate-200 text-xs w-36"
+          >
+            <DropdownMenuLabel className="text-[10px] text-slate-400 font-mono">
+              SELECT THEME
+            </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer hover:bg-white/10">
+            <DropdownMenuItem
+              onClick={() => setTheme("dark")}
+              className="cursor-pointer hover:bg-white/10"
+            >
               <Moon className="w-3.5 h-3.5 mr-2 text-blue-400" />
               <span>Dark Mode</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer hover:bg-white/10">
+            <DropdownMenuItem
+              onClick={() => setTheme("light")}
+              className="cursor-pointer hover:bg-white/10"
+            >
               <Sun className="w-3.5 h-3.5 mr-2 text-amber-400" />
               <span>Light Mode</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer hover:bg-white/10">
+            <DropdownMenuItem
+              onClick={() => setTheme("system")}
+              className="cursor-pointer hover:bg-white/10"
+            >
               <Monitor className="w-3.5 h-3.5 mr-2 text-slate-400" />
               <span>System</span>
             </DropdownMenuItem>
@@ -90,31 +122,49 @@ export function Topbar() {
                 {name.charAt(0).toUpperCase()}
               </div>
               <div className="hidden sm:block">
-                <div className="text-xs font-bold text-white font-heading leading-tight">{name}</div>
-                <div className="text-[10px] text-blue-400 font-mono leading-none">{title}</div>
+                <div className="text-xs font-bold text-white font-heading leading-tight">
+                  {name}
+                </div>
+                <div className="text-[10px] text-blue-400 font-mono leading-none">
+                  {title}
+                </div>
               </div>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#151C33] border-white/10 text-slate-200 text-xs w-48">
+          <DropdownMenuContent
+            align="end"
+            className="bg-[#151C33] border-white/10 text-slate-200 text-xs w-48"
+          >
             <DropdownMenuLabel className="font-sans">
               <div className="font-bold text-white">{name}</div>
-              <div className="text-[10px] text-slate-400 font-mono">{title} • Level 1</div>
+              <div className="text-[10px] text-slate-400 font-mono">
+                {title} • Level 1
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem asChild className="cursor-pointer hover:bg-white/10">
+            <DropdownMenuItem
+              asChild
+              className="cursor-pointer hover:bg-white/10"
+            >
               <Link href="/character" className="flex items-center gap-2">
                 <User className="w-3.5 h-3.5 text-blue-400" />
                 <span>Character Profile</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer hover:bg-white/10">
+            <DropdownMenuItem
+              asChild
+              className="cursor-pointer hover:bg-white/10"
+            >
               <Link href="/settings" className="flex items-center gap-2">
                 <Settings className="w-3.5 h-3.5 text-slate-400" />
                 <span>Settings</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem asChild className="cursor-pointer text-red-400 hover:bg-red-950/40">
+            <DropdownMenuItem
+              asChild
+              className="cursor-pointer text-red-400 hover:bg-red-950/40"
+            >
               <Link href="/landing" className="flex items-center gap-2">
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
@@ -126,4 +176,3 @@ export function Topbar() {
     </header>
   );
 }
-

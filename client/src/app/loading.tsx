@@ -17,8 +17,12 @@ export default function GlobalLoading() {
         </div>
 
         <div>
-          <h1 className="text-xl font-bold font-heading text-white tracking-widest">ASCEND OS</h1>
-          <p className="text-xs text-blue-400 font-mono mt-0.5 tracking-wider">LIFE RPG PLATFORM</p>
+          <h1 className="text-xl font-bold font-heading text-white tracking-widest">
+            ASCEND OS
+          </h1>
+          <p className="text-xs text-blue-400 font-mono mt-0.5 tracking-wider">
+            LIFE RPG PLATFORM
+          </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mt-4">

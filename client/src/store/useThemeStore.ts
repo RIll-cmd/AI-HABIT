@@ -18,7 +18,9 @@ export const useThemeStore = create<ThemeStore>()(
           const root = document.documentElement;
           root.classList.remove("light", "dark");
           if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+            const systemTheme = window.matchMedia(
+              "(prefers-color-scheme: dark)"
+            ).matches
               ? "dark"
               : "light";
             root.classList.add(systemTheme);
@@ -33,4 +35,3 @@ export const useThemeStore = create<ThemeStore>()(
     }
   )
 );
-

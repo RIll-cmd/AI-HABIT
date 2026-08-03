@@ -26,7 +26,8 @@ export default function NotFound() {
             LOST IN THE VOID
           </h1>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed max-w-sm">
-            The spatial coordinates you are seeking do not exist in this realm of Ascend OS.
+            The spatial coordinates you are seeking do not exist in this realm
+            of Ascend OS.
           </p>
         </div>
 
@@ -35,7 +36,12 @@ export default function NotFound() {
           <span>Error Code: 0x404_ROUTE_UNBOUND</span>
         </div>
 
-        <Button variant="default" size="lg" asChild className="px-6 h-11 text-xs font-bold shadow-lg shadow-blue-600/25">
+        <Button
+          variant="default"
+          size="lg"
+          asChild
+          className="px-6 h-11 text-xs font-bold shadow-lg shadow-blue-600/25"
+        >
           <Link href="/dashboard" className="flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
             <span>Return to Dashboard</span>

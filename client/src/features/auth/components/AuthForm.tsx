@@ -3,10 +3,27 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ShieldCheck, UserCheck, Check, X, Mail, Lock, Sparkles, UserPlus } from "lucide-react";
+import {
+  ArrowRight,
+  ShieldCheck,
+  UserCheck,
+  Check,
+  X,
+  Mail,
+  Lock,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface AuthFormProps {
@@ -58,16 +75,16 @@ export function AuthForm({ mode }: AuthFormProps) {
           {mode === "login"
             ? "Welcome Back, Ascendant"
             : mode === "register"
-            ? "Create Your Account"
-            : "Enter Guest Sandbox"}
+              ? "Create Your Account"
+              : "Enter Guest Sandbox"}
         </CardTitle>
 
         <CardDescription className="text-xs text-slate-400 font-sans mt-1">
           {mode === "login"
             ? "Enter your credentials to access your RPG progression"
             : mode === "register"
-            ? "Initialize your character profile & attribute matrix"
-            : "Explore Ascend OS features as a temporary guest user"}
+              ? "Initialize your character profile & attribute matrix"
+              : "Explore Ascend OS features as a temporary guest user"}
         </CardDescription>
       </CardHeader>
 
@@ -79,13 +96,18 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <Sparkles className="w-3.5 h-3.5" />
                 Temporary Ascendant Mode
               </p>
-              Your progress will be saved locally as a temporary Ascendant. You can convert to a permanent account anytime.
+              Your progress will be saved locally as a temporary Ascendant. You
+              can convert to a permanent account anytime.
             </div>
 
             <div className="p-4 rounded-[14px] bg-[#0B1020] border border-white/10 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-mono text-slate-500 block">Assigned Identity</span>
-                <span className="text-base font-bold font-mono text-blue-400">Guest-4839</span>
+                <span className="text-[10px] uppercase font-mono text-slate-500 block">
+                  Assigned Identity
+                </span>
+                <span className="text-base font-bold font-mono text-blue-400">
+                  Guest-4839
+                </span>
               </div>
               <Badge variant="gold">Guest Level 1</Badge>
             </div>
@@ -163,23 +185,47 @@ export function AuthForm({ mode }: AuthFormProps) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] font-sans">
-                    <div className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-400" : "text-slate-500"}`}>
-                      {hasMinLength ? <Check className="w-3.5 h-3.5 shrink-0" /> : <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />}
+                    <div
+                      className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-400" : "text-slate-500"}`}
+                    >
+                      {hasMinLength ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                      )}
                       <span>Min. 8 Characters</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${hasUppercase ? "text-emerald-400" : "text-slate-500"}`}>
-                      {hasUppercase ? <Check className="w-3.5 h-3.5 shrink-0" /> : <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />}
+                    <div
+                      className={`flex items-center gap-1.5 ${hasUppercase ? "text-emerald-400" : "text-slate-500"}`}
+                    >
+                      {hasUppercase ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                      )}
                       <span>Uppercase Letter</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-400" : "text-slate-500"}`}>
-                      {hasNumber ? <Check className="w-3.5 h-3.5 shrink-0" /> : <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />}
+                    <div
+                      className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-400" : "text-slate-500"}`}
+                    >
+                      {hasNumber ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                      )}
                       <span>Number (0-9)</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${hasSpecialChar ? "text-emerald-400" : "text-slate-500"}`}>
-                      {hasSpecialChar ? <Check className="w-3.5 h-3.5 shrink-0" /> : <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />}
+                    <div
+                      className={`flex items-center gap-1.5 ${hasSpecialChar ? "text-emerald-400" : "text-slate-500"}`}
+                    >
+                      {hasSpecialChar ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                      )}
                       <span>Special Character</span>
                     </div>
                   </div>
@@ -203,21 +249,36 @@ export function AuthForm({ mode }: AuthFormProps) {
       <CardFooter className="flex flex-col gap-3 pt-2 text-center text-xs text-slate-400 border-t border-white/5">
         <div className="flex items-center justify-center gap-4 w-full">
           {mode !== "login" && (
-            <Link href="/login" className="hover:text-blue-400 transition-colors">
-              Already have an account? <span className="text-blue-400 font-semibold underline underline-offset-4">Sign In</span>
+            <Link
+              href="/login"
+              className="hover:text-blue-400 transition-colors"
+            >
+              Already have an account?{" "}
+              <span className="text-blue-400 font-semibold underline underline-offset-4">
+                Sign In
+              </span>
             </Link>
           )}
 
           {mode !== "register" && mode !== "guest" && (
-            <Link href="/register" className="hover:text-blue-400 transition-colors">
-              New here? <span className="text-blue-400 font-semibold underline underline-offset-4">Create Account</span>
+            <Link
+              href="/register"
+              className="hover:text-blue-400 transition-colors"
+            >
+              New here?{" "}
+              <span className="text-blue-400 font-semibold underline underline-offset-4">
+                Create Account
+              </span>
             </Link>
           )}
         </div>
 
         {mode !== "guest" && (
           <div>
-            <Link href="/guest" className="text-slate-500 hover:text-slate-300 text-[11px] font-mono transition-colors">
+            <Link
+              href="/guest"
+              className="text-slate-500 hover:text-slate-300 text-[11px] font-mono transition-colors"
+            >
               [ Continue as Guest ]
             </Link>
           </div>
@@ -226,4 +287,3 @@ export function AuthForm({ mode }: AuthFormProps) {
     </Card>
   );
 }
-

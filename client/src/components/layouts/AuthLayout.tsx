@@ -12,14 +12,22 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
 
       {/* TOP BAR / BACK TO LANDING */}
       <header className="absolute top-6 left-6 right-6 flex items-center justify-between z-20">
-        <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-white hover:bg-white/5">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="text-slate-400 hover:text-white hover:bg-white/5"
+        >
           <Link href="/landing" className="flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Link>
         </Button>
 
-        <Link href="/landing" className="flex items-center gap-2 text-lg font-bold text-white font-heading group">
+        <Link
+          href="/landing"
+          className="flex items-center gap-2 text-lg font-bold text-white font-heading group"
+        >
           <div className="w-8 h-8 rounded-[12px] bg-blue-600 flex items-center justify-center text-white shadow-md group-hover:bg-blue-500 transition-colors">
             <Sparkles className="w-4 h-4" />
           </div>
@@ -34,4 +42,3 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
