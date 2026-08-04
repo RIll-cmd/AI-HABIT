@@ -18,16 +18,19 @@
 - [x] FastAPI Character API endpoints (`GET /api/character/{id}`, `PATCH /api/character/{id}`, `POST /api/character/{id}/sync-progression`).
 - [x] Client API service integration (`character.service.ts`).
 
-## Phase 3: Auth & Identity Infrastructure (JWT & Authentication)
-- [ ] Implement bcrypt password hashing and JWT token generation in FastAPI.
-- [ ] Connect login/register frontend forms with authentication endpoints.
-- [ ] Protect dashboard layout with route middleware.
+## Phase 3: The Habit Engine (Completed)
+- [x] Database expansion (`Habit`, `HabitSchedule`, `HabitMetrics`, `Mission` models in SQLite via Prisma).
+- [x] Template vs. Instance architecture implementation (Habit templates $\rightarrow$ Daily Mission instances).
+- [x] Pure Habit Engine math utilities (`rewardFormula.ts` & `habitStrength.ts`).
+- [x] Vitest test suite with 100% pass rate (`habitMath.test.ts`, 25/25 total client tests).
+- [x] FastAPI REST endpoints & Daily Mission Generator (`/api/habits/{id}`, `/api/missions/today/{id}`, `/api/missions/{id}/complete`).
+- [x] Client service layer & `useHabitStore` Zustand engine bridge to `useCharacterStore`.
+- [x] Mission Creation Wizard UI (`MissionWizard.tsx`, 6-step Framer Motion wizard at `/missions/create`).
+- [x] Daily Quest Board UI (`MissionCard.tsx` with MINI, NORMAL, ELITE completion tiers on `/dashboard`).
 
-## Phase 4: Reality Layer & Habit Tracking Domain
-- [ ] Continuous Habit Strength modeling ($S_t \in [0.0, 1.0]$).
-- [ ] Task completion and failure fractional decay logic.
-- [ ] Daily Quest Board generation.
+## Phase 4: Tower Engine & RPG Progression
+- [ ] Simulated idle RPG Tower combat engine & floor progression.
+- [ ] Stat point allocation wizard & gear inventory system.
 
-## Phase 5: Tower Engine & AI System Administrator (Ciel)
-- [ ] Simulated idle RPG Tower combat engine.
+## Phase 5: AI System Administrator (Ciel)
 - [ ] Ciel AI reflective dialogue and mission optimization vector analysis.

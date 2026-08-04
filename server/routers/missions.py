@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, status
 from db import db
+from db_utils import ensure_character_exists
 from schemas.habit import MissionCompleteSchema
 
 router = APIRouter(prefix="/api/missions", tags=["missions"])
@@ -10,9 +11,12 @@ router = APIRouter(prefix="/api/missions", tags=["missions"])
 async def get_today_missions(character_id: str):
     """
     Daily Mission Generator:
-    Fetches all active habits for a character, ensures a PENDING Mission instance
-    exists for today, creates missing instances, and returns today's missions.
+    Ensures character exists, fetches active habit templates for character,
+    ensures a PENDING Mission instance exists for today, creates missing instances,
+    and returns today's missions.
     """
+    await ensure_character_exists(character_id)
+
     now = datetime.now(timezone.utc)
     today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     today_end = today_start + timedelta(days=1)

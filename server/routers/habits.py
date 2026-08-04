@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, status
 from db import db
+from db_utils import ensure_character_exists
 from schemas.habit import HabitCreateSchema
 
 router = APIRouter(prefix="/api/habits", tags=["habits"])
@@ -10,17 +11,13 @@ router = APIRouter(prefix="/api/habits", tags=["habits"])
 async def create_habit(character_id: str, payload: HabitCreateSchema):
     """
     Create a new Habit template along with 1:1 HabitSchedule and HabitMetrics relations.
+    Automatically ensures character exists in database (seeding fallback if necessary).
     """
-    character = await db.character.find_unique(where={"id": character_id})
-    if not character:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Character with ID '{character_id}' not found",
-        )
+    character = await ensure_character_exists(character_id)
 
     habit = await db.habit.create(
         data={
-            "characterId": character_id,
+            "characterId": character.id,
             "name": payload.name,
             "description": payload.description,
             "category": payload.category,
@@ -58,7 +55,10 @@ async def create_habit(character_id: str, payload: HabitCreateSchema):
 async def get_habits(character_id: str):
     """
     Return all habit templates for the specified character ID.
+    Automatically ensures character exists in database.
     """
+    await ensure_character_exists(character_id)
+
     habits = await db.habit.find_many(
         where={"characterId": character_id},
         include={

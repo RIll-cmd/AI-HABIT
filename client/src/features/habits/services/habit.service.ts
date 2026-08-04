@@ -34,7 +34,11 @@ export async function createHabit(
     });
 
     if (!res.ok) {
-      console.warn(`[habit.service] Failed to create habit: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(
+        `[habit.service] Failed to create habit (HTTP ${res.status} ${res.statusText}):`,
+        errorText
+      );
       return null;
     }
 
@@ -57,7 +61,11 @@ export async function fetchHabits(characterId: string): Promise<Habit[]> {
     });
 
     if (!res.ok) {
-      console.warn(`[habit.service] Failed to fetch habits: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(
+        `[habit.service] Failed to fetch habits (HTTP ${res.status} ${res.statusText}):`,
+        errorText
+      );
       return [];
     }
 
@@ -80,7 +88,11 @@ export async function fetchTodayMissions(characterId: string): Promise<Mission[]
     });
 
     if (!res.ok) {
-      console.warn(`[habit.service] Failed to fetch today's missions: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(
+        `[habit.service] Failed to fetch today's missions (HTTP ${res.status} ${res.statusText}):`,
+        errorText
+      );
       return [];
     }
 
@@ -107,7 +119,11 @@ export async function completeMission(
     });
 
     if (!res.ok) {
-      console.warn(`[habit.service] Failed to complete mission: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(
+        `[habit.service] Failed to complete mission (HTTP ${res.status} ${res.statusText}):`,
+        errorText
+      );
       return null;
     }
 

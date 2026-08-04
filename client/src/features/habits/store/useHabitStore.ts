@@ -68,11 +68,14 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
         // Refresh today's missions to include instance for newly created habit
         await get().loadTodayMissions(targetId);
       } else {
+        console.error(
+          `[useHabitStore] createNewHabit failed for targetId '${targetId}'. Service returned null.`
+        );
         set({ isLoading: false });
       }
       return newHabit;
     } catch (error) {
-      console.error("[useHabitStore] Error creating new habit:", error);
+      console.error("[useHabitStore] Exception in createNewHabit:", error);
       set({ isLoading: false });
       return null;
     }

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from db import db
+from db_utils import ensure_character_exists
 from schemas.character import CharacterUpdateSchema, ProgressionSyncSchema
 
 router = APIRouter(prefix="/api/character", tags=["character"])
@@ -9,6 +10,7 @@ router = APIRouter(prefix="/api/character", tags=["character"])
 async def get_character(character_id: str):
     """
     Fetch a character by ID, including relations to CharacterStats and ProgressHistory.
+    Automatically seeds default character if not found (for dev/mock sessions).
     """
     character = await db.character.find_unique(
         where={"id": character_id},
@@ -18,9 +20,13 @@ async def get_character(character_id: str):
         },
     )
     if not character:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Character with ID '{character_id}' not found",
+        await ensure_character_exists(character_id)
+        character = await db.character.find_unique(
+            where={"id": character_id},
+            include={
+                "stats": True,
+                "history": True,
+            },
         )
     return character
 
@@ -30,12 +36,7 @@ async def update_character(character_id: str, payload: CharacterUpdateSchema):
     """
     Accept optional identity fields (name, title, theme, avatar) and update the Character record.
     """
-    existing = await db.character.find_unique(where={"id": character_id})
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Character with ID '{character_id}' not found",
-        )
+    existing = await ensure_character_exists(character_id)
 
     update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
 
@@ -59,12 +60,7 @@ async def sync_progression(character_id: str, payload: ProgressionSyncSchema):
     Accept total_exp, level, power, rank, and history_entry to update progression stats
     and append a new ProgressHistory entry.
     """
-    existing = await db.character.find_unique(where={"id": character_id})
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Character with ID '{character_id}' not found",
-        )
+    await ensure_character_exists(character_id)
 
     # Update character progression attributes
     await db.character.update(

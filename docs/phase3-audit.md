@@ -84,24 +84,42 @@ Strict TypeScript interfaces defined in `client/src/features/habits/types/habit.
 
 ---
 
-## 4. Phase 3 Deliverable Roadmap
+## 4. Phase 3 Deliverable Roadmap & Audit Verification
 
 1. **Step 1: Data Model & Type System (Completed)**
-   - Prisma schema updated, formatted, and synced.
+   - Prisma schema updated, formatted, and synced (`Habit`, `HabitSchedule`, `HabitMetrics`, `Mission`).
    - Client habit types created & verified via Next.js TypeScript check.
 
 2. **Step 2: Core Math Engine & Utilities (Completed)**
-   - Implemented `rewardFormula.ts`: `getBaseReward` (Easy: 15 EXP/5 Gold/2 Stat, Medium: 35 EXP/12 Gold/5 Stat, Hard: 75 EXP/25 Gold/10 Stat) & `calculateFinalReward` (MINI: 40%, NORMAL: 100%, ELITE: 170%).
-   - Implemented `habitStrength.ts`: `calculateConsistency` (with zero-division protection) & `calculateNewHabitStrength` (MINI: +0.5, NORMAL: +1.0, ELITE: +2.0, MISSED: -5.0, clamped 0.0–100.0).
-   - Created Vitest test suite `habitMath.test.ts` (16/16 tests passed cleanly).
+   - Implemented `rewardFormula.ts`: `getBaseReward` (Easy: 15/5/2, Medium: 35/12/5, Hard: 75/25/10) & `calculateFinalReward` (MINI: 40%, NORMAL: 100%, ELITE: 170%).
+   - Implemented `habitStrength.ts`: `calculateConsistency` (zero-division protected) & `calculateNewHabitStrength` (MINI: +0.5, NORMAL: +1.0, ELITE: +2.0, MISSED: -5.0, clamped 0.0–100.0).
+   - Created Vitest test suite `habitMath.test.ts` (16/16 tests passed cleanly, 25/25 total client suite).
 
 3. **Step 3: Backend REST Services & FastAPI Routers (Completed)**
    - Created Pydantic validation schemas (`HabitCreateSchema`, `MissionCompleteSchema`) in `server/schemas/habit.py`.
-   - Created Habits router `server/routers/habits.py`: `POST /api/habits/{character_id}` (creates Habit, HabitSchedule, HabitMetrics) & `GET /api/habits/{character_id}`.
-   - Created Missions router `server/routers/missions.py`: `GET /api/missions/today/{character_id}` (Daily Mission Generator auto-instantiating today's missions) & `POST /api/missions/{mission_id}/complete` (logs completion & updates HabitMetrics).
+   - Created Habits router `server/routers/habits.py`: `POST /api/habits/{character_id}` & `GET /api/habits/{character_id}`.
+   - Created Missions router `server/routers/missions.py`: `GET /api/missions/today/{character_id}` (Daily Mission Generator) & `POST /api/missions/{mission_id}/complete`.
+   - Created `server/db_utils.py` fallback character creation helper to prevent 404s during mock sessions.
    - Mounted `habits.router` and `missions.router` in `server/main.py` and synced `docs/api.md`.
+
+4. **Step 4: State Management & Service Integration (Completed)**
+   - Created client service `habit.service.ts` with fetch wrappers (`createHabit`, `fetchHabits`, `fetchTodayMissions`, `completeMission`).
+   - Built `useHabitStore` Zustand store (`habits`, `todayMissions`, `isLoading`, `loadHabits`, `loadTodayMissions`, `createNewHabit`, `executeMissionCompletion`).
+   - Established Core Engine Bridge: `executeMissionCompletion` calculates math yields, optimistically updates state, invokes `useCharacterStore.getState().gainExp()`, and persists via background API call.
+
+5. **Step 5: Mission Creation Wizard UI (Completed)**
+   - Built `MissionWizard.tsx` with Framer Motion (`AnimatePresence`, `motion.div`) 6-step flow (Name/Desc, Category, Primary Stat, Difficulty, Schedule, Summary Preview).
+   - Displayed dynamic Base Reward yields (`getBaseReward`) and connected submission to `useHabitStore.createNewHabit()`.
+   - Created dedicated page route `client/src/app/(dashboard)/missions/create/page.tsx`.
 
 6. **Step 6: Daily Dashboard & Completion Flow (Completed)**
    - Built `MissionCard.tsx` with MINI (40%), NORMAL (100%), and ELITE (170%) completion tier action buttons.
    - Connected Dashboard Overview to `useHabitStore` and `useCharacterStore` via `useEffect` hooks.
    - Wired live quest completion to `executeMissionCompletion` (triggering instant level-ups, power score updates, EXP bar animations, and Sonner toasts).
+
+---
+
+## 5. Product Backlog & Deferred Enhancement Sync
+
+All future feature recommendations, deferred technical debt, and "Nice-to-Have" items from Phase 1 through Phase 3 master checklists have been parsed and consolidated into the official product backlog document at [`docs/future-features.md`](file:///d:/real%20ascend%20os/docs/future-features.md).
+
