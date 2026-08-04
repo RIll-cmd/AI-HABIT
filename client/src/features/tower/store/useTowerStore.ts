@@ -14,6 +14,7 @@ import { rollRarity, generateEquipmentStats } from "@/features/inventory/utils";
 import { EquipmentSlot } from "@/features/inventory/types";
 import { grantItem } from "@/features/inventory/services";
 import { useCharacterStore } from "@/store/useCharacterStore";
+import { playGeneralNotification } from "@/features/audio/useSystemAudio";
 
 export interface ActiveCombatState {
   result: BattleResult;
@@ -87,6 +88,7 @@ export const useTowerStore = create<TowerStore>((set, get) => ({
     let droppedItemRecord: any = null;
 
     if (result.isVictory) {
+      playGeneralNotification();
       // Calculate gold & EXP rewards
       const consistency = character?.stats?.consistency || 1;
       rewards = calculateFloorRewards(floor.floorNumber, consistency);

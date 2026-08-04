@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { InventoryRecord } from "../types";
 import { fetchInventory, equipItem, unequipItem } from "../services";
+import { playGeneralNotification } from "@/features/audio/useSystemAudio";
 
 export interface InventoryStore {
   inventory: InventoryRecord[];
@@ -31,6 +32,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   equip: async (characterId: string, inventoryId: string) => {
     const targetId = characterId || MOCK_CHARACTER_ID;
     try {
+      playGeneralNotification();
       await equipItem(targetId, inventoryId);
       await get().loadInventory(targetId);
     } catch (error) {
