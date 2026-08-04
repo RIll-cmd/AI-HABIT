@@ -84,3 +84,51 @@ Accepts total experience, current level, power score, rank classification, and a
 ```
 
 **Response**: Updated `Character` object with refreshed history array.
+
+## Habit Domain Routes
+
+### `POST /api/habits/{character_id}`
+Creates a new `Habit` template record along with 1:1 `HabitSchedule` and 1:1 `HabitMetrics` relations.
+
+**Request Body**:
+```json
+{
+  "name": "Morning Workout",
+  "description": "30-minute cardio and strength session",
+  "category": "Fitness",
+  "difficulty": "Medium",
+  "primaryStat": "strength",
+  "scheduleType": "Daily",
+  "scheduleDays": null,
+  "icon": "Dumbbell",
+  "color": "blue"
+}
+```
+
+**Response**: Full created `Habit` object including `schedule` and `metrics`.
+
+### `GET /api/habits/{character_id}`
+Returns all permanent habit templates for a character, including schedule configuration and metrics.
+
+**Response**: Array of `Habit` objects.
+
+## Mission Domain Routes
+
+### `GET /api/missions/today/{character_id}`
+**Daily Mission Generator**: Inspects active habit templates for the specified character, checks today's date boundary, generates missing `PENDING` mission instances for today, and returns all today's missions.
+
+**Response**: Array of today's `Mission` objects with included parent `Habit` relation.
+
+### `POST /api/missions/{mission_id}/complete`
+Marks a mission instance as `COMPLETED`, records completion tier (`MINI`, `NORMAL`, `ELITE`) and rewards (`expEarned`, `statsEarned`), and updates parent `HabitMetrics` habit strength.
+
+**Request Body**:
+```json
+{
+  "completionType": "ELITE",
+  "expEarned": 128,
+  "statsEarned": 17
+}
+```
+
+**Response**: Updated `Mission` object with included parent `Habit` relation.

@@ -31,6 +31,8 @@ Stores user profile avatar, name, RPG level, EXP, power score, rank, and customi
 - `createdAt` (DateTime)
 - `stats` (Relation 1:1 -> CharacterStats)
 - `history` (Relation 1:N -> ProgressHistory)
+- `habits` (Relation 1:N -> Habit)
+- `missions` (Relation 1:N -> Mission)
 
 ### CharacterStats
 Normalized 1:1 relation to Character containing core RPG stat attributes.
@@ -52,3 +54,52 @@ Normalized 1:N audit log tracking character experience gains, stat points, and l
 - `amount` (Int)
 - `description` (String)
 - `createdAt` (DateTime, Default: now())
+
+### Habit (Template)
+Permanent template definition for recurring habits.
+- `id` (String, PK, UUID)
+- `characterId` (String, FK -> Character.id, Cascade Delete)
+- `name` (String)
+- `description` (String, Optional)
+- `category` (String)
+- `difficulty` (String, 'Easy' | 'Medium' | 'Hard')
+- `primaryStat` (String, e.g. 'strength', 'knowledge')
+- `isActive` (Boolean, Default: true)
+- `icon` (String, Optional)
+- `color` (String, Optional)
+- `createdAt` (DateTime, Default: now())
+- `updatedAt` (DateTime, UpdatedAt)
+- `schedule` (Relation 1:1 -> HabitSchedule)
+- `metrics` (Relation 1:1 -> HabitMetrics)
+- `missions` (Relation 1:N -> Mission)
+
+### HabitSchedule
+Schedule configurations for a Habit template.
+- `id` (String, PK, UUID)
+- `habitId` (String, Unique, FK -> Habit.id, Cascade Delete)
+- `type` (String, 'Daily' | 'Weekly' | 'Monthly' | 'Specific_Days' | 'Custom')
+- `days` (String, Optional JSON string for specific days)
+- `interval` (Int, Default: 1)
+- `startDate` (DateTime)
+- `endDate` (DateTime, Optional)
+
+### HabitMetrics
+Performance and consistency metrics for a Habit.
+- `id` (String, PK, UUID)
+- `habitId` (String, Unique, FK -> Habit.id, Cascade Delete)
+- `habitStrength` (Float, Default: 100.0)
+- `successRate` (Float, Default: 0.0)
+- `completionRate` (Float, Default: 0.0)
+- `currentConsistency` (Float, Default: 0.0)
+
+### Mission (Instance)
+Daily generated execution instance derived from a Habit template.
+- `id` (String, PK, UUID)
+- `habitId` (String, Optional, FK -> Habit.id, SetNull)
+- `characterId` (String, FK -> Character.id, Cascade Delete)
+- `date` (DateTime)
+- `status` (String, 'PENDING' | 'COMPLETED' | 'MISSED', Default: 'PENDING')
+- `completionType` (String, Optional, 'MINI' | 'NORMAL' | 'ELITE')
+- `expEarned` (Int, Optional)
+- `statsEarned` (Int, Optional)
+- `completedAt` (DateTime, Optional)

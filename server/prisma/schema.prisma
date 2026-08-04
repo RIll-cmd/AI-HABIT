@@ -14,32 +14,34 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
+  id        String   @id @default(uuid())
+  email     String   @unique
   password  String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   character Character?
 }
 
 model Character {
-  id        String            @id @default(uuid())
-  userId    String            @unique
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   avatar    String?
   theme     String?
   title     String?
-  level     Int               @default(1)
-  exp       Int               @default(0)
-  power     Int               @default(0)
-  rank      String            @default("F")
-  gold      Int               @default(0)
-  createdAt DateTime          @default(now())
+  level     Int      @default(1)
+  exp       Int      @default(0)
+  power     Int      @default(0)
+  rank      String   @default("F")
+  gold      Int      @default(0)
+  createdAt DateTime @default(now())
 
-  stats     CharacterStats?
-  history   ProgressHistory[]
+  stats    CharacterStats?
+  history  ProgressHistory[]
+  habits   Habit[]
+  missions Mission[]
 }
 
 model CharacterStats {
@@ -47,13 +49,13 @@ model CharacterStats {
   characterId String    @unique
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
-  strength    Int       @default(1)
-  knowledge   Int       @default(1)
-  discipline  Int       @default(1)
-  focus       Int       @default(1)
-  endurance   Int       @default(1)
-  recovery    Int       @default(1)
-  consistency Int       @default(1)
+  strength    Int @default(1)
+  knowledge   Int @default(1)
+  discipline  Int @default(1)
+  focus       Int @default(1)
+  endurance   Int @default(1)
+  recovery    Int @default(1)
+  consistency Int @default(1)
 }
 
 model ProgressHistory {
@@ -64,5 +66,60 @@ model ProgressHistory {
   type        String
   amount      Int
   description String
+  createdAt   DateTime @default(now())
+}
+
+model Habit {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  category    String
+  difficulty  String // 'Easy', 'Medium', 'Hard'
+  primaryStat String // 'strength', 'knowledge', etc.
+  isActive    Boolean   @default(true)
+  icon        String?
+  color       String?
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  schedule HabitSchedule?
+  metrics  HabitMetrics?
+  missions Mission[]
+}
+
+model HabitSchedule {
+  id        String    @id @default(uuid())
+  habitId   String    @unique
+  habit     Habit     @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  type      String // 'Daily', 'Weekly', 'Monthly', 'Specific_Days', 'Custom'
+  days      String? // JSON array string for specific days
+  interval  Int       @default(1)
+  startDate DateTime
+  endDate   DateTime?
+}
+
+model HabitMetrics {
+  id                 String @id @default(uuid())
+  habitId            String @unique
+  habit              Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habitStrength      Float  @default(100.0)
+  successRate        Float  @default(0.0)
+  completionRate     Float  @default(0.0)
+  currentConsistency Float  @default(0.0)
+}
+
+model Mission {
+  id             String    @id @default(uuid())
+  habitId        String?
+  habit          Habit?    @relation(fields: [habitId], references: [id], onDelete: SetNull)
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  date           DateTime
+  status         String    @default("PENDING") // 'PENDING', 'COMPLETED', 'MISSED'
+  completionType String? // 'MINI', 'NORMAL', 'ELITE'
+  expEarned      Int?
+  statsEarned    Int?
+  completedAt    DateTime?
 }

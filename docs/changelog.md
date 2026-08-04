@@ -4,6 +4,74 @@ All notable changes and architectural implementations for **Ascend OS (AI-Powere
 
 ---
 
+## [Phase 3 Step 1 - Habit Engine Foundation] - 2026-08-04
+
+### 1. Database Schema & Data Models (`server/prisma/schema.prisma`)
+- **`Habit` (Template Model)**: Normalized model for permanent habit templates (`id`, `characterId`, `name`, `description`, `category`, `difficulty`, `primaryStat`, `isActive`, `icon`, `color`, `createdAt`, `updatedAt`).
+- **`HabitSchedule` Model**: 1:1 relation with `Habit` for schedule configuration (`type`, `days`, `interval`, `startDate`, `endDate`).
+- **`HabitMetrics` Model**: 1:1 relation with `Habit` tracking `habitStrength` (default 100.0), `successRate`, `completionRate`, and `currentConsistency`.
+- **`Mission` (Instance Model)**: Normalized model for daily generated instances (`id`, `habitId`, `characterId`, `date`, `status`, `completionType`, `expEarned`, `statsEarned`, `completedAt`).
+- **Database & Client Sync**: Ran Prisma format, SQLite db push, and client code generators (`@prisma/client` JS & Python `prisma` SDK).
+
+### 2. Client Feature Directory & Type System (`client/src/features/habits/`)
+- **Directory Structure**: Initialized `client/src/features/habits/` subdirectories: `components`, `hooks`, `services`, `utils`, `types`, `store`.
+- **TypeScript Type System** (`client/src/features/habits/types/habit.ts`): Built strict TypeScript interfaces and literal unions (`HabitDifficulty`, `ScheduleType`, `MissionStatus`, `CompletionType`, `Habit`, `HabitSchedule`, `HabitMetrics`, `Mission`).
+- **Verification**: Confirmed clean TypeScript compilation (`npx tsc --noEmit`) with 0 errors across Next.js client.
+
+---
+
+### 3. Core Habit Engine Pure Math & Unit Tests (`client/src/features/habits/utils/`)
+- **`rewardFormula.ts`**: Pure functions `getBaseReward(difficulty)` (Easy: 15 EXP/5 Gold/2 Stat, Medium: 35 EXP/12 Gold/5 Stat, Hard: 75 EXP/25 Gold/10 Stat) & `calculateFinalReward(baseReward, completionType)` scaling by MINI (0.4x), NORMAL (1.0x), ELITE (1.7x) rounded.
+- **`habitStrength.ts`**: Pure functions `calculateConsistency(completed, expected)` with zero-division guard and `calculateNewHabitStrength(currentStrength, status, completionType)` applying gains (MINI: +0.5, NORMAL: +1.0, ELITE: +2.0) or miss decay (-5.0) clamped to [0.0, 100.0].
+- **Unit Testing** (`client/src/features/habits/utils/habitMath.test.ts`): Built Vitest test suite covering 16 edge cases (reward scaling, rounding, consistency division safety, strength growth/decay caps). Executed with 100% pass rate (25/25 total client unit tests passing).
+
+---
+
+### 4. FastAPI Backend Endpoints & Daily Mission Generator (`server/`)
+- **Pydantic Validation Schemas** (`server/schemas/habit.py`): Defined `HabitCreateSchema` (validating name, description, category, difficulty, primaryStat, scheduleType, scheduleDays) and `MissionCompleteSchema` (strict `Literal['MINI', 'NORMAL', 'ELITE']` completionType, expEarned, statsEarned).
+- **Habits Router** (`server/routers/habits.py`):
+  - `POST /api/habits/{character_id}`: Creates a Habit template record along with 1:1 `HabitSchedule` and 1:1 `HabitMetrics` default relations.
+  - `GET /api/habits/{character_id}`: Returns all habit templates for a character.
+- **Missions Router** (`server/routers/missions.py`):
+  - `GET /api/missions/today/{character_id}` (Daily Mission Generator): Evaluates active habit templates, checks today's date boundary, auto-generates missing `PENDING` mission instances, and returns all today's missions.
+  - `POST /api/missions/{mission_id}/complete`: Marks a mission instance as `COMPLETED`, records completion tier and rewards, and updates parent `HabitMetrics` habit strength.
+- **Server Integration & API Documentation**: Mounted routers in `server/main.py` and updated `docs/api.md`. Verified clean Python bytecode compilation.
+
+
+---
+
+### 7. Daily Dashboard & Tier Completion Flow (`client/`)
+- **`MissionCard.tsx` Component** (`client/src/features/habits/components/MissionCard.tsx`): Reusable mission item card displaying habit metadata, category badge, difficulty tier, primary stat icon, and completion tier actions (**MINI 40%**, **NORMAL 100%**, **ELITE 170%**). Displays completion badge when finished.
+- **Dashboard Overview Integration** ([`client/src/features/dashboard/components/DashboardOverview.tsx`](file:///d:/real%20ascend%20os/client/src/features/dashboard/components/DashboardOverview.tsx)):
+  - Connected `useHabitStore` and `useCharacterStore` with auto-mounting `useEffect` hooks.
+  - Rendered personalized greeting (*"Good Morning, {character.name}"*).
+  - Integrated Daily Mission Board feed mapping `todayMissions` to `MissionCard` components.
+  - Wired live completion actions to `executeMissionCompletion`, instantly rewarding EXP/Stats, updating power scores, animating level-ups, and logging activity history.
+  - Added empty state card with "+ Forge Habit Mission" CTA.
+- **Verification**: Clean TypeScript compilation (`npx tsc --noEmit`) and 25/25 unit tests passing.
+
+
+### 6. Mission Creation Wizard UI Component & Page Route (`client/`)
+- **`MissionWizard.tsx` Component** (`client/src/features/habits/components/MissionWizard.tsx`): 6-step animated wizard using Framer Motion (`AnimatePresence`, `motion.div`) styled with dark RPG tokens (`#151C33` card surface, `#0B1020` inputs/previews, ambient blue/purple radial glows).
+  - Step 1: Habit Name & Description.
+  - Step 2: Domain Category grid selector (*Health, Fitness, Productivity, Mindfulness, Learning, Finance*).
+  - Step 3: Primary Stat attribute selector (*Strength, Knowledge, Discipline, Focus, Endurance, Recovery, Consistency*).
+  - Step 4: Difficulty tier selector (*Easy, Medium, Hard*).
+  - Step 5: Schedule cadence selector (*Daily, Weekly, Monthly*).
+  - Step 6: Confirmation Summary Card showing selected parameters and dynamic `getBaseReward` yield calculation (EXP, Gold, Stat points).
+- **Dedicated Page Route** ([`client/src/app/(dashboard)/missions/create/page.tsx`](file:///d:/real%20ascend%20os/client/src/app/%28dashboard%29/missions/create/page.tsx)): Centered wizard page.
+- **Verification**: Clean TypeScript compilation (`npx tsc --noEmit`) and 25/25 unit tests passing.
+
+
+### 5. Habit Service Layer & Zustand Engine Bridge (`client/src/features/habits/`)
+- **Client API Service** (`client/src/features/habits/services/habit.service.ts`): Async fetch wrappers for FastAPI backend endpoints (`createHabit`, `fetchHabits`, `fetchTodayMissions`, `completeMission`).
+- **Habit Zustand Store** (`client/src/features/habits/store/useHabitStore.ts`):
+  - State: `habits: Habit[]`, `todayMissions: Mission[]`, `isLoading: boolean`.
+  - Actions: `loadHabits`, `loadTodayMissions`, `createNewHabit` (creates habit and refreshes mission board), `executeMissionCompletion`.
+- **Habit $\rightarrow$ Character Engine Bridge**: `executeMissionCompletion` calculates exact EXP/Stat yields via pure math (`getBaseReward`, `calculateFinalReward`), optimistically updates `todayMissions` state to `COMPLETED`, triggers `useCharacterStore.getState().gainExp(calculatedExp, reason)` (leveling up character, updating power/rank, showing toast notifications), and fires non-blocking background API persistence.
+- **Verification**: Clean TypeScript compilation (`npx tsc --noEmit`) and 25/25 unit test suite pass.
+
+
 ## [Phase 2 Completion] - 2026-08-03
 
 ### 1. Database Schema Expansion & Normalization (`server/prisma/schema.prisma`)
