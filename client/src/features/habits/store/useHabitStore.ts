@@ -10,6 +10,7 @@ import {
 } from "../services/habit.service";
 import { eventBus } from "@/features/progression/services/EventBus";
 import "@/features/progression/services/ProgressionEngine";
+import { playConfirmedSound } from "@/features/audio/useSystemAudio";
 
 export interface HabitStore {
   habits: Habit[];
@@ -88,6 +89,8 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
   ) => {
     const baseReward = getBaseReward(habit.difficulty);
     const finalReward = calculateFinalReward(baseReward, completionType);
+
+    playConfirmedSound();
 
     set((state) => ({
       todayMissions: state.todayMissions.map((m) =>

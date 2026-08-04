@@ -39,6 +39,7 @@ import {
 } from "@/features/progression/components";
 import { useProgressionEvents } from "@/features/progression/hooks";
 import { calculateLevelData } from "@/features/progression/utils";
+import { playSystemOpen } from "@/features/audio/useSystemAudio";
 
 export function DashboardOverview() {
   const { character, loadCharacter } = useCharacterStore();
@@ -195,14 +196,14 @@ export function DashboardOverview() {
                 <span>AI System Panel</span>
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Ciel Administrator
+                AIRA System Administrator
               </CardDescription>
             </div>
             <Badge
               variant="secondary"
               className="text-[10px] font-mono text-purple-300 bg-purple-950/50"
             >
-              CIEL v1.0
+              AIRA v1.0
             </Badge>
           </CardHeader>
 
@@ -210,7 +211,7 @@ export function DashboardOverview() {
             <div className="p-3.5 rounded-[14px] bg-[#0B1020] border border-white/10 space-y-2">
               <div className="flex items-center gap-2 text-purple-300 font-mono text-xs font-semibold">
                 <Zap className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-                <span>Ciel Vector Analyzer Online</span>
+                <span>AIRA Vector Analyzer Online</span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed font-sans">
                 &quot;Welcome back, Ascendant {name}. Today you have{" "}
@@ -227,9 +228,10 @@ export function DashboardOverview() {
               size="sm"
               asChild
               className="w-full text-xs border-white/10 bg-white/5 hover:bg-white/10"
+              onClick={() => playSystemOpen()}
             >
-              <Link href="/ai-system">
-                Open Ciel Interface <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              <Link href="/aira">
+                Open AIRA Interface <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Link>
             </Button>
           </CardFooter>

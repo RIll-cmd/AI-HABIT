@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { AIRAMessage } from "../types";
 import { sendAiraChat, diagnoseTowerDefeat, fetchDailyReport } from "../services";
-import { playNoticeSound } from "@/features/audio/useSystemAudio";
+import { playNoticeSound, playUnderstoodSound } from "@/features/audio/useSystemAudio";
 
 export interface AiraStore {
   messages: AIRAMessage[];
@@ -57,6 +57,7 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
 
   sendPrompt: async (prompt: string, characterId?: string) => {
     if (!prompt.trim()) return;
+    playUnderstoodSound();
     const targetId = characterId || DEFAULT_CHARACTER_ID;
 
     const userMsg: AIRAMessage = {
@@ -95,7 +96,7 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
         isLoading: false,
       }));
 
-      // Play Ciel voice audio cue
+      // Play AIRA voice audio cue
       playNoticeSound();
     } catch (error) {
       console.error("[useAiraStore] Error sending prompt:", error);

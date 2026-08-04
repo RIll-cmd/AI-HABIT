@@ -13,30 +13,59 @@ AIRA_SYSTEM_PROMPT = """You are AIRA (Artificial Intelligence Resonance Administ
 - Frame stats and performance mathematically with precise percentages.
 - Keep answers concise, high-tech, and immersive. Never break character."""
 
-genai_module = None
-model = None
+def get_gemini_client():
+    """
+    Loads GEMINI_API_KEY from environment and initializes the new google-genai Client.
+    """
+    load_dotenv(override=True)
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
-try:
-    import google.generativeai as genai
-    genai_module = genai
-    if GEMINI_API_KEY and GEMINI_API_KEY != "your-api-key-here":
-        genai.configure(api_key=GEMINI_API_KEY)
-        try:
-            model = genai.GenerativeModel(
-                model_name="gemini-2.5-flash",
-                system_instruction=AIRA_SYSTEM_PROMPT,
-            )
-        except Exception:
+    if not api_key or api_key == "your-api-key-here":
+        print("[AIRA Service Warning] GEMINI_API_KEY missing or invalid in server/.env. Using local Ciel fallback persona.")
+        return None
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        return client
+    except Exception as e:
+        print(f"[AIRA Service Warning] Failed to initialize google.genai Client: {e}")
+        return None
+
+
+def call_gemini_generate(client, prompt: str) -> Optional[str]:
+    """
+    Calls client.models.generate_content using google-genai SDK.
+    """
+    try:
+        from google.genai import types
+        config = types.GenerateContentConfig(
+            system_instruction=AIRA_SYSTEM_PROMPT
+        )
+        for model_name in [
+            "gemini-flash-latest",
+            "gemini-flash-lite-latest",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash",
+        ]:
             try:
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    system_instruction=AIRA_SYSTEM_PROMPT,
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config,
                 )
-            except Exception:
-                model = None
-except ImportError:
-    genai_module = None
-    model = None
+                if response and response.text:
+                    print(f"[AIRA Service Success] Response generated using model '{model_name}'.")
+                    return response.text.strip()
+            except Exception as e:
+                print(f"[AIRA Service Debug] Model '{model_name}' failed: {type(e).__name__}: {e}")
+                continue
+        return None
+    except Exception as e:
+        print(f"[AIRA Service Warning] google-genai call failed: {e}")
+        return None
 
 
 def format_character_context(character_context: Dict[str, Any]) -> str:
@@ -73,13 +102,11 @@ async def generate_aira_response(prompt: str, character_context: Dict[str, Any])
     context_str = format_character_context(character_context)
     full_prompt = f"[System Context]\n{context_str}\n\n[Master Prompt]\n{prompt}"
 
-    if model:
-        try:
-            response = model.generate_content(full_prompt)
-            if response and response.text:
-                return response.text.strip()
-        except Exception as e:
-            print(f"[AIRA Service Warning] Gemini API call failed: {e}")
+    client = get_gemini_client()
+    if client:
+        result_text = call_gemini_generate(client, full_prompt)
+        if result_text:
+            return result_text
 
     power = character_context.get("power", 50)
     level = character_context.get("level", 1)
@@ -113,13 +140,11 @@ async def diagnose_tower_defeat(
         f"to increase the deficient stat and raise Master's victory probability above 95%."
     )
 
-    if model:
-        try:
-            response = model.generate_content(prompt)
-            if response and response.text:
-                return response.text.strip()
-        except Exception as e:
-            print(f"[AIRA Service Warning] Gemini Defeat Diagnosis call failed: {e}")
+    client = get_gemini_client()
+    if client:
+        result_text = call_gemini_generate(client, prompt)
+        if result_text:
+            return result_text
 
     stats = character_data.get("stats") or {}
     rec = stats.get("recovery", 1)
@@ -157,13 +182,11 @@ async def generate_daily_report(
         f"consistency calculation, pending Skill Acquisitions, and a quietly devoted encouragement."
     )
 
-    if model:
-        try:
-            response = model.generate_content(prompt)
-            if response and response.text:
-                return response.text.strip()
-        except Exception as e:
-            print(f"[AIRA Service Warning] Gemini Daily Report call failed: {e}")
+    client = get_gemini_client()
+    if client:
+        result_text = call_gemini_generate(client, prompt)
+        if result_text:
+            return result_text
 
     power = character_context.get("power", 50)
     name = character_context.get("name", "Master")

@@ -3,22 +3,28 @@ node_modules/
 .pnp/
 .pnp.js
 
-# Next.js
+# Node / Frontend Build Artifacts
+.next/
+out/
+build/
+dist/
 /client/.next/
 /client/out/
 /client/build/
 /client/dist/
 
-# Python
+# Python & Virtual Environments
 venv/
 .venv/
 env/
 ENV/
+server/venv/
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
 
-# SQLite / Database
+# Local Databases & Storage
 *.db
 *.db-journal
 *.sqlite
@@ -26,15 +32,19 @@ __pycache__/
 server/dev.db
 server/dev.db-journal
 
-# Environment variables
+# Environment & Secret Files
 .env
 .env.local
+.env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
+server/.env
+client/.env.local
 
-# IDE / OS
+# IDE, OS & System Logs
 .vscode/
 .idea/
+*.log
 .DS_Store
 Thumbs.db

@@ -72,7 +72,7 @@ export default function AiraTerminalPage() {
                     AIRA Core Terminal
                   </h1>
                   <Badge variant="outline" className="text-[10px] bg-cyan-950 text-cyan-300 border-cyan-500/40 font-mono">
-                    Ciel Protocol v2.5
+                    AIRA Protocol v2.5
                   </Badge>
                 </div>
                 <p className="text-xs text-slate-400 font-mono">

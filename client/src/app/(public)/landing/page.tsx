@@ -49,7 +49,7 @@ export default function LandingPage() {
         <p className="mt-6 text-base md:text-lg text-slate-300 max-w-2xl font-sans leading-relaxed">
           Level up your physical attributes, master habits, conquer daily
           quests, and let AI Administrator{" "}
-          <span className="text-blue-400 font-semibold">Ciel</span> guide your
+          <span className="text-blue-400 font-semibold">AIRA</span> guide your
           evolution.
         </p>
 
@@ -99,7 +99,7 @@ export default function LandingPage() {
 
           <div className="p-5 rounded-[20px] bg-[#151C33]/80 border border-white/10 backdrop-blur-sm text-center hover:border-purple-500/30 transition-all">
             <div className="text-2xl md:text-3xl font-bold font-mono text-purple-400">
-              Ciel AI
+              AIRA AI
             </div>
             <div className="text-xs text-slate-400 font-sans mt-1">
               System Guidance
@@ -145,7 +145,7 @@ export default function LandingPage() {
                 <CardTitle className="text-xl">AI System Guidance</CardTitle>
                 <CardDescription className="text-xs text-slate-400">
                   Autonomous feedback loops provided by system administrator
-                  Ciel.
+                  AIRA.
                 </CardDescription>
               </CardHeader>
               <CardContent>

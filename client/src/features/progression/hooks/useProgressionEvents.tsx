@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Trophy, Sparkles, Zap } from "lucide-react";
 import { eventBus } from "../services/EventBus";
 import { useCharacterStore } from "@/store/useCharacterStore";
+import { playEvolutionSound, playSkillSound } from "@/features/audio/useSystemAudio";
 
 export function useProgressionEvents() {
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
@@ -23,6 +24,7 @@ export function useProgressionEvents() {
   useEffect(() => {
     // 1. RANK_ASCENDED Listener
     const unsubRank = eventBus.subscribe("RANK_ASCENDED", (payload) => {
+      playEvolutionSound();
       const currentRank = useCharacterStore.getState().character?.rank || "F";
       setRankModalData({
         oldRank: currentRank,
@@ -33,6 +35,7 @@ export function useProgressionEvents() {
 
     // 2. ACHIEVEMENT_UNLOCKED Listener
     const unsubAchievement = eventBus.subscribe("ACHIEVEMENT_UNLOCKED", (payload) => {
+      playSkillSound();
       toast.success(
         `ACHIEVEMENT UNLOCKED: ${payload.achievementName || "Milestone Cleared"}!`,
         {
@@ -46,6 +49,7 @@ export function useProgressionEvents() {
 
     // 3. LEVEL_UP Listener
     const unsubLevel = eventBus.subscribe("LEVEL_UP", (payload) => {
+      playEvolutionSound();
       toast.success(`LEVEL UP! You reached Level ${payload.newLevel}!`, {
         description: "Your combat power and stat capacity have expanded!",
         icon: <Zap className="w-5 h-5 text-blue-400" />,
