@@ -2,6 +2,42 @@
 
 All notable changes and architectural implementations for **Ascend OS (AI-Powered Life RPG Platform)** are documented in this file.
 
+## [Phase 6 Completion - The Inventory Engine & Procedural Loot] - 2026-08-04
+
+### 1. Database Schema & Data Layer (`server/prisma/schema.prisma`)
+- **`Item` (Template Model)**: Normalized item templates (`id`, `name`, `description`, `lore`, `category`, `rarity`, `icon`, `sellPrice`, `buyPrice`, `maxStack`, `levelRequirement`, `createdAt`).
+- **`Equipment` (Details Model)**: 1:1 relation to `Item` storing equipment slot (`Weapon`, `Helmet`, `Armor`, `Gloves`, `Boots`, `Ring`, `Necklace`, `Artifact`, `Relic`), attribute bonuses (`strength`, `knowledge`, `recovery`, `focus`, `discipline`, `endurance`, `attack`, `defense`, `hp`), and `setName`.
+- **`Consumable` (Details Model)**: 1:1 relation to `Item` storing `effect`, `duration`, and `cooldown`.
+- **`Inventory` (Instance Model)**: 1:N character instance relation linking `Character` to `Item` with `quantity`, `isEquipped`, and `obtainedAt`.
+- **ORM Synchronization**: Formatted schema, updated SQLite database (`prisma db push`), and regenerated JS `@prisma/client` and Python `prisma` SDKs.
+
+### 2. Client Domain Types & Pure Math Utilities (`client/src/features/inventory/`)
+- **TypeScript Domain Types** (`types/inventory.ts`): Defined `ItemCategory`, `ItemRarity`, `EquipmentSlot` literal unions and `Item`, `Equipment`, `Consumable`, `InventoryRecord` interfaces.
+- **Rarity Calculator** (`utils/rarityCalculator.ts`): Weighted rarity generator (`Common` to `Ancient`) scaled by character `Consistency` luck modifier, with rarity multiplier table ($1.0\times$ to $10.0\times$).
+- **Equipment Generator** (`utils/equipmentGenerator.ts`): Procedural equipment generator scaling slot-appropriate attributes by floor height and rarity multipliers.
+- **Combat Stat Calculator** (`utils/combatStatCalculator.ts`): Pure function merging base character attributes with equipped item bonuses into combined `CombatStats` without mutating `baseStats`.
+- **Unit Test Suite** (`utils/inventoryMath.test.ts`): Vitest test suite verifying rarity rolling, equipment stat scaling, and base stats immutability (`43/43 tests passing`).
+
+### 3. FastAPI REST Router & Server Logic (`server/routers/inventory.py`)
+- **`GET /api/inventory/{character_id}`**: Fetches all character inventory records with nested `Item`, `Equipment`, and `Consumable` relations.
+- **`POST /api/inventory/{character_id}/grant`**: Grants item template and inventory record to character.
+- **`POST /api/inventory/{character_id}/equip/{inventory_id}`**: Equips item and enforces **single-slot equipment swapping** by setting `isEquipped = false` on any item currently occupying the same equipment slot.
+- **`POST /api/inventory/{character_id}/unequip/{inventory_id}`**: Sets `isEquipped = false` on target inventory record.
+- **Main Server Integration**: Mounted `inventory.router` in `server/main.py` and updated `docs/api.md`.
+
+### 4. Inventory Store & UI Components (`client/src/features/inventory/`)
+- **Zustand Store** (`store/useInventoryStore.ts`): Manages `inventory` records, `loadInventory`, `equip`, and `unequip` server synchronization.
+- **`ItemCard.tsx`**: Dynamic item card styled with rarity borders and subtle glows (`Common` to `Ancient`), featuring equipment stat callouts and Equip/Unequip triggers.
+- **`EquipmentPanel.tsx`**: Visual 9-slot paper doll matrix (`Weapon`, `Helmet`, `Armor`, `Gloves`, `Boots`, `Ring`, `Necklace`, `Artifact`, `Relic`) with total combined combat stats banner.
+- **`InventoryGrid.tsx`**: Responsive grid of unequipped bag items with category filters (*All, Equipment, Consumable, Material, Relic*) and search bar.
+- **Inventory Page Route** (`client/src/app/(dashboard)/inventory/page.tsx`): Mounted at `/inventory` route with top vault header overview.
+
+### 5. Procedural Tower Loot Integration (`client/src/features/tower/store/useTowerStore.ts`)
+- **Tower Loot Engine**: Triggers $100\%$ drop rate on Boss floors ($25\%$ standard), selects random equipment slot, generates scaled equipment stats, and persists loot via server `grantItem` endpoint.
+- **Loot Drop Banner** (`CombatScreen.tsx`): Displays animated **"✨ LOOT ACQUIRED!"** banner on floor victory whenever loot drops.
+
+---
+
 ## [Phase 5 Completion - The Tower Engine] - 2026-08-04
 
 ### 1. Database Schema & Data Layer (`server/prisma/schema.prisma`)

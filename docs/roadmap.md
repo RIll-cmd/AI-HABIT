@@ -44,11 +44,15 @@
 - [x] FastAPI REST Endpoints & Auto-seeder (`/api/tower`, `/api/tower/{id}/floors/{char_id}`, `/api/tower/floors/{id}/combat/{char_id}`).
 - [x] Client services, Zustand store & UI components (`TowerMap.tsx`, `CombatScreen.tsx`, `/tower` page route).
 
-## Phase 6: Gear, Inventory & Relic Engine
-- [ ] Equipment loot drop table engine (Common to Mythic gear).
-- [ ] Stat point allocation wizard & interactive gear inventory UI (`/inventory`).
-- [ ] Multi-Tower Spire Expansions (*Tower of Knowledge*, *Tower of Strength*, *Tower of Discipline*).
+## Phase 6: Inventory & Equipment Engine (Completed)
+- [x] Database Expansion (`Item`, `Equipment`, `Consumable`, `Inventory` in SQLite via Prisma).
+- [x] Pure Loot & Combat Stat Math (`rarityCalculator.ts`, `equipmentGenerator.ts`, `combatStatCalculator.ts`).
+- [x] Vitest test suite with 100% pass rate (`inventoryMath.test.ts`, 43/43 total client tests).
+- [x] FastAPI REST Endpoints & Single-Slot Logic (`/api/inventory/{id}`, `/grant`, `/equip`, `/unequip`).
+- [x] Client Services, Zustand Store & UI Components (`EquipmentPanel.tsx`, `InventoryGrid.tsx`, `ItemCard.tsx`, `/inventory` page route).
+- [x] Procedural Tower Loot Drop Integration (`useTowerStore.ts` & `CombatScreen.tsx`).
 
 ## Phase 7: AI System Administrator (Ciel)
 - [ ] Ciel AI reflective dialogue and mission optimization vector analysis.
 - [ ] Automated Defeat Analysis linking combat loss causes to habit recommendations.
+- [ ] The Lore Codex, Equipment Set Bonuses, and Potion Consumable Crafting.

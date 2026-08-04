@@ -75,13 +75,15 @@ Production security, session management, and authentication pipelines.
 
 ---
 
-## 6. Phase 6: Tower Gear, Multi-Spire & AI Administrator (Ciel)
+## 6. Phase 6: Codex, Equipment Sets & AI Administrator (Ciel)
 
-RPG inventory equipment, specialized multi-tower spires, defeat analysis, and Generative AI habit optimization.
+Lore compendiums, equipment set bonuses, alchemy crafting, and Generative AI habit optimization.
 
 | Feature / Enhancement | Category | Target Scope | Description |
 | :--- | :--- | :--- | :--- |
-| **Equipment & Relic Inventory System** | RPG Loot | `/inventory` | Loot drop table engine awarding gear (Weapon, Armor, Relic) across 7 rarity tiers (*Common* to *Ancient*). Features equipping slots, permanent attribute boosts, and inventory management UI. |
+| **The Lore Codex Compendium UI** | Collection / Lore | `/codex` | Interactive compendium tracking discovered weapons, armor, relics, monsters, and bosses. Unlocks flavor lore entries, global collection percentages, and completion achievements. |
+| **Equipment Set Bonus System** | RPG Mechanics | Inventory Engine | Grants passive attribute buffs when wearing matching set pieces (e.g. *2-piece Guardian: Defense +15*, *3-piece Guardian: Recovery +20 & Damage Reduction +10%*). |
+| **Consumables & Alchemy Forge Crafting** | Economy System | `/crafting` | Potion consumption for temporary combat buffs and blacksmith forge crafting combining monster cores, dragon scales, and crystals into epic equipment. |
 | **Multi-Tower Spire Expansions** | Dungeon World | `/tower` | Specialized themed towers (*Tower of Knowledge*, *Tower of Strength*, *Tower of Discipline*, *Tower of Eternity*) testing specific stat builds and awarding unique title trophies. |
 | **AI Defeat Analysis Diagnostic** | AI System | Combat Modal | Automated post-combat diagnostic analyzing combat loss logs and recommending target real-life habits based on the attribute deficit that caused the defeat (e.g., *"Recovery too low. Complete 3 Sleep missions to increase HP"*). |
 | **Ciel AI Dynamic Dialogue & Vector Feedback** | GenAI / LLM | AI System Panel | Integrate Gemini / LLM API for Ciel. Ciel analyzes user habit consistency, provides daily motivational dialogues, and suggests AI-generated mission adjustments. |
