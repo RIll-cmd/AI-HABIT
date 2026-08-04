@@ -248,3 +248,53 @@ Unequips an inventory item (`isEquipped = false`).
 
 **Response**: Status response object with updated `Inventory` record.
 
+## AIRA System Domain Routes
+
+### `POST /api/aira/chat`
+Accepts a user prompt and character ID, injects current character attributes/stats as context, and returns AIRA's Ciel-style response.
+
+**Request Body**:
+```json
+{
+  "prompt": "AIRA, what is my current battle readiness?",
+  "characterId": "char-id-123"
+}
+```
+
+**Response**:
+```json
+{
+  "response": "<< Report. >> Analysis complete with 100% calculation accuracy. Master's current Power Score is registered at 1250..."
+}
+```
+
+### `POST /api/aira/diagnose-defeat`
+Accepts turn battle logs and character data, processes a tactical defeat diagnosis through AIRA, and returns her analytical recommendation.
+
+**Request Body**:
+```json
+{
+  "battleLogs": ["Turn 1: You strike Floor 10 Boss for 25 damage...", "Floor 10 Boss attacks you for 150 damage..."],
+  "characterId": "char-id-123",
+  "floorNumber": 10
+}
+```
+
+**Response**:
+```json
+{
+  "diagnosis": "<< Report. >> Combat Simulation Analysis on Floor 10 complete. Calculation confirms a 100% probability that Master's defeat was caused by an Attribute deficit in Recovery..."
+}
+```
+
+### `GET /api/aira/daily-report/{character_id}`
+Aggregates character consistency, pending habits, and power score to generate AIRA's signature morning briefing (`<< Report. >>`).
+
+**Response**:
+```json
+{
+  "report": "<< Report. >> Good morning, Shadow Monarch. System diagnostic complete with 100% accuracy..."
+}
+```
+
+

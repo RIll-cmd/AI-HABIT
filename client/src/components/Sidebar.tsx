@@ -16,6 +16,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+import { playSystemOpen } from "@/features/audio/useSystemAudio";
+
 export function Sidebar() {
   const pathname = usePathname();
 
@@ -25,8 +27,8 @@ export function Sidebar() {
     { name: "Missions", href: "/missions", icon: Target },
     { name: "Tower", href: "/tower", icon: Flame },
     { name: "Inventory", href: "/inventory", icon: Package },
+    { name: "AIRA Terminal", href: "/aira", icon: Bot },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    { name: "AI System", href: "/ai-system", icon: Bot },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -60,6 +62,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={() => playSystemOpen()}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] text-xs font-semibold transition-all duration-150 ${
                 isActive
                   ? "bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm"
