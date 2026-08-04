@@ -38,10 +38,14 @@ model Character {
   gold      Int      @default(0)
   createdAt DateTime @default(now())
 
-  stats    CharacterStats?
-  history  ProgressHistory[]
-  habits   Habit[]
-  missions Mission[]
+  stats         CharacterStats?
+  history       ProgressHistory[]
+  habits        Habit[]
+  missions      Mission[]
+  achievements  CharacterAchievement[]
+  economyLogs   EconomyLog[]
+  towerProgress FloorProgress[]
+  inventory     Inventory[]
 }
 
 model CharacterStats {
@@ -122,4 +126,155 @@ model Mission {
   expEarned      Int?
   statsEarned    Int?
   completedAt    DateTime?
+}
+
+model Achievement {
+  id           String   @id @default(uuid())
+  name         String
+  description  String
+  icon         String?
+  rewardType   String // 'GOLD', 'EXP', 'TITLE'
+  rewardAmount Int
+  condition    String // event triggers like 'MISSIONS_100'
+  category     String // 'Habits', 'Workout', 'Social', etc.
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  characterAchievements CharacterAchievement[]
+}
+
+model CharacterAchievement {
+  id            String      @id @default(uuid())
+  characterId   String
+  character     Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([characterId, achievementId])
+}
+
+model EconomyLog {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  currency    String // 'GOLD', 'EXP'
+  amount      Int // can be negative for spent gold
+  reason      String
+  source      String // 'MISSION', 'ACHIEVEMENT', 'SHOP'
+  createdAt   DateTime  @default(now())
+}
+
+model Tower {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  theme       String
+  maxFloor    Int
+  createdAt   DateTime @default(now())
+
+  floors Floor[]
+}
+
+model Enemy {
+  id          String  @id @default(uuid())
+  name        String
+  type        String // 'Beast', 'Undead', 'Machine', 'Spirit', 'Dragon', 'Titan', 'Shadow', 'Human'
+  rarity      String // 'Common', 'Elite', 'Boss', 'Mythic'
+  baseHp      Int
+  baseAttack  Int
+  baseDefense Int
+  baseSpeed   Int
+  image       String?
+
+  bossFloors Floor[] @relation("FloorBoss")
+}
+
+model Floor {
+  id               String  @id @default(uuid())
+  towerId          String
+  tower            Tower   @relation(fields: [towerId], references: [id], onDelete: Cascade)
+  floorNumber      Int
+  recommendedPower Int
+  minStrength      Int     @default(1)
+  minKnowledge     Int     @default(1)
+  minRecovery      Int     @default(1)
+  minDiscipline    Int     @default(1)
+  minFocus         Int     @default(1)
+  minEndurance     Int     @default(1)
+  bossId           String?
+  boss             Enemy?  @relation("FloorBoss", fields: [bossId], references: [id], onDelete: SetNull)
+  rewardPool       String // JSON-serialized string
+
+  progress FloorProgress[]
+}
+
+model FloorProgress {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  floorId     String
+  floor       Floor     @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  status      String // 'LOCKED', 'UNLOCKED', 'CLEARED', 'PERFECT'
+  attempts    Int       @default(0)
+  bestTime    Int?
+  clearedAt   DateTime?
+
+  @@unique([characterId, floorId])
+}
+
+model Item {
+  id               String   @id @default(uuid())
+  name             String
+  description      String
+  lore             String?
+  category         String // 'Equipment', 'Consumable', 'Material', 'Relic'
+  rarity           String // 'Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Ancient'
+  icon             String?
+  sellPrice        Int
+  buyPrice         Int
+  maxStack         Int      @default(1)
+  levelRequirement Int      @default(1)
+  createdAt        DateTime @default(now())
+
+  equipment      Equipment?
+  consumable     Consumable?
+  inventoryItems Inventory[]
+}
+
+model Equipment {
+  id         String  @id @default(uuid())
+  itemId     String  @unique
+  item       Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  slot       String // 'Weapon', 'Helmet', 'Armor', 'Gloves', 'Boots', 'Ring', 'Necklace', 'Artifact', 'Relic'
+  strength   Int     @default(0)
+  knowledge  Int     @default(0)
+  recovery   Int     @default(0)
+  focus      Int     @default(0)
+  discipline Int     @default(0)
+  endurance  Int     @default(0)
+  attack     Int     @default(0)
+  defense    Int     @default(0)
+  hp         Int     @default(0)
+  setName    String?
+}
+
+model Consumable {
+  id       String @id @default(uuid())
+  itemId   String @unique
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  effect   String
+  duration Int?
+  cooldown Int?
+}
+
+model Inventory {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  quantity    Int       @default(1)
+  isEquipped  Boolean   @default(false)
+  obtainedAt  DateTime  @default(now())
 }

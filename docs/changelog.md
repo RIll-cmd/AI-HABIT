@@ -2,6 +2,80 @@
 
 All notable changes and architectural implementations for **Ascend OS (AI-Powered Life RPG Platform)** are documented in this file.
 
+## [Phase 5 Completion - The Tower Engine] - 2026-08-04
+
+### 1. Database Schema & Data Layer (`server/prisma/schema.prisma`)
+- **`Tower` Model**: Dungeon spire container (`id`, `name`, `description`, `theme`, `maxFloor`, `createdAt`).
+- **`Enemy` Model**: Monster database (`id`, `name`, `type`, `rarity`, `baseHp`, `baseAttack`, `baseDefense`, `baseSpeed`, `image`).
+- **`Floor` Model**: Dungeon floor model (`id`, `towerId`, `floorNumber`, `recommendedPower`, 6 attribute thresholds, `bossId`, `rewardPool`).
+- **`FloorProgress` Model**: 1:N character floor status model (`id`, `characterId`, `floorId`, `status`, `attempts`, `bestTime`, `clearedAt`) with `@@unique([characterId, floorId])`.
+- **Automatic Database Seeding**: Updated `server/db_utils.py` to auto-seed *Tower of Ascension*, *Shadow Overlord* boss enemy, Floors 1–5, and character Floor 1 progress in SQLite (`dev.db`).
+
+### 2. Client Domain Types & Combat Utilities (`client/src/features/tower/`)
+- **Domain Types** (`types/tower.ts` & `combat.ts`): Built strict TypeScript interfaces (`Tower`, `Floor`, `Enemy`, `FloorProgress`, `BattleResult`) and literal union types (`EnemyType`, `EnemyRarity`, `FloorStatus`).
+- **Floor Validator** (`utils/floorValidator.ts`): Evaluates power score and 6 attribute requirements (`minStrength`, `minKnowledge`, `minRecovery`, `minDiscipline`, `minFocus`, `minEndurance`) returning human-readable requirement callouts.
+- **Procedural Enemy Scaler** (`utils/enemyGenerator.ts`): Scales enemy HP ($+25\%/\text{FL}$), Attack ($+15\%/\text{FL}$), Defense ($+10\%/\text{FL}$), and Speed ($+5\%/\text{FL}$) based on floor height.
+- **Turn Combat Math** (`utils/damageFormula.ts`): Knowledge armor penetration, Focus critical strikes ($1.5\times$), and Discipline damage mitigation.
+- **Unit Test Suite** (`utils/towerMath.test.ts` & `services/combatEngine.test.ts`): Vitest test suite verifying access validation, floor scaling, combat damage math, and auto-battler simulations (`38/38 tests passing`).
+
+### 3. Automated Combat Engine & Reward Calculation (`client/src/features/tower/services/`)
+- **`CombatEngine.ts`**: Pure automated auto-battler turn loop simulating character vs enemy combat with Endurance HP scaling, Recovery turn healing, log streaming, and a 100-turn timeout safety cap.
+- **`RewardEngine.ts`**: Pure reward calculator awarding Gold ($\lfloor 50 \times \text{floor} + \text{consistency} \times 2 \rfloor$) and EXP ($\lfloor 100 \times \text{floor} + \text{floor} \times 1.5 \rfloor$) upon floor victory.
+- **Zustand Store Integration** (`store/useTowerStore.ts`): Manages active tower, floor progress, combat simulation state, server persistence syncing, and reward allocation to `useCharacterStore`.
+
+### 4. FastAPI Backend Endpoints (`server/routers/tower.py`)
+- **`GET /api/tower`**: Returns all tower spire records.
+- **`GET /api/tower/{tower_id}/floors/{character_id}`**: Fetches all floors with included boss relations, merging character `FloorProgress` state (`LOCKED`, `UNLOCKED`, `CLEARED`).
+- **`POST /api/tower/floors/{floor_id}/combat/{character_id}`**: Records attempt count, updates status to `CLEARED`, updates `bestTime`, and automatically unlocks the next floor ($\text{floorNumber} + 1$).
+- **Main Server Integration**: Mounted `tower.router` in `server/main.py` and updated `docs/api.md`.
+
+### 5. Spire UI & Auto-Battler Components (`client/src/features/tower/components/`)
+- **`TowerMap.tsx`**: Vertical spire floor card list rendering floors 100 down to 1 with locked/unlocked/cleared badges, boss card accents, and missing requirement popovers.
+- **`CombatScreen.tsx`**: Live auto-battler modal with character vs enemy health bars, staggered log streaming every $350\text{ms}$, and Victory/Defeat modal banners.
+- **Tower App Page Route** (`client/src/app/(dashboard)/tower/page.tsx`): Mounted at `/tower` route with top power banner overview.
+
+---
+
+## [Phase 4 Completion - The Progression Engine] - 2026-08-04
+
+### 1. Database Schema Expansion (`server/prisma/schema.prisma`)
+- **`Achievement` (Template Model)**: Normalized model for permanent game achievements (`id`, `name`, `description`, `icon`, `rewardType`, `rewardAmount`, `condition`, `category`, `createdAt`, `updatedAt`).
+- **`CharacterAchievement` (Instance Model)**: 1:N instance relation linking `Character` to `Achievement` with `@unique([characterId, achievementId])` and `unlockedAt`.
+- **`EconomyLog` Model**: 1:N relation to `Character` tracking gold/EXP economy transactions (`id`, `characterId`, `currency`, `amount`, `reason`, `source`, `createdAt`).
+- **ORM Synchronization**: Formatted schema, updated SQLite database (`prisma db push`), and regenerated JS `@prisma/client` and Python `prisma` SDKs.
+
+### 2. Client Progression Feature & Pure Game Math (`client/src/features/progression/`)
+- **Directory Architecture**: Initialized `client/src/features/progression/` directories (`components`, `hooks`, `services`, `utils`, `types`, `store`).
+- **TypeScript Domain Types** (`progression.ts`): Created `CurrencyType`, `RewardType`, `LogSource`, `Achievement`, `CharacterAchievement`, and `EconomyLog` interfaces.
+- **Pure Math Utilities** (`utils/`):
+  - `levelFormula.ts`: Infinite exponential curve $\lfloor 100 \times \text{level}^{1.5} \rfloor$ (`calculateExpForLevel`) and dynamic level solver (`calculateLevelData`).
+  - `powerFormula.ts`: Dynamic weighted stat power scoring (`(Level*50) + (Strength*8) + (Knowledge*8) + (Recovery*6) + (Focus*7) + (Endurance*7) + (Discipline*6) + (Consistency*5)`).
+  - `rankFormula.ts`: Strict rank threshold mapper (`determineRank`: F, E, D, C, B, A, S, SS, SSS).
+- **Unit Testing** (`progressionMath.test.ts`): Built Vitest test suite testing stat weights, missing stat fallbacks, 0 EXP edge cases, level rollover, and rank boundaries.
+
+### 3. Decoupled Event Bus & Central Game Engine (`client/src/features/progression/services/`)
+- **`EventBus.ts`**: Pure TypeScript singleton event bus supporting `'MISSION_COMPLETED'`, `'LEVEL_UP'`, `'RANK_ASCENDED'`, and `'ACHIEVEMENT_UNLOCKED'` with typed payloads.
+- **`ProgressionEngine.ts`**: Central game loop listening for `'MISSION_COMPLETED'`. Computes `calculateFinalReward` and sequentially executes `addStat()`, `gainGold()`, and `gainExp()` on `useCharacterStore`.
+- **Store Refactoring** (`useCharacterStore.ts` & `useHabitStore.ts`):
+  - Refactored `useCharacterStore` to use `@/features/progression/utils` as single source of truth, added `gainGold` & `addStat` actions, and published `LEVEL_UP` / `RANK_ASCENDED` events.
+  - Refactored `useHabitStore` to publish `MISSION_COMPLETED` to `EventBus` instead of directly mutating character state.
+  - Removed deprecated `features/character/utils/` directory.
+
+### 4. FastAPI Backend Endpoints (`server/`)
+- **Pydantic Validation** (`schemas/progression.py`): Created `GoldLogSchema`.
+- **Progression Router** (`routers/progression.py`): `POST /api/progression/{id}/gold` (creates economy log and updates character gold balance) & `GET /api/progression/{id}/history` (returns recent economy logs).
+- **Achievements Router** (`routers/achievements.py`): `GET /api/achievements` (lists achievement templates) & `POST /api/achievements/{id}/{ach_id}` (unlocks achievement with duplicate handling).
+- **Analytics Router** (`routers/analytics.py`): `GET /api/analytics/{id}/weekly` (aggregates completed mission EXP for past 7 days formatted for Recharts).
+- **Main Server Integration**: Mounted routers in `server/main.py` and updated `docs/api.md`.
+
+### 5. Client Services, Zustand Store & UI Components (`client/`)
+- **Service & Store Layer**: Built `progression.service.ts`, `analytics.service.ts`, and `useProgressionStore.ts` (`goldLogs`, `weeklyExpData`, `loadGoldHistory`, `loadWeeklyAnalytics`).
+- **`WeeklyExpChart.tsx` Component**: Responsive Recharts `<AreaChart>` styled with dark RPG tokens (`#0D1322` container, `#8B5CF6` gradient fill, custom tooltip).
+- **`HistoryTimeline.tsx` Component**: Vertical economy ledger timeline mapping over `goldLogs` with date, reason, source badge, and color indicators.
+- **`RankAscensionModal.tsx` Component**: Full-screen animated Framer Motion modal featuring rank transition animations and glowing text effects.
+- **`useProgressionEvents.tsx` Hook**: Event listener hook subscribing to `EventBus` events, controlling modal state, and triggering Sonner toast celebrations.
+- **Dashboard Overview Integration**: Integrated `WeeklyExpChart`, `HistoryTimeline`, and `RankAscensionModal` into `DashboardOverview.tsx`.
+
 ---
 
 ## [Phase 3 Completion - The Habit Engine] - 2026-08-04

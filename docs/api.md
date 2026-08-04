@@ -132,3 +132,119 @@ Marks a mission instance as `COMPLETED`, records completion tier (`MINI`, `NORMA
 ```
 
 **Response**: Updated `Mission` object with included parent `Habit` relation.
+
+## Progression & Economy Domain Routes
+
+### `POST /api/progression/{character_id}/gold`
+Creates an `EconomyLog` transaction record (currency=`GOLD`) for earning or spending gold and updates the character's gold balance in the database.
+
+**Request Body**:
+```json
+{
+  "amount": 50,
+  "reason": "Completed Mission: Morning Pushups",
+  "source": "MISSION"
+}
+```
+
+**Response**: Created `EconomyLog` object.
+
+### `GET /api/progression/{character_id}/history`
+Returns all `EconomyLog` records for the character ordered by `createdAt` descending (limit 50).
+
+**Response**: Array of `EconomyLog` objects.
+
+## Achievements Domain Routes
+
+### `GET /api/achievements`
+Returns all permanent `Achievement` template records configured in the game database.
+
+**Response**: Array of `Achievement` objects.
+
+### `POST /api/achievements/{character_id}/{achievement_id}`
+Creates a `CharacterAchievement` instance linking the character to the achievement. Handles unique constraint checks gracefully if the achievement is already unlocked.
+
+**Response**: Status response object containing `status`, `message`, and `unlocked` relation record.
+
+## Analytics Domain Routes
+
+### `GET /api/analytics/{character_id}/weekly`
+Fetches all completed `Mission` instances for the character from the past 7 days and aggregates earned EXP grouped by day of the week.
+
+**Response**: Recharts-formatted array:
+```json
+[
+  { "day": "Mon", "exp": 120 },
+  { "day": "Tue", "exp": 45 },
+  { "day": "Wed", "exp": 0 },
+  { "day": "Thu", "exp": 80 },
+  { "day": "Fri", "exp": 150 },
+  { "day": "Sat", "exp": 30 },
+  { "day": "Sun", "exp": 90 }
+]
+```
+
+## Tower Domain Routes
+
+### `GET /api/tower`
+Returns all `Tower` records configured in the game database (defaults to Tower of Ascension).
+
+**Response**: Array of `Tower` objects.
+
+### `GET /api/tower/{tower_id}/floors/{character_id}`
+Fetches all `Floor` records for a tower including boss relations, merging the character's `FloorProgress` data (`status`, `attempts`, `bestTime`, `clearedAt`).
+
+**Response**: Array of merged `Floor` objects.
+
+### `POST /api/tower/floors/{floor_id}/combat/{character_id}`
+Records the outcome of a combat encounter (`isVictory`, `totalTurns`). Increments attempt count. If victorious, updates status to `CLEARED`, sets `clearedAt`, updates `bestTime`, and automatically unlocks the next floor in the tower.
+
+**Request Body**:
+```json
+{
+  "isVictory": true,
+  "totalTurns": 8
+}
+```
+
+**Response**: Updated `FloorProgress` object.
+
+## Inventory Domain Routes
+
+### `GET /api/inventory/{character_id}`
+Fetches all `Inventory` records for a character, including nested `Item`, `Equipment`, and `Consumable` relations ordered by `obtainedAt` descending.
+
+**Response**: Array of `Inventory` objects.
+
+### `POST /api/inventory/{character_id}/grant`
+Creates an `Item` template record (with `Equipment` stats if provided) and grants an `Inventory` instance to the specified character.
+
+**Request Body**:
+```json
+{
+  "name": "Iron Sword",
+  "description": "A sturdy forged iron blade.",
+  "category": "Equipment",
+  "rarity": "Common",
+  "sellPrice": 15,
+  "buyPrice": 50,
+  "equipment": {
+    "slot": "Weapon",
+    "attack": 25,
+    "strength": 5
+  }
+}
+```
+
+**Response**: Created `Inventory` record.
+
+### `POST /api/inventory/{character_id}/equip/{inventory_id}`
+Equips an inventory item for a character (`isEquipped = true`). Automatically unequips any item currently occupying the same equipment slot (`isEquipped = false`).
+
+**Response**: Status response object with updated `Inventory` record.
+
+### `POST /api/inventory/{character_id}/unequip/{inventory_id}`
+Unequips an inventory item (`isEquipped = false`).
+
+**Response**: Status response object with updated `Inventory` record.
+

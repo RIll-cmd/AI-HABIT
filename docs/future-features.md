@@ -48,7 +48,21 @@ Automated backend jobs, advanced scheduling, consistency tracking, and dedicated
 
 ---
 
-## 4. Phase 4: Auth, Security & Infrastructure
+## 4. Phase 4: Progression Engine & Economy
+
+Progression engine extensions, achievement UI, shop economy, and long-term analytics.
+
+| Feature / Enhancement | Category | Target Scope | Description |
+| :--- | :--- | :--- | :--- |
+| **Dedicated Achievements Gallery UI** | Gamification | `/achievements` | Interactive grid view displaying locked and unlocked achievements, category filters (*Habits, Workout, Social, Tower, AI, Special*), progress meters (e.g. `45/100 Missions`), and claim reward triggers. |
+| **Complex Multi-Condition Event Evaluator** | Progression Engine | Backend / Engine | Background worker evaluating complex achievement conditions (`MISSIONS_100`, `LEVEL_20`, `GOLD_5000`, `STREAK_30`) whenever events publish to `EventBus`. |
+| **Year-over-Year & Monthly Analytics** | Analytics Engine | `/analytics` | Expand backend analytics endpoints (`/api/analytics/{id}/monthly`, `/api/analytics/{id}/yearly`) with Recharts bar charts, category breakdown pie charts, and stat growth velocity trends. |
+| **Hunter Shop & Gold Expenditure Vault** | Economy System | `/shop` | Merchant shop allowing users to spend earned Gold on consumable streak shields, double EXP tokens, cosmetic title scrolls, and glowing profile borders. |
+| **Season Pass & Ascension Reward Track** | Gamification | `/season-pass` | 50-tier seasonal progression track awarding exclusive titles, emblems, and gold upon reaching seasonal EXP thresholds. |
+
+---
+
+## 5. Phase 5: Auth, Security & Infrastructure
 
 Production security, session management, and authentication pipelines.
 
@@ -61,12 +75,14 @@ Production security, session management, and authentication pipelines.
 
 ---
 
-## 5. Phase 5: Ascension Tower & AI Administrator (Ciel)
+## 6. Phase 6: Tower Gear, Multi-Spire & AI Administrator (Ciel)
 
-Simulated idle RPG combat engine and Generative AI mission optimization.
+RPG inventory equipment, specialized multi-tower spires, defeat analysis, and Generative AI habit optimization.
 
 | Feature / Enhancement | Category | Target Scope | Description |
 | :--- | :--- | :--- | :--- |
-| **Ascension Tower Combat Engine** | Idle RPG Game | `/tower` | Turn-based idle dungeon combat where floor bosses (e.g. *Floor 1: Procrastination Specter*) challenge the character. Victory depends on Level, Power Score, and Stat Distribution. |
-| **Ciel AI Dynamic Dialogue & Reflective Feedback** | GenAI / LLM | AI System Panel | Integrate Gemini / LLM API for Ciel. Ciel analyzes user habit consistency, provides daily motivational dialogues, and suggests AI-generated mission adjustments. |
+| **Equipment & Relic Inventory System** | RPG Loot | `/inventory` | Loot drop table engine awarding gear (Weapon, Armor, Relic) across 7 rarity tiers (*Common* to *Ancient*). Features equipping slots, permanent attribute boosts, and inventory management UI. |
+| **Multi-Tower Spire Expansions** | Dungeon World | `/tower` | Specialized themed towers (*Tower of Knowledge*, *Tower of Strength*, *Tower of Discipline*, *Tower of Eternity*) testing specific stat builds and awarding unique title trophies. |
+| **AI Defeat Analysis Diagnostic** | AI System | Combat Modal | Automated post-combat diagnostic analyzing combat loss logs and recommending target real-life habits based on the attribute deficit that caused the defeat (e.g., *"Recovery too low. Complete 3 Sleep missions to increase HP"*). |
+| **Ciel AI Dynamic Dialogue & Vector Feedback** | GenAI / LLM | AI System Panel | Integrate Gemini / LLM API for Ciel. Ciel analyzes user habit consistency, provides daily motivational dialogues, and suggests AI-generated mission adjustments. |
 | **Multiplayer Guilds & Co-op Raid Bosses** | Social RPG | Guilds | Party up with other Ascendants to take down massive Raid Bosses requiring collective weekly habit completions. |

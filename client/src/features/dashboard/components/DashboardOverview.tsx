@@ -30,18 +30,36 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useHabitStore } from "@/features/habits/store";
+import { useProgressionStore } from "@/features/progression/store";
 import { MissionCard } from "@/features/habits/components/MissionCard";
-import { calculateLevelData } from "@/features/character/utils";
+import {
+  WeeklyExpChart,
+  HistoryTimeline,
+  RankAscensionModal,
+} from "@/features/progression/components";
+import { useProgressionEvents } from "@/features/progression/hooks";
+import { calculateLevelData } from "@/features/progression/utils";
 
 export function DashboardOverview() {
   const { character, loadCharacter } = useCharacterStore();
   const { todayMissions, loadTodayMissions, executeMissionCompletion, isLoading } =
     useHabitStore();
+  const {
+    goldLogs,
+    weeklyExpData,
+    loadGoldHistory,
+    loadWeeklyAnalytics,
+    isLoading: isAnalyticsLoading,
+  } = useProgressionStore();
+
+  const { isRankModalOpen, closeRankModal, rankModalData } = useProgressionEvents();
 
   useEffect(() => {
     loadCharacter("char-id-123");
     loadTodayMissions("char-id-123");
-  }, [loadCharacter, loadTodayMissions]);
+    loadWeeklyAnalytics("char-id-123");
+    loadGoldHistory("char-id-123");
+  }, [loadCharacter, loadTodayMissions, loadWeeklyAnalytics, loadGoldHistory]);
 
   const name = character?.name || "Cyrill";
   const title = character?.title || "Wanderer";
@@ -79,13 +97,22 @@ export function DashboardOverview() {
           className="text-xs font-bold shadow-md shadow-blue-600/30"
         >
           <Link href="/missions/create">
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            <span>Forge Habit Mission</span>
+            <Plus className="w-3.5 h-3.5 mr-1" /> New Habit Mission
           </Link>
         </Button>
       </div>
 
-      {/* 6-CARD DASHBOARD GRID */}
+      {/* PROGRESSION ENGINE ANALYTICS & TIMELINE SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <WeeklyExpChart data={weeklyExpData} isLoading={isAnalyticsLoading} />
+        </div>
+        <div className="lg:col-span-1">
+          <HistoryTimeline logs={goldLogs} isLoading={isAnalyticsLoading} />
+        </div>
+      </div>
+
+      {/* MAIN DASHBOARD GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* CARD 1: CHARACTER OVERVIEW */}
         <Card className="bg-[#151C33] border-white/10 shadow-xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
@@ -94,14 +121,17 @@ export function DashboardOverview() {
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="w-4 h-4 text-blue-400" />
-                <span>Character Overview</span>
+                <span>Hunter Identity</span>
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Identity & Power Level
+                Core Character Status
               </CardDescription>
             </div>
-            <Badge variant="gold" className="text-xs font-mono">
-              Rank {character?.rank || "F"}
+            <Badge
+              variant="outline"
+              className="text-[10px] font-mono text-blue-400 border-blue-500/30 bg-blue-500/10"
+            >
+              RANK {character?.rank || "F"}
             </Badge>
           </CardHeader>
 
@@ -119,23 +149,23 @@ export function DashboardOverview() {
                 <span className="text-[10px] text-slate-400 uppercase font-mono block">
                   Power Score
                 </span>
-                <span className="text-2xl font-bold font-mono text-blue-400">
-                  {character?.power || 50}
+                <span className="text-2xl font-bold font-mono text-amber-400">
+                  {character?.power || 97}
                 </span>
               </div>
             </div>
 
-            {/* EXP BAR */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] font-mono">
-                <span className="text-slate-400">XP Progress</span>
-                <span className="text-blue-400 font-bold">
-                  {levelData.currentExpInLevel} / {levelData.expToNextLevel} XP
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-mono">
+                <span className="text-slate-400">EXP Progress</span>
+                <span className="text-blue-400 font-semibold">
+                  {levelData.currentExpInLevel} / {levelData.expToNextLevel} EXP (
+                  {levelData.progressPercentage}%)
                 </span>
               </div>
-              <div className="w-full h-2 bg-[#0B1020] rounded-full overflow-hidden border border-white/10">
+              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-white/5">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-400 h-full transition-all duration-500 rounded-full"
                   style={{ width: `${levelData.progressPercentage}%` }}
                 />
               </div>
@@ -230,24 +260,24 @@ export function DashboardOverview() {
             </Badge>
           </CardHeader>
 
-          <CardContent className="space-y-3 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
-            {todayMissions.length > 0 ? (
+          <CardContent className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+            {isLoading ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                Loading today&apos;s missions...
+              </div>
+            ) : todayMissions.length > 0 ? (
               todayMissions.map((mission) => (
                 <MissionCard
                   key={mission.id}
                   mission={mission}
-                  onComplete={executeMissionCompletion}
+                  onComplete={(id, habit, completionType) =>
+                    executeMissionCompletion(id, habit, completionType)
+                  }
                 />
               ))
             ) : (
-              <div className="p-4 rounded-[14px] bg-[#0B1020] border border-white/10 text-center py-6">
-                <ShieldAlert className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs font-semibold text-slate-300">
-                  No habit missions active for today.
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1 mb-3">
-                  Forge your first habit template to activate daily quests.
-                </p>
+              <div className="py-6 text-center text-xs text-slate-400 space-y-2">
+                <p>No active missions for today.</p>
                 <Button
                   variant="default"
                   size="sm"
@@ -321,31 +351,27 @@ export function DashboardOverview() {
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <Package className="w-4 h-4 text-blue-400" />
-                <span>Inventory Preview</span>
+                <span>Hunter Inventory</span>
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Equipment & Artifacts
+                Equipment & Artifact Vault
               </CardDescription>
             </div>
             <Badge
-              variant="secondary"
-              className="text-[10px] font-mono text-slate-400"
+              variant="outline"
+              className="text-[10px] font-mono text-slate-400 border-white/10"
             >
-              0 / 4 Slots
+              EMPTY
             </Badge>
           </CardHeader>
 
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((slot) => (
-                <div
-                  key={slot}
-                  className="h-16 rounded-[14px] bg-[#0B1020] border border-dashed border-white/15 flex flex-col items-center justify-center text-slate-600 hover:border-blue-500/40 hover:text-slate-400 transition cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 mb-0.5" />
-                  <span className="text-[9px] font-mono">Empty</span>
-                </div>
-              ))}
+            <div className="p-4 rounded-[14px] bg-[#0B1020] border border-white/10 text-center py-5">
+              <Package className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+              <p className="text-xs font-bold text-slate-300">Vault Empty</p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Complete quests or shop to acquire gear
+              </p>
             </div>
           </CardContent>
           <CardFooter className="pt-0">
@@ -416,6 +442,14 @@ export function DashboardOverview() {
           </CardFooter>
         </Card>
       </div>
+
+      {/* RANK ASCENSION MODAL */}
+      <RankAscensionModal
+        isOpen={isRankModalOpen}
+        onClose={closeRankModal}
+        oldRank={rankModalData.oldRank}
+        newRank={rankModalData.newRank}
+      />
     </div>
   );
 }

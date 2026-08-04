@@ -28,9 +28,27 @@
 - [x] Mission Creation Wizard UI (`MissionWizard.tsx`, 6-step Framer Motion wizard at `/missions/create`).
 - [x] Daily Quest Board UI (`MissionCard.tsx` with MINI, NORMAL, ELITE completion tiers on `/dashboard`).
 
-## Phase 4: Tower Engine & RPG Progression
-- [ ] Simulated idle RPG Tower combat engine & floor progression.
-- [ ] Stat point allocation wizard & gear inventory system.
+## Phase 4: Progression Engine & Core Math (Completed)
+- [x] Database Expansion (`Achievement`, `CharacterAchievement`, `EconomyLog` in SQLite via Prisma).
+- [x] Pure Core Math Utilities (`levelFormula.ts`, `powerFormula.ts`, `rankFormula.ts`) & Vitest test suite (`progressionMath.test.ts`).
+- [x] Decoupled Event Bus & Progression Engine (`EventBus.ts` & `ProgressionEngine.ts`).
+- [x] FastAPI REST Endpoints & Schemas (`/api/progression/{id}/gold`, `/api/progression/{id}/history`, `/api/achievements`, `/api/analytics/{id}/weekly`).
+- [x] Client Services & State Management (`progression.service.ts`, `analytics.service.ts`, `useProgressionStore.ts`).
+- [x] Visual Analytics & Timeline UI (`WeeklyExpChart.tsx` with Recharts, `HistoryTimeline.tsx`, `RankAscensionModal.tsx`, `useProgressionEvents.tsx`).
 
-## Phase 5: AI System Administrator (Ciel)
+## Phase 5: Ascension Tower Engine (Completed)
+- [x] Database expansion (`Tower`, `Enemy`, `Floor`, `FloorProgress` in SQLite via Prisma).
+- [x] Pure combat math & scaling utilities (`floorValidator.ts`, `enemyGenerator.ts`, `damageFormula.ts`).
+- [x] Automated turn-based RPG Combat Engine & Loot Reward Engine (`CombatEngine.ts`, `RewardEngine.ts`).
+- [x] Vitest test suite with 100% pass rate (`towerMath.test.ts`, `combatEngine.test.ts`, 38/38 total client tests).
+- [x] FastAPI REST Endpoints & Auto-seeder (`/api/tower`, `/api/tower/{id}/floors/{char_id}`, `/api/tower/floors/{id}/combat/{char_id}`).
+- [x] Client services, Zustand store & UI components (`TowerMap.tsx`, `CombatScreen.tsx`, `/tower` page route).
+
+## Phase 6: Gear, Inventory & Relic Engine
+- [ ] Equipment loot drop table engine (Common to Mythic gear).
+- [ ] Stat point allocation wizard & interactive gear inventory UI (`/inventory`).
+- [ ] Multi-Tower Spire Expansions (*Tower of Knowledge*, *Tower of Strength*, *Tower of Discipline*).
+
+## Phase 7: AI System Administrator (Ciel)
 - [ ] Ciel AI reflective dialogue and mission optimization vector analysis.
+- [ ] Automated Defeat Analysis linking combat loss causes to habit recommendations.

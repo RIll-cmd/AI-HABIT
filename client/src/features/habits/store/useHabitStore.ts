@@ -8,7 +8,8 @@ import {
   completeMission,
   HabitCreatePayload,
 } from "../services/habit.service";
-import { useCharacterStore } from "@/store/useCharacterStore";
+import { eventBus } from "@/features/progression/services/EventBus";
+import "@/features/progression/services/ProgressionEngine";
 
 export interface HabitStore {
   habits: Habit[];
@@ -50,7 +51,7 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
       const todayMissions = await fetchTodayMissions(targetId);
       set({ todayMissions, isLoading: false });
     } catch (error) {
-      console.error("[useHabitStore] Error loading today missions:", error);
+      console.error("[useHabitStore] Error loading today's missions:", error);
       set({ isLoading: false });
     }
   },
@@ -65,7 +66,6 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
           habits: [...state.habits, newHabit],
           isLoading: false,
         }));
-        // Refresh today's missions to include instance for newly created habit
         await get().loadTodayMissions(targetId);
       } else {
         console.error(
@@ -86,11 +86,9 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
     habit: Habit,
     completionType: CompletionType
   ) => {
-    // Step 1: Calculate rewards using pure math utilities
     const baseReward = getBaseReward(habit.difficulty);
     const finalReward = calculateFinalReward(baseReward, completionType);
 
-    // Step 2: Optimistically update local todayMissions state
     set((state) => ({
       todayMissions: state.todayMissions.map((m) =>
         m.id === missionId
@@ -106,12 +104,13 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
       ),
     }));
 
-    // Step 3: Trigger Character Engine progression integration
-    useCharacterStore
-      .getState()
-      .gainExp(finalReward.exp, `Completed Mission: ${habit.name}`);
+    // Dispatch MISSION_COMPLETED event to central Progression Engine
+    eventBus.publish("MISSION_COMPLETED", {
+      baseReward,
+      completionType,
+      habit,
+    });
 
-    // Step 4: Asynchronous background database persistence
     completeMission(missionId, {
       completionType,
       expEarned: finalReward.exp,

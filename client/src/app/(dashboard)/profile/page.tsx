@@ -3,7 +3,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCharacterStore } from "@/store/useCharacterStore";
-import { calculateLevelData } from "@/features/character/utils";
+import { calculateLevelData } from "@/features/progression/utils";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from db import db
-from routers import character, habits, missions
+from routers import character, habits, missions, progression, achievements, analytics, tower, inventory
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,6 +30,11 @@ app.add_middleware(
 app.include_router(character.router)
 app.include_router(habits.router)
 app.include_router(missions.router)
+app.include_router(progression.router)
+app.include_router(achievements.router)
+app.include_router(analytics.router)
+app.include_router(tower.router)
+app.include_router(inventory.router)
 
 @app.get("/")
 def read_root():
