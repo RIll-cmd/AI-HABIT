@@ -38,6 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "dark",
         "h-full",
@@ -48,7 +49,10 @@ export default function RootLayout({
         geist.variable
       )}
     >
-      <body className="h-full bg-[#0B1020] text-slate-100 antialiased selection:bg-blue-500 selection:text-white flex flex-col font-sans">
+      <body
+        suppressHydrationWarning
+        className="h-full bg-[#0B1020] text-slate-100 antialiased selection:bg-blue-500 selection:text-white flex flex-col font-sans"
+      >
         <UserProvider>
           {children}
           <Toaster />
