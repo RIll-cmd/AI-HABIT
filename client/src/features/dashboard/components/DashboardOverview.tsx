@@ -32,11 +32,16 @@ import { useCharacterStore } from "@/store/useCharacterStore";
 import { useHabitStore } from "@/features/habits/store";
 import { useProgressionStore } from "@/features/progression/store";
 import { MissionCard } from "@/features/habits/components/MissionCard";
+import dynamic from "next/dynamic";
 import {
-  WeeklyExpChart,
   HistoryTimeline,
   RankAscensionModal,
 } from "@/features/progression/components";
+
+const WeeklyExpChart = dynamic(
+  () => import("@/features/progression/components/WeeklyExpChart").then((mod) => mod.WeeklyExpChart),
+  { ssr: false }
+);
 import { useProgressionEvents } from "@/features/progression/hooks";
 import { calculateLevelData } from "@/features/progression/utils";
 import { playSystemOpen } from "@/features/audio/useSystemAudio";

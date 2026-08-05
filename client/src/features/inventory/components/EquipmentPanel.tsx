@@ -18,6 +18,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EquipmentSlot, InventoryRecord } from "../types";
 import { calculateTotalCombatStats } from "../utils/combatStatCalculator";
+import dynamic from "next/dynamic";
+import type { RadarDataPoint } from "@/components/ui/StatRadarChart";
+
+const StatRadarChart = dynamic(
+  () => import("@/components/ui/StatRadarChart").then((mod) => mod.StatRadarChart),
+  { ssr: false }
+);
 
 interface EquipmentPanelProps {
   equippedItems: InventoryRecord[];
@@ -76,11 +83,16 @@ export function EquipmentPanel({
       </CardHeader>
 
       <CardContent className="p-5 space-y-6">
-        {/* Total Equipment Stat Summary Banner */}
-        <div className="p-4 rounded-xl bg-[#0D1322] border border-slate-800 space-y-2">
-          <span className="text-[10px] font-mono text-slate-400 block uppercase">
-            Total Combined Combat Stats
-          </span>
+        {/* Total Equipment Stat Summary Banner & Radar Graph */}
+        <div className="p-4 rounded-xl bg-[#0D1322] border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-slate-400 block uppercase">
+              Total Combined Combat Stats
+            </span>
+            <span className="text-[10px] font-mono text-purple-400 font-bold px-2 py-0.5 rounded bg-purple-950/80 border border-purple-500/30">
+              GEAR BOOSTED
+            </span>
+          </div>
 
           <div className="grid grid-cols-3 gap-2 text-xs font-mono">
             <div className="text-amber-400 font-bold">ATK: {totalCombatStats.attack}</div>
@@ -92,6 +104,32 @@ export function EquipmentPanel({
             <div className="text-slate-300">FOC: {totalCombatStats.focus}</div>
             <div className="text-slate-300">DIS: {totalCombatStats.discipline}</div>
             <div className="text-slate-300">END: {totalCombatStats.endurance}</div>
+          </div>
+
+          {/* Interactive Stat Comparison Radar Chart */}
+          <div className="pt-2 border-t border-slate-800/80">
+            <div className="text-[10px] font-mono text-slate-400 text-center mb-1">
+              Base vs. Total Equipped Stat Breakdown
+            </div>
+            <StatRadarChart
+              data={[
+                { subject: "ATK", value: 10, secondaryValue: totalCombatStats.attack },
+                { subject: "DEF", value: 10, secondaryValue: totalCombatStats.defense },
+                { subject: "HP", value: Math.round((characterStats.endurance || 1) * 10), secondaryValue: Math.round(totalCombatStats.hp / 10) },
+                { subject: "STR", value: characterStats.strength || 1, secondaryValue: totalCombatStats.strength },
+                { subject: "KNO", value: characterStats.knowledge || 1, secondaryValue: totalCombatStats.knowledge },
+                { subject: "REC", value: characterStats.recovery || 1, secondaryValue: totalCombatStats.recovery },
+                { subject: "FOC", value: characterStats.focus || 1, secondaryValue: totalCombatStats.focus },
+                { subject: "DIS", value: characterStats.discipline || 1, secondaryValue: totalCombatStats.discipline },
+                { subject: "END", value: characterStats.endurance || 1, secondaryValue: totalCombatStats.endurance },
+              ]}
+              primaryName="Base Stat"
+              secondaryName="Total Modified"
+              primaryColor="#3B82F6"
+              secondaryColor="#A855F7"
+              height={260}
+              showLegend={true}
+            />
           </div>
         </div>
 

@@ -2,6 +2,47 @@
 
 All notable changes and architectural implementations for **Ascend OS (AI-Powered Life RPG Platform)** are documented in this file.
 
+## [Phase 8 Completion - The Fitness Engine & Workout Boss System] - 2026-08-05
+
+### 1. Database Schema & Models (`server/prisma/schema.prisma`)
+- **`Exercise` (Master Database)**: Created master exercise repository (`id`, `name`, `category`, `muscleGroup`, `equipment`, `difficulty`, `description`, `instructions`, `videoUrl`, `image`).
+- **`WorkoutPlan`**: Added workout plan model (`id`, `characterId`, `name`, `goal`, `difficulty`, `estimatedDuration`).
+- **`WorkoutSession`**: Active/completed gym visit records (`id`, `characterId`, `planId`, `duration`, `completed`, `startedAt`, `finishedAt`).
+- **`ExerciseLog`**: Append-only log of set entries (`id`, `sessionId`, `exerciseId`, `set`, `weight`, `reps`, `rpe`, `restTime`, `notes`).
+- **`PersonalRecord`**: Tracked personal bests per exercise (`id`, `characterId`, `exerciseId`, `weight`, `reps`, `estimated1RM`, `date`).
+- **`WeeklyBoss`**: Real-world fitness boss challenges (`id`, `characterId`, `name`, `targetExercise`, `targetWeight`, `targetReps`, `rewards`, `isDefeated`, `expiresAt`).
+
+### 2. Backend Services & Engine Algorithms (`server/services/` & `server/utils/`)
+- **Brzycki 1RM Personal Record Engine** (`server/utils/fitness_math.py`): Implemented $\text{1RM} = \frac{\text{Weight}}{1.0278 - (0.0278 \times \text{Reps})}$, with rep capping $>30$ for stability.
+- **Progressive Overload Engine** (`server/services/fitness_engine.py`): Recommends $+2.5\text{ kg}$ weight increase when user cleanly hits $\ge 8$ reps in recent sessions.
+- **Natural Language Text & Voice Parser** (`server/services/text_parser.py`): Regular expression extraction for weight/reps/RPE and token fuzzy matching for exercise names.
+- **Weekly Boss Slaying Engine** (`server/services/fitness_engine.py`): Generates weekly bosses scaled to $\approx 90\%$ 1RM for 5 reps, automatically detecting defeat in finished sessions and awarding $+500\text{ EXP}$, $+100\text{ Gold}$, and $+1\text{ Strength}$.
+
+### 3. FastAPI REST Router & Endpoints (`server/routers/fitness.py`)
+- **API Endpoints**: Built 11 REST endpoints under `/api/fitness/*` (`GET /exercises`, `POST /sessions/start`, `POST /sessions/{id}/log`, `POST /sessions/{id}/log-text`, `POST /sessions/{id}/finish`, `GET /sessions/active/{char_id}`, `GET /sessions/history/{char_id}`, `GET /sessions/{id}`, `GET /prs/{char_id}`, `GET /overload/{char_id}/{ex_id}`, `GET /boss/{char_id}`).
+- **RPG Engine Integration**: Calculates EXP, Gold, and attribute stat increases (`Strength`, `Endurance`, `Recovery`, `Discipline`, `Focus`) dynamically based on total session volume and goal, logging into `EconomyLog` and `ProgressHistory`.
+
+### 4. Client Domain Types & Zustand Store (`client/src/features/fitness/`)
+- **Domain Types** (`types/`): Formatted `Exercise`, `WorkoutPlan`, `WorkoutSession`, `ExerciseLog`, `PersonalRecord`, `WeeklyBoss` models.
+- **Zustand Fitness Store** (`store/useFitnessStore.ts`): Manages active session state, rest timers, PR popup triggers, boss defeat status, and optimistic set logging.
+- **API Service Layer** (`services/fitness.service.ts`): Connected frontend store to `/api/fitness` REST endpoints.
+
+### 5. UI Component Matrix & Dashboard Widgets (`client/src/features/fitness/components/`)
+- **`WorkoutSession.tsx`**: Interactive gym session interface with live session timer, progressive overload suggestions, set logger, and finish summary trigger.
+- **`ExerciseLogger.tsx`**: Multi-set logger with manual input fields and quick text/voice simulation.
+- **`RestTimer.tsx`**: Audio-visual countdown timer with preset intervals (30s, 60s, 90s, 120s, custom).
+- **`PRPopup.tsx`**: Celebration modal for newly set personal records.
+- **`WorkoutSummary.tsx`**: Post-workout summary showcasing total volume, EXP/Gold earned, stat gains, and PR badges.
+- **`WorkoutHistory.tsx`**: Timeline of past workouts with expandable volume and set details.
+- **`FitnessWidgets.tsx`**: Dashboard widgets displaying weekly volume, workout streak, active PRs, and recovery status.
+- **`WorkoutBossCard.tsx`**: Boss card displaying weekly target exercise, defeat progress, time remaining, and boss rewards.
+
+### 6. Verification Test Suite (`server/scripts/`)
+- **Database Seeding**: Created `seed_exercises.py` populating 100+ master exercises.
+- **Test Scripts**: Created `test_fitness_api.py`, `test_pr_engine.py`, `test_rewards_history.py`, `test_text_parser.py`, `test_weekly_boss.py`, and `test_workout_flow.py` for automated backend verification.
+
+---
+
 ## [Phase 7 Completion & v1.0 Release - The AIRA Engine & Ciel Terminal] - 2026-08-04
 
 ### 1. Google Gemini API Service & Ciel System Prompt (`server/services/aira_service.py`)

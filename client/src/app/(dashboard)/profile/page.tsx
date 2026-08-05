@@ -24,7 +24,15 @@ import {
   Award,
   Clock,
   ArrowUpRight,
+  PieChart,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+import type { RadarDataPoint } from "@/components/ui/StatRadarChart";
+
+const StatRadarChart = dynamic(
+  () => import("@/components/ui/StatRadarChart").then((mod) => mod.StatRadarChart),
+  { ssr: false }
+);
 
 export default function ProfilePage() {
   const { character, gainExp } = useCharacterStore();
@@ -276,8 +284,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 3. STATS GRID SECTION */}
-      <div className="space-y-4">
+      {/* 3. STATS GRID & RADAR CHART SECTION */}
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Swords className="w-5 h-5 text-blue-400" />
@@ -289,11 +297,44 @@ export default function ProfilePage() {
             variant="outline"
             className="text-[10px] font-mono text-slate-400"
           >
-            STAT MODIFIERS ACTIVE
+            RADAR MATRIX ACTIVE
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* RADAR GRAPH & CARDS GRID CONTAINER */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Radar Chart Card */}
+          <div className="lg:col-span-5 bg-[#151C33] border border-blue-500/30 rounded-[24px] p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  Attribute Radar Graph
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-blue-400 font-bold px-2 py-0.5 rounded bg-blue-950/80 border border-blue-500/30">
+                DYNAMIC
+              </span>
+            </div>
+
+            <StatRadarChart
+              data={statList.map((st) => ({
+                subject: st.abbr,
+                value: st.value,
+              }))}
+              primaryName="Stat Value"
+              primaryColor="#3B82F6"
+              secondaryColor="#8B5CF6"
+              height={320}
+            />
+
+            <div className="text-[11px] text-slate-400 font-mono text-center pt-2 border-t border-white/10">
+              Interactive 8-Axis Core Stat Polygon Matrix
+            </div>
+          </div>
+
+          {/* 8 Core Stat Cards Grid */}
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {statList.map((st) => {
             const Icon = st.icon;
             return (
@@ -331,6 +372,7 @@ export default function ProfilePage() {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
