@@ -1,16 +1,37 @@
 import { API_BASE_URL } from "@/constants";
-import { Habit, Mission, HabitDifficulty, ScheduleType, CompletionType } from "../types";
+import { Habit, Mission, HabitDifficulty, ScheduleType, CompletionType, HabitStatus } from "../types";
+
+export interface HabitScheduleCreatePayload {
+  daysOfWeek?: string | null;
+  timesPerWeek?: number | null;
+  timesPerMonth?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  timezone?: string | null;
+}
+
+export interface HabitTierCreatePayload {
+  tier: CompletionType;
+  targetType?: string | null;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  baseExp: number;
+  baseGold: number;
+  statReward: number;
+}
 
 export interface HabitCreatePayload {
   name: string;
   description?: string | null;
+  icon?: string | null;
+  color?: string | null;
   category: string;
   difficulty: HabitDifficulty;
   primaryStat: string;
   scheduleType: ScheduleType;
-  scheduleDays?: string | null;
-  icon?: string | null;
-  color?: string | null;
+  preferredTime?: string | null;
+  schedule?: HabitScheduleCreatePayload | null;
+  tiers: HabitTierCreatePayload[];
 }
 
 export interface MissionCompletePayload {
@@ -78,7 +99,24 @@ export async function fetchHabits(characterId: string): Promise<Habit[]> {
 }
 
 /**
- * Fetches or generates today's missions for a character
+ * Triggers the backend mission generator for the given character.
+ */
+export async function generateTodayMissions(characterId: string): Promise<void> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/habits/${characterId}/generate-missions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      console.error(`[habit.service] Failed to generate missions (HTTP ${res.status} ${res.statusText})`);
+    }
+  } catch (error) {
+    console.error("[habit.service] Error generating today's missions:", error);
+  }
+}
+
+/**
+ * Fetches today's missions for a character
  */
 export async function fetchTodayMissions(characterId: string): Promise<Mission[]> {
   try {
@@ -131,6 +169,37 @@ export async function completeMission(
     return data as Mission;
   } catch (error) {
     console.error("[habit.service] Error completing mission:", error);
+    return null;
+  }
+}
+
+/**
+ * Updates the status of a habit (Pause, Archive, Delete, Active)
+ */
+export async function updateHabitStatus(
+  habitId: string,
+  status: HabitStatus
+): Promise<Habit | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/habits/${habitId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(
+        `[habit.service] Failed to update habit status (HTTP ${res.status} ${res.statusText}):`,
+        errorText
+      );
+      return null;
+    }
+
+    const data = await res.json();
+    return data as Habit;
+  } catch (error) {
+    console.error("[habit.service] Error updating habit status:", error);
     return null;
   }
 }

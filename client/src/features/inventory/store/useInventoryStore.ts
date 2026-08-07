@@ -1,52 +1,132 @@
 import { create } from "zustand";
-import { InventoryRecord } from "../types";
-import { fetchInventory, equipItem, unequipItem } from "../services";
-import { playGeneralNotification } from "@/features/audio/useSystemAudio";
+import { PlayerItem } from "../types/inventory";
+import { useCharacterStore } from "@/store/useCharacterStore";
+import { calculateTotalCombatStats } from "@/features/inventory/utils/combatStatCalculator";
+import { calculateDynamicPower } from "@/features/progression/utils";
 
-export interface InventoryStore {
-  inventory: InventoryRecord[];
+interface InventoryState {
+  items: PlayerItem[];
   isLoading: boolean;
-  loadInventory: (characterId?: string) => Promise<void>;
-  equip: (characterId: string, inventoryId: string) => Promise<void>;
-  unequip: (characterId: string, inventoryId: string) => Promise<void>;
+  error: string | null;
+  
+  fetchInventory: (characterId: string) => Promise<void>;
+  equipItem: (playerItemId: string) => Promise<void>;
+  toggleLock: (playerItemId: string) => Promise<void>;
+  toggleFavorite: (playerItemId: string) => Promise<void>;
 }
 
-const MOCK_CHARACTER_ID = "char-id-123";
-
-export const useInventoryStore = create<InventoryStore>((set, get) => ({
-  inventory: [],
+export const useInventoryStore = create<InventoryState>((set, get) => ({
+  items: [],
   isLoading: false,
+  error: null,
 
-  loadInventory: async (characterId?: string) => {
-    const targetId = characterId || MOCK_CHARACTER_ID;
-    set({ isLoading: true });
+  fetchInventory: async (characterId: string) => {
+    set({ isLoading: true, error: null });
     try {
-      const records = await fetchInventory(targetId);
-      set({ inventory: records, isLoading: false });
-    } catch (error) {
-      console.error("[useInventoryStore] Error loading inventory:", error);
-      set({ isLoading: false });
+      const res = await fetch(`http://localhost:8000/api/inventory/${characterId}`);
+      if (!res.ok) throw new Error("Failed to fetch inventory");
+      const data: PlayerItem[] = await res.json();
+      set({ items: data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
     }
   },
 
-  equip: async (characterId: string, inventoryId: string) => {
-    const targetId = characterId || MOCK_CHARACTER_ID;
+  equipItem: async (playerItemId: string) => {
+    // Optimistic Update (we can apply it after the response to ensure proper auto-unequip)
     try {
-      playGeneralNotification();
-      await equipItem(targetId, inventoryId);
-      await get().loadInventory(targetId);
-    } catch (error) {
-      console.error("[useInventoryStore] Error equipping item:", error);
+      const res = await fetch(`http://localhost:8000/api/inventory/${playerItemId}/equip`, {
+        method: "PATCH",
+      });
+      if (!res.ok) throw new Error("Failed to equip item");
+      const data = await res.json();
+      
+      const updatedItem: PlayerItem = data.playerItem;
+      const { items } = get();
+      
+      // We need to unequip any existing item in the same slot
+      const updatedItems = items.map((item) => {
+        if (item.id === updatedItem.id) {
+          return updatedItem;
+        }
+        // Auto-unequip logic client-side mirror
+        if (
+          updatedItem.isEquipped &&
+          item.isEquipped &&
+          item.itemDefinition.type === updatedItem.itemDefinition.type
+        ) {
+          return { ...item, isEquipped: false };
+        }
+        return item;
+      });
+      
+      set({ items: updatedItems });
+
+      // Power recalculation and backend sync
+      const character = useCharacterStore.getState().character;
+      if (character) {
+        const baseStats = character.stats || {};
+        const equippedItems = updatedItems.filter(i => i.isEquipped);
+        
+        const numBaseStats = Object.keys(baseStats).reduce((acc, key) => {
+           const val = (baseStats as any)[key];
+           if (typeof val === 'number') {
+               acc[key] = val;
+           }
+           return acc;
+        }, {} as Record<string, number>);
+
+        const finalStats = calculateTotalCombatStats(numBaseStats, equippedItems);
+        const newPower = calculateDynamicPower(character.level, finalStats);
+        
+        // This triggers a PATCH to /api/character/{id} in the background
+        useCharacterStore.getState().updateIdentity({ power: newPower });
+      }
+
+    } catch (err: any) {
+      console.error(err);
     }
   },
 
-  unequip: async (characterId: string, inventoryId: string) => {
-    const targetId = characterId || MOCK_CHARACTER_ID;
+  toggleLock: async (playerItemId: string) => {
+    // Optimistic
+    const { items } = get();
+    set({
+      items: items.map((item) =>
+        item.id === playerItemId ? { ...item, isLocked: !item.isLocked } : item
+      ),
+    });
+    
     try {
-      await unequipItem(targetId, inventoryId);
-      await get().loadInventory(targetId);
-    } catch (error) {
-      console.error("[useInventoryStore] Error unequipping item:", error);
+      const res = await fetch(`http://localhost:8000/api/inventory/${playerItemId}/toggle-lock`, {
+        method: "PATCH",
+      });
+      if (!res.ok) throw new Error("Failed to toggle lock");
+    } catch (err) {
+      // Revert on error
+      set({ items });
+      console.error(err);
+    }
+  },
+
+  toggleFavorite: async (playerItemId: string) => {
+    // Optimistic
+    const { items } = get();
+    set({
+      items: items.map((item) =>
+        item.id === playerItemId ? { ...item, isFavorite: !item.isFavorite } : item
+      ),
+    });
+    
+    try {
+      const res = await fetch(`http://localhost:8000/api/inventory/${playerItemId}/toggle-favorite`, {
+        method: "PATCH",
+      });
+      if (!res.ok) throw new Error("Failed to toggle favorite");
+    } catch (err) {
+      // Revert on error
+      set({ items });
+      console.error(err);
     }
   },
 }));

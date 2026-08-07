@@ -60,3 +60,13 @@
 - [x] Client Services, Zustand Store & Automatic Voice Cues (`useAiraStore.ts`).
 - [x] Holographic Sci-Fi Terminal UI (`/aira` page route) & Global Sidebar Audio Hookup (`Sidebar.tsx`).
 
+## Phase 7.5: The Skill Tree System & Expanded Inventory Architecture (Completed)
+- [x] Prisma database architecture upgrade (`ItemDefinition`, `PlayerItem`, `InventoryTransaction`, `SkillDefinition`, `PlayerSkill`, `availableSP`).
+- [x] 400-item icon seeding script (`seed_items.py`) & 29 skill tree seeding script (`seed_skills.py`).
+- [x] FastAPI routers & endpoints for inventory actions and multi-layer skill unlocks (`/api/inventory/*`, `/api/skills/*`).
+- [x] Zustand stores for Inventory (`useInventoryStore.ts`) and Skills (`useSkillStore.ts`).
+- [x] 32x32 CSS Sprite Mapper (`SkillIcon.tsx`) parsing grid coordinates from `Free_Skills.png`.
+- [x] Interactive Skill Tree UI (`/skills` route) featuring elemental columns, dynamic glowing nodes (`SkillNode.tsx`), and RPG detail modal (`SkillDetailModal.tsx`).
+- [x] Combat Stat & Passive Multipliers Engine (`combatStatCalculator.ts` & `useCombatStats.ts`) applying Ascension passives (+4% Str/End, +5% Foc/Dis, +8% Rec, Knowledge-to-CritDmg, +10% EXP) and instant Power score recalculation.
+
+

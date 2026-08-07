@@ -44,14 +44,16 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
     characterId: mission.characterId,
     name: "Daily Routine Mission",
     category: "General",
-    difficulty: "Easy" as HabitDifficulty,
+    difficulty: "EASY" as HabitDifficulty,
     primaryStat: "discipline",
-    isActive: true,
+    status: "ACTIVE",
+    scheduleType: "DAILY",
+    startDate: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
   } as Habit);
 
-  const difficulty = (habit.difficulty || "Easy") as HabitDifficulty;
+  const difficulty = (habit.difficulty || "EASY") as HabitDifficulty;
   const baseReward = getBaseReward(difficulty);
   const miniReward = calculateFinalReward(baseReward, "MINI");
   const normalReward = calculateFinalReward(baseReward, "NORMAL");
@@ -70,9 +72,9 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
         className={`absolute top-0 left-0 right-0 h-1 ${
           isCompleted
             ? "bg-emerald-500"
-            : difficulty === "Hard"
+            : difficulty === "HARD"
             ? "bg-amber-500"
-            : difficulty === "Medium"
+            : difficulty === "MEDIUM"
             ? "bg-blue-500"
             : "bg-emerald-500"
         }`}
@@ -89,9 +91,9 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
               <Badge
                 variant="outline"
                 className={`text-[10px] ${
-                  difficulty === "Hard"
+                  difficulty === "HARD"
                     ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
-                    : difficulty === "Medium"
+                    : difficulty === "MEDIUM"
                     ? "border-blue-500/40 text-blue-400 bg-blue-500/10"
                     : "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
                 }`}

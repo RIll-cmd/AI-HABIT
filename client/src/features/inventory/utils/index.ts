@@ -1,3 +1,2 @@
-export * from "./rarityCalculator";
-export * from "./equipmentGenerator";
+export * from './rarityCalculator';
 export * from "./combatStatCalculator";

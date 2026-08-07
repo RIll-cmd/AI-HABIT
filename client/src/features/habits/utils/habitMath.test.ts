@@ -8,28 +8,28 @@ import {
 
 describe('Habit Engine Core Math Utilities', () => {
   describe('getBaseReward', () => {
-    it('should return correct base rewards for Easy difficulty', () => {
-      expect(getBaseReward('Easy')).toEqual({ exp: 15, gold: 5, stat: 2 });
+    it('should return correct base rewards for EASY difficulty', () => {
+      expect(getBaseReward('EASY')).toEqual({ exp: 15, gold: 5, stat: 2 });
     });
 
-    it('should return correct base rewards for Medium difficulty', () => {
-      expect(getBaseReward('Medium')).toEqual({ exp: 35, gold: 12, stat: 5 });
+    it('should return correct base rewards for MEDIUM difficulty', () => {
+      expect(getBaseReward('MEDIUM')).toEqual({ exp: 35, gold: 12, stat: 5 });
     });
 
-    it('should return correct base rewards for Hard difficulty', () => {
-      expect(getBaseReward('Hard')).toEqual({ exp: 75, gold: 25, stat: 10 });
+    it('should return correct base rewards for HARD difficulty', () => {
+      expect(getBaseReward('HARD')).toEqual({ exp: 75, gold: 25, stat: 10 });
     });
   });
 
   describe('calculateFinalReward', () => {
     it('should calculate NORMAL completion rewards (100% multiplier)', () => {
-      const base = getBaseReward('Easy'); // 15 EXP, 5 Gold, 2 Stat
+      const base = getBaseReward('EASY'); // 15 EXP, 5 Gold, 2 Stat
       const final = calculateFinalReward(base, 'NORMAL');
       expect(final).toEqual({ exp: 15, gold: 5, stat: 2 });
     });
 
     it('should calculate MINI completion rewards (40% multiplier rounded)', () => {
-      const base = getBaseReward('Medium'); // 35 EXP, 12 Gold, 5 Stat
+      const base = getBaseReward('MEDIUM'); // 35 EXP, 12 Gold, 5 Stat
       // exp: 35 * 0.4 = 14
       // gold: 12 * 0.4 = 4.8 -> 5
       // stat: 5 * 0.4 = 2
@@ -38,7 +38,7 @@ describe('Habit Engine Core Math Utilities', () => {
     });
 
     it('should calculate ELITE completion rewards (170% multiplier rounded)', () => {
-      const base = getBaseReward('Hard'); // 75 EXP, 25 Gold, 10 Stat
+      const base = getBaseReward('HARD'); // 75 EXP, 25 Gold, 10 Stat
       // exp: 75 * 1.7 = 127.5 -> 128
       // gold: 25 * 1.7 = 42.5 -> 43
       // stat: 10 * 1.7 = 17 -> 17

@@ -1,13 +1,11 @@
 import { ItemRarity } from "../types";
 
 export const RARITY_MULTIPLIERS: Record<ItemRarity, number> = {
-  Common: 1.0,
-  Uncommon: 1.2,
-  Rare: 1.5,
-  Epic: 2.2,
-  Legendary: 3.5,
-  Mythic: 6.0,
-  Ancient: 10.0,
+  COMMON: 1.0,
+  RARE: 1.5,
+  EPIC: 2.2,
+  LEGENDARY: 3.5,
+  MYTHIC: 6.0,
 };
 
 /**
@@ -19,11 +17,9 @@ export function rollRarity(luckModifier: number = 0): ItemRarity {
   const luckShift = Math.min(150, Math.floor(safeLuck * 2.5));
   const rawRoll = Math.floor(Math.random() * 1000) + luckShift;
 
-  if (rawRoll >= 999) return "Ancient";
-  if (rawRoll >= 995) return "Mythic";
-  if (rawRoll >= 970) return "Legendary";
-  if (rawRoll >= 900) return "Epic";
-  if (rawRoll >= 750) return "Rare";
-  if (rawRoll >= 500) return "Uncommon";
-  return "Common";
+  if (rawRoll >= 995) return "MYTHIC";
+  if (rawRoll >= 970) return "LEGENDARY";
+  if (rawRoll >= 900) return "EPIC";
+  if (rawRoll >= 750) return "RARE";
+  return "COMMON";
 }

@@ -1,4 +1,5 @@
-export type HabitDifficulty = 'Easy' | 'Medium' | 'Hard';
+export type HabitDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
+export type HabitStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'DELETED';
 
 export type PrimaryStat =
   | 'strength'
@@ -10,11 +11,11 @@ export type PrimaryStat =
   | 'consistency';
 
 export type ScheduleType =
-  | 'Daily'
-  | 'Weekly'
-  | 'Monthly'
-  | 'Specific_Days'
-  | 'Custom';
+  | 'DAILY'
+  | 'SPECIFIC_DAYS'
+  | 'X_TIMES_WEEK'
+  | 'MONTHLY'
+  | 'CUSTOM';
 
 export type MissionStatus = 'PENDING' | 'COMPLETED' | 'MISSED';
 
@@ -23,11 +24,26 @@ export type CompletionType = 'MINI' | 'NORMAL' | 'ELITE';
 export interface HabitSchedule {
   id: string;
   habitId: string;
-  type: ScheduleType;
-  days?: string | null;
-  interval: number;
-  startDate: string | Date;
-  endDate?: string | Date | null;
+  daysOfWeek?: string | null;
+  timesPerWeek?: number | null;
+  timesPerMonth?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  timezone?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface HabitTier {
+  id: string;
+  habitId: string;
+  tier: CompletionType;
+  targetType?: string | null;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  baseExp: number;
+  baseGold: number;
+  statReward: number;
 }
 
 export interface HabitMetrics {
@@ -47,12 +63,19 @@ export interface Habit {
   category: string;
   difficulty: HabitDifficulty;
   primaryStat: PrimaryStat | string;
-  isActive: boolean;
+  status: HabitStatus;
+  scheduleType: ScheduleType;
+  preferredTime?: string | null;
+  startDate: string | Date;
+  endDate?: string | Date | null;
   icon?: string | null;
   color?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
+  pausedAt?: string | Date | null;
+  archivedAt?: string | Date | null;
   schedule?: HabitSchedule | null;
+  tiers?: HabitTier[];
   metrics?: HabitMetrics | null;
   missions?: Mission[];
 }

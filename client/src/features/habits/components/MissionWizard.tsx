@@ -52,15 +52,15 @@ const PRIMARY_STATS: { id: PrimaryStat; label: string; icon: any; color: string;
 ];
 
 const DIFFICULTIES: { id: HabitDifficulty; label: string; desc: string; color: string }[] = [
-  { id: "Easy", label: "Easy", desc: "Quick daily routines (15 EXP, 5 Gold, +2 Stat)", color: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:border-emerald-400" },
-  { id: "Medium", label: "Medium", desc: "Standard focused effort (35 EXP, 12 Gold, +5 Stat)", color: "border-blue-500/40 text-blue-400 bg-blue-500/10 hover:border-blue-400" },
-  { id: "Hard", label: "Hard", desc: "Challenging growth missions (75 EXP, 25 Gold, +10 Stat)", color: "border-amber-500/40 text-amber-400 bg-amber-500/10 hover:border-amber-400" },
+  { id: "EASY", label: "Easy", desc: "Quick daily routines (15 EXP, 5 Gold, +2 Stat)", color: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:border-emerald-400" },
+  { id: "MEDIUM", label: "Medium", desc: "Standard focused effort (35 EXP, 12 Gold, +5 Stat)", color: "border-blue-500/40 text-blue-400 bg-blue-500/10 hover:border-blue-400" },
+  { id: "HARD", label: "Hard", desc: "Challenging growth missions (75 EXP, 25 Gold, +10 Stat)", color: "border-amber-500/40 text-amber-400 bg-amber-500/10 hover:border-amber-400" },
 ];
 
 const SCHEDULE_TYPES: { id: ScheduleType; label: string; desc: string; icon: any }[] = [
-  { id: "Daily", label: "Daily", desc: "Repeats every single day", icon: Calendar },
-  { id: "Weekly", label: "Weekly", desc: "Repeats once per week", icon: Clock },
-  { id: "Monthly", label: "Monthly", desc: "Repeats once per month", icon: Layers },
+  { id: "DAILY", label: "Daily", desc: "Repeats every single day", icon: Calendar },
+  { id: "X_TIMES_WEEK", label: "Weekly", desc: "Repeats once per week", icon: Clock },
+  { id: "MONTHLY", label: "Monthly", desc: "Repeats once per month", icon: Layers },
 ];
 
 export interface MissionWizardProps {
@@ -78,8 +78,8 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
   const [description, setDescription] = useState<string>("");
   const [category, setCategory] = useState<string>("Health");
   const [primaryStat, setPrimaryStat] = useState<PrimaryStat>("discipline");
-  const [difficulty, setDifficulty] = useState<HabitDifficulty>("Medium");
-  const [scheduleType, setScheduleType] = useState<ScheduleType>("Daily");
+  const [difficulty, setDifficulty] = useState<HabitDifficulty>("MEDIUM");
+  const [scheduleType, setScheduleType] = useState<ScheduleType>("DAILY");
 
   const totalSteps = 6;
 
@@ -102,6 +102,7 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const base = getBaseReward(difficulty);
       const result = await createNewHabit("char-id-123", {
         name: name.trim(),
         description: description.trim() || null,
@@ -109,6 +110,11 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
         difficulty,
         primaryStat,
         scheduleType,
+        tiers: [
+          { tier: "MINI", targetValue: 1, targetUnit: "Rep", baseExp: Math.round(base.exp * 0.4), baseGold: Math.round(base.gold * 0.4), statReward: Math.round(base.stat * 0.4) },
+          { tier: "NORMAL", targetValue: 2, targetUnit: "Reps", baseExp: base.exp, baseGold: base.gold, statReward: base.stat },
+          { tier: "ELITE", targetValue: 3, targetUnit: "Reps", baseExp: Math.round(base.exp * 1.7), baseGold: Math.round(base.gold * 1.7), statReward: Math.round(base.stat * 1.7) },
+        ],
       });
 
       if (result) {

@@ -55,6 +55,7 @@ const defaultCharacter: Character = {
   power: 97,
   rank: "F",
   gold: 0,
+  availableSP: 0,
   createdAt: new Date().toISOString(),
   stats: defaultStats,
   history: [],
@@ -184,9 +185,28 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const { character } = get();
     if (!character) return;
 
+    // Apply Limitless Growth EXP bonus if present
+    const expBonusStr = localStorage.getItem('asc_exp_bonus'); // Alternatively, calculate it dynamically here. Wait, we can just grab useCombatStats... No, we are in a zustand store. We can call calculateTotalCombatStats if we import useSkillStore.
+    
+    // Instead of local storage, let's just do it directly. We'll import useSkillStore dynamically.
+
+    // Get player skills directly
+    let expMultiplier = 1;
+    try {
+      const { useSkillStore } = require('@/features/skills/store/useSkillStore');
+      const playerSkills = useSkillStore.getState().playerSkills;
+      if (playerSkills.some((ps: any) => ps.skillDefinitionId === 'asc_05')) {
+        expMultiplier = 1.10;
+      }
+    } catch (e) {
+      // Ignored if skill store not initialized
+    }
+
+    const finalAmount = Math.floor(amount * expMultiplier);
+
     const previousLevel = character.level;
     const previousRank = character.rank;
-    const newTotalExp = character.exp + amount;
+    const newTotalExp = character.exp + finalAmount;
     const levelData = calculateLevelData(newTotalExp);
     const isLevelUp = levelData.currentLevel > previousLevel;
 
@@ -214,10 +234,10 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       characterId: character.id,
       type: isLevelUp ? "LEVEL_UP" : "EXP_GAIN",
-      amount,
+      amount: finalAmount,
       description: isLevelUp
         ? `Leveled up to Level ${levelData.currentLevel}! (${reason})`
-        : `Gained +${amount} EXP: ${reason}`,
+        : `Gained +${finalAmount} EXP: ${reason}`,
       createdAt: new Date().toISOString(),
     };
 
@@ -243,7 +263,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       power: newPower,
       rank: newRank,
       history_entry: {
-        amount,
+        amount: finalAmount,
         type: historyEntry.type,
         description: historyEntry.description,
       },

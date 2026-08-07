@@ -1,3 +1,3 @@
-export * from "./ItemCard";
-export * from "./EquipmentPanel";
-export * from "./InventoryGrid";
+export * from './ItemCard';
+export * from './ItemDetailModal';
+export * from './PaperDoll';

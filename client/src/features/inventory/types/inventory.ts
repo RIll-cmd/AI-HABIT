@@ -1,72 +1,46 @@
-export type ItemCategory = "Equipment" | "Consumable" | "Material" | "Relic";
+export type ItemType =
+  | "WEAPON"
+  | "HELMET"
+  | "ARMOR"
+  | "GLOVES"
+  | "BOOTS"
+  | "RING"
+  | "NECKLACE"
+  | "ARTIFACT"
+  | "RELIC"
+  | "CONSUMABLE"
+  | "MATERIAL"
+  | "QUEST_ITEM";
 
-export type ItemRarity =
-  | "Common"
-  | "Uncommon"
-  | "Rare"
-  | "Epic"
-  | "Legendary"
-  | "Mythic"
-  | "Ancient";
+export type ItemRarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
 
-export type EquipmentSlot =
-  | "Weapon"
-  | "Helmet"
-  | "Armor"
-  | "Gloves"
-  | "Boots"
-  | "Ring"
-  | "Necklace"
-  | "Artifact"
-  | "Relic";
-
-export interface Equipment {
-  id: string;
-  itemId: string;
-  slot: EquipmentSlot;
-  strength: number;
-  knowledge: number;
-  recovery: number;
-  focus: number;
-  discipline: number;
-  endurance: number;
-  attack: number;
-  defense: number;
-  hp: number;
-  setName?: string | null;
-}
-
-export interface Consumable {
-  id: string;
-  itemId: string;
-  effect: string;
-  duration?: number | null;
-  cooldown?: number | null;
-}
-
-export interface Item {
+export interface ItemDefinition {
   id: string;
   name: string;
-  description: string;
-  lore?: string | null;
-  category: ItemCategory;
+  description: string | null;
+  type: ItemType;
   rarity: ItemRarity;
-  icon?: string | null;
-  sellPrice: number;
-  buyPrice: number;
-  maxStack: number;
-  levelRequirement: number;
-  createdAt?: string | Date;
-  equipment?: Equipment | null;
-  consumable?: Consumable | null;
+  icon: string;
+  sellValue: number;
+  attack: number;
+  defense: number;
+  strength: number;
+  knowledge: number;
+  discipline: number;
+  focus: number;
+  endurance: number;
+  recovery: number;
+  passive: string | null;
 }
 
-export interface InventoryRecord {
+export interface PlayerItem {
   id: string;
   characterId: string;
-  itemId: string;
-  item: Item;
+  itemDefinitionId: string;
   quantity: number;
   isEquipped: boolean;
-  obtainedAt?: string | Date;
+  isLocked: boolean;
+  isFavorite: boolean;
+  acquiredFrom: string | null;
+  itemDefinition: ItemDefinition;
 }

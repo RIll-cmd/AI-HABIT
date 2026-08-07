@@ -16,6 +16,7 @@ describe("Progression Engine & EventBus", () => {
         power: 97,
         rank: "F",
         gold: 0,
+        availableSP: 0,
         createdAt: new Date().toISOString(),
         stats: {
           id: "stats-1",

@@ -31,6 +31,7 @@ export interface Character {
   power: number;
   rank: string;
   gold: number;
+  availableSP: number;
   createdAt: string | Date;
   stats?: CharacterStats | null;
   history?: ProgressHistory[];

@@ -1,11 +1,13 @@
 import { create } from "zustand";
-import { Habit, Mission, CompletionType } from "../types";
+import { Habit, Mission, CompletionType, HabitStatus } from "../types";
 import { getBaseReward, calculateFinalReward } from "../utils";
 import {
   createHabit,
   fetchHabits,
+  generateTodayMissions,
   fetchTodayMissions,
   completeMission,
+  updateHabitStatus,
   HabitCreatePayload,
 } from "../services/habit.service";
 import { eventBus } from "@/features/progression/services/EventBus";
@@ -24,6 +26,7 @@ export interface HabitStore {
     habit: Habit,
     completionType: CompletionType
   ) => Promise<void>;
+  updateHabitStatus: (habitId: string, status: HabitStatus) => Promise<void>;
 }
 
 const MOCK_CHARACTER_ID = "char-id-123";
@@ -49,6 +52,7 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
     const targetId = characterId || MOCK_CHARACTER_ID;
     set({ isLoading: true });
     try {
+      await generateTodayMissions(targetId);
       const todayMissions = await fetchTodayMissions(targetId);
       set({ todayMissions, isLoading: false });
     } catch (error) {
@@ -121,5 +125,20 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
     }).catch((err) => {
       console.error("[useHabitStore] Background mission completion failed:", err);
     });
+  },
+
+  updateHabitStatus: async (habitId: string, status: HabitStatus) => {
+    // Optimistic update
+    set((state) => ({
+      habits: state.habits.map((h) =>
+        h.id === habitId ? { ...h, status } : h
+      ),
+    }));
+
+    // Service call
+    const updated = await updateHabitStatus(habitId, status);
+    if (!updated) {
+      console.error("[useHabitStore] Failed to update habit status, rolling back is not implemented yet");
+    }
   },
 }));

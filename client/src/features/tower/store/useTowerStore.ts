@@ -10,9 +10,9 @@ import {
   FloorRewards,
 } from "../services";
 import { scaleEnemyForFloor } from "../utils";
-import { rollRarity, generateEquipmentStats } from "@/features/inventory/utils";
-import { EquipmentSlot } from "@/features/inventory/types";
-import { grantItem } from "@/features/inventory/services";
+import { rollRarity } from "@/features/inventory/utils";
+import { ItemType } from "@/features/inventory/types";
+// import { grantItem } from "@/features/inventory/services";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { playSuccessfulSound, playFailedSound } from "@/features/audio/useSystemAudio";
 
@@ -99,36 +99,22 @@ export const useTowerStore = create<TowerStore>((set, get) => ({
       const isDrop = isBossFloor || Math.random() < 0.25;
 
       if (isDrop) {
-        const slots: EquipmentSlot[] = [
-          "Weapon",
-          "Helmet",
-          "Armor",
-          "Gloves",
-          "Boots",
-          "Ring",
-          "Necklace",
-          "Artifact",
-          "Relic",
+        const slots: ItemType[] = [
+          "WEAPON",
+          "HELMET",
+          "ARMOR",
+          "GLOVES",
+          "BOOTS",
+          "RING",
+          "NECKLACE",
+          "ARTIFACT",
+          "RELIC",
         ];
         const randomSlot = slots[Math.floor(Math.random() * slots.length)];
         const rarity = rollRarity(consistency);
-        const equipmentStats = generateEquipmentStats(
-          randomSlot,
-          rarity,
-          floor.floorNumber
-        );
-
-        const payload = {
-          name: `${rarity} ${randomSlot}`,
-          description: `A powerful ${rarity.toLowerCase()} item acquired from Floor ${floor.floorNumber} in the Tower of Ascension.`,
-          category: "Equipment",
-          rarity: rarity,
-          sellPrice: floor.floorNumber * 10,
-          buyPrice: floor.floorNumber * 20,
-          equipment: equipmentStats,
-        };
-
-        droppedItemRecord = await grantItem(characterId, payload);
+        
+        // TODO: Call new grant_item backend logic that picks from seeded ItemDefinitions
+        // droppedItemRecord = await grantItem(characterId, payload);
       }
 
       // Submit victory to backend to persist CLEARED status and unlock next floor

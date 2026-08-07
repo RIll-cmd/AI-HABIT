@@ -28,6 +28,9 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { RadarDataPoint } from "@/components/ui/StatRadarChart";
+import { useCombatStats } from "@/features/inventory/hooks/useCombatStats";
+import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
+import { useEffect } from "react";
 
 const StatRadarChart = dynamic(
   () => import("@/components/ui/StatRadarChart").then((mod) => mod.StatRadarChart),
@@ -36,6 +39,12 @@ const StatRadarChart = dynamic(
 
 export default function ProfilePage() {
   const { character, gainExp } = useCharacterStore();
+  const { fetchInventory } = useInventoryStore();
+  const finalStats = useCombatStats();
+
+  useEffect(() => {
+    fetchInventory("char-id-123");
+  }, [fetchInventory]);
 
   const stats = character?.stats;
   const history = character?.history || [];
@@ -48,7 +57,7 @@ export default function ProfilePage() {
       key: "strength",
       label: "Strength",
       abbr: "STR",
-      value: stats?.strength ?? 1,
+      value: finalStats.strength,
       description: "Physical power & combat output",
       icon: Dumbbell,
       color: "text-red-400",
@@ -59,7 +68,7 @@ export default function ProfilePage() {
       key: "knowledge",
       label: "Knowledge",
       abbr: "KNW",
-      value: stats?.knowledge ?? 1,
+      value: finalStats.knowledge,
       description: "Intellectual depth & tactical insight",
       icon: BookOpen,
       color: "text-blue-400",
@@ -70,7 +79,7 @@ export default function ProfilePage() {
       key: "discipline",
       label: "Discipline",
       abbr: "DIS",
-      value: stats?.discipline ?? 1,
+      value: finalStats.discipline,
       description: "Willpower & defense against friction",
       icon: Shield,
       color: "text-amber-400",
@@ -81,7 +90,7 @@ export default function ProfilePage() {
       key: "focus",
       label: "Focus",
       abbr: "FCS",
-      value: stats?.focus ?? 1,
+      value: finalStats.focus,
       description: "Deep work capacity & accuracy",
       icon: Target,
       color: "text-purple-400",
@@ -92,7 +101,7 @@ export default function ProfilePage() {
       key: "endurance",
       label: "Endurance",
       abbr: "END",
-      value: stats?.endurance ?? 1,
+      value: finalStats.endurance,
       description: "Stamina & maximum HP pool",
       icon: Heart,
       color: "text-emerald-400",
@@ -103,7 +112,7 @@ export default function ProfilePage() {
       key: "recovery",
       label: "Recovery",
       abbr: "REC",
-      value: stats?.recovery ?? 1,
+      value: finalStats.recovery,
       description: "Rest, energy regen & health sustain",
       icon: RefreshCw,
       color: "text-cyan-400",
@@ -114,7 +123,7 @@ export default function ProfilePage() {
       key: "consistency",
       label: "Consistency",
       abbr: "CON",
-      value: stats?.consistency ?? 1,
+      value: finalStats.consistency,
       description: "Streak continuity & loot drop quality",
       icon: Flame,
       color: "text-orange-400",
@@ -126,9 +135,9 @@ export default function ProfilePage() {
       label: "Combat Mastery",
       abbr: "CMT",
       value: Math.floor(
-        ((stats?.strength ?? 1) +
-          (stats?.knowledge ?? 1) +
-          (stats?.focus ?? 1)) /
+        (finalStats.strength +
+          finalStats.knowledge +
+          finalStats.focus) /
           3
       ),
       description: "Synergistic combat efficiency",

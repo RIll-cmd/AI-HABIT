@@ -1,195 +1,206 @@
 from fastapi import APIRouter, HTTPException, status
 from db import db
 from db_utils import ensure_character_exists
-from schemas.inventory import ItemGrantSchema
+from schemas.inventory import PlayerItemSchema, EquipmentActionResponse, ToggleActionResponse
+from typing import List
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 
-@router.get("/{character_id}")
+@router.get("/{character_id}", response_model=List[PlayerItemSchema])
 async def get_inventory(character_id: str):
     """
-    Fetch all Inventory records for a character including nested Item,
-    Equipment, and Consumable details.
+    Fetch all PlayerItem records for a character including nested ItemDefinition details.
     """
     await ensure_character_exists(character_id)
 
-    inventory_items = await db.inventory.find_many(
+    inventory_items = await db.playeritem.find_many(
         where={"characterId": character_id},
-        include={
-            "item": {
-                "include": {
-                    "equipment": True,
-                    "consumable": True,
-                }
-            }
-        },
-        order={"obtainedAt": "desc"},
+        include={"itemDefinition": True},
+        order={"acquiredAt": "desc"},
     )
     return inventory_items
 
 
-@router.post("/{character_id}/grant")
-async def grant_item(character_id: str, payload: ItemGrantSchema):
+async def grant_item(character_id: str, item_definition_id: str, quantity: int = 1, source: str = "LOOT"):
     """
-    Creates an Item template record (with Equipment stats if provided)
-    and grants an Inventory instance to the specified character.
+    Helper function to grant an item to a character.
+    Creates a transaction log.
     """
     await ensure_character_exists(character_id)
 
-    # 1. Create base Item
-    item = await db.item.create(
-        data={
-            "name": payload.name,
-            "description": payload.description,
-            "category": payload.category,
-            "rarity": payload.rarity,
-            "sellPrice": payload.sellPrice,
-            "buyPrice": payload.buyPrice,
-            "lore": payload.lore,
-            "icon": payload.icon,
-        }
-    )
+    item_def = await db.itemdefinition.find_unique(where={"id": item_definition_id})
+    if not item_def:
+        raise HTTPException(status_code=404, detail="Item Definition not found.")
 
-    # 2. Create Equipment details if category is Equipment
-    if payload.equipment and payload.category == "Equipment":
-        eq = payload.equipment
-        await db.equipment.create(
-            data={
-                "itemId": item.id,
-                "slot": eq.slot,
-                "strength": eq.strength,
-                "knowledge": eq.knowledge,
-                "recovery": eq.recovery,
-                "focus": eq.focus,
-                "discipline": eq.discipline,
-                "endurance": eq.endurance,
-                "attack": eq.attack,
-                "defense": eq.defense,
-                "hp": eq.hp,
-                "setName": eq.setName,
+    # Check if item stacks (for this prototype, let's just create a new PlayerItem or increment quantity)
+    # Materials and consumables stack. Equipment generally does not.
+    if item_def.type in ["MATERIAL", "CONSUMABLE"]:
+        existing = await db.playeritem.find_first(
+            where={
+                "characterId": character_id,
+                "itemDefinitionId": item_definition_id
             }
         )
-
-    # 3. Create Inventory record instance
-    inventory_record = await db.inventory.create(
+        if existing:
+            player_item = await db.playeritem.update(
+                where={"id": existing.id},
+                data={"quantity": existing.quantity + quantity},
+                include={"itemDefinition": True}
+            )
+        else:
+            player_item = await db.playeritem.create(
+                data={
+                    "characterId": character_id,
+                    "itemDefinitionId": item_definition_id,
+                    "quantity": quantity,
+                    "acquiredFrom": source
+                },
+                include={"itemDefinition": True}
+            )
+    else:
+        # Create separate instances for equipment
+        player_item = await db.playeritem.create(
+            data={
+                "characterId": character_id,
+                "itemDefinitionId": item_definition_id,
+                "quantity": 1,
+                "acquiredFrom": source
+            },
+            include={"itemDefinition": True}
+        )
+    
+    # Create Transaction
+    await db.inventorytransaction.create(
         data={
             "characterId": character_id,
-            "itemId": item.id,
-            "quantity": 1,
-            "isEquipped": False,
-        },
-        include={
-            "item": {
-                "include": {
-                    "equipment": True,
-                    "consumable": True,
-                }
-            }
-        },
+            "playerItemId": player_item.id,
+            "type": source,
+            "quantity": quantity,
+            "source": source
+        }
     )
+    
+    return player_item
 
-    return inventory_record
 
-
-@router.post("/{character_id}/equip/{inventory_id}")
-async def equip_item(character_id: str, inventory_id: str):
+@router.patch("/{player_item_id}/equip", response_model=EquipmentActionResponse)
+async def equip_item(player_item_id: str):
     """
-    Equips an inventory item for a character. Unequips any existing item in the same slot.
+    Toggles the isEquipped boolean. Auto-unequips existing items in the same slot.
     """
-    await ensure_character_exists(character_id)
-
-    target_record = await db.inventory.find_first(
-        where={"id": inventory_id, "characterId": character_id},
-        include={
-            "item": {
-                "include": {
-                    "equipment": True,
-                }
-            }
-        },
+    target_record = await db.playeritem.find_unique(
+        where={"id": player_item_id},
+        include={"itemDefinition": True},
     )
 
     if not target_record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Inventory item with ID '{inventory_id}' not found.",
+            detail=f"PlayerItem with ID '{player_item_id}' not found.",
         )
 
-    # If item is Equipment, auto-unequip any currently equipped item sharing the same slot
-    target_equipment = target_record.item.equipment if target_record.item else None
-    if target_equipment:
-        currently_equipped = await db.inventory.find_many(
-            where={"characterId": character_id, "isEquipped": True},
-            include={
-                "item": {
-                    "include": {
-                        "equipment": True,
+    character_id = target_record.characterId
+    item_def = target_record.itemDefinition
+    
+    # If the item is already equipped, just unequip it
+    if target_record.isEquipped:
+        updated_record = await db.playeritem.update(
+            where={"id": player_item_id},
+            data={"isEquipped": False},
+            include={"itemDefinition": True},
+        )
+        return EquipmentActionResponse(
+            status="success",
+            message=f"Unequipped '{item_def.name}'",
+            playerItem=updated_record
+        )
+
+    # Equipment slots logic
+    equipment_slots = ["WEAPON", "HELMET", "ARMOR", "GLOVES", "BOOTS", "RING", "NECKLACE", "ARTIFACT", "RELIC"]
+    if item_def.type in equipment_slots:
+        # Find all equipped items of the same type and unequip them
+        currently_equipped = await db.playeritem.find_many(
+            where={
+                "characterId": character_id,
+                "isEquipped": True,
+                "itemDefinition": {
+                    "is": {
+                        "type": item_def.type
                     }
                 }
             },
+            include={"itemDefinition": True}
         )
 
         for equipped in currently_equipped:
-            eq_details = equipped.item.equipment if equipped.item else None
-            if eq_details and eq_details.slot == target_equipment.slot:
-                await db.inventory.update(
+            if equipped.id != target_record.id:
+                await db.playeritem.update(
                     where={"id": equipped.id},
                     data={"isEquipped": False},
                 )
 
-    # Set target inventory item to equipped
-    updated_record = await db.inventory.update(
-        where={"id": inventory_id},
+    # Equip the target item
+    updated_record = await db.playeritem.update(
+        where={"id": player_item_id},
         data={"isEquipped": True},
-        include={
-            "item": {
-                "include": {
-                    "equipment": True,
-                }
-            }
-        },
+        include={"itemDefinition": True},
     )
 
-    return {
-        "status": "success",
-        "message": f"Successfully equipped '{target_record.item.name}'",
-        "inventory": updated_record,
-    }
-
-
-@router.post("/{character_id}/unequip/{inventory_id}")
-async def unequip_item(character_id: str, inventory_id: str):
-    """
-    Unequips an inventory item for a character.
-    """
-    await ensure_character_exists(character_id)
-
-    target_record = await db.inventory.find_first(
-        where={"id": inventory_id, "characterId": character_id},
-        include={"item": True},
+    return EquipmentActionResponse(
+        status="success",
+        message=f"Equipped '{item_def.name}'",
+        playerItem=updated_record
     )
+
+
+@router.patch("/{player_item_id}/toggle-lock", response_model=ToggleActionResponse)
+async def toggle_lock(player_item_id: str):
+    """
+    Toggles isLocked.
+    """
+    target_record = await db.playeritem.find_unique(where={"id": player_item_id})
 
     if not target_record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Inventory item with ID '{inventory_id}' not found.",
+            detail=f"PlayerItem with ID '{player_item_id}' not found.",
         )
 
-    updated_record = await db.inventory.update(
-        where={"id": inventory_id},
-        data={"isEquipped": False},
-        include={
-            "item": {
-                "include": {
-                    "equipment": True,
-                }
-            }
-        },
+    updated_record = await db.playeritem.update(
+        where={"id": player_item_id},
+        data={"isLocked": not target_record.isLocked},
+        include={"itemDefinition": True},
     )
 
-    return {
-        "status": "success",
-        "message": f"Successfully unequipped '{target_record.item.name}'",
-        "inventory": updated_record,
-    }
+    return ToggleActionResponse(
+        status="success",
+        message=f"Lock status toggled to {updated_record.isLocked}",
+        playerItem=updated_record
+    )
+
+
+@router.patch("/{player_item_id}/toggle-favorite", response_model=ToggleActionResponse)
+async def toggle_favorite(player_item_id: str):
+    """
+    Toggles isFavorite.
+    """
+    target_record = await db.playeritem.find_unique(where={"id": player_item_id})
+
+    if not target_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"PlayerItem with ID '{player_item_id}' not found.",
+        )
+
+    updated_record = await db.playeritem.update(
+        where={"id": player_item_id},
+        data={"isFavorite": not target_record.isFavorite},
+        include={"itemDefinition": True},
+    )
+
+    return ToggleActionResponse(
+        status="success",
+        message=f"Favorite status toggled to {updated_record.isFavorite}",
+        playerItem=updated_record
+    )

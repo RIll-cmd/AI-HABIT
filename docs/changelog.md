@@ -2,6 +2,37 @@
 
 All notable changes and architectural implementations for **Ascend OS (AI-Powered Life RPG Platform)** are documented in this file.
 
+## [Phase 7 Completion - The Skill System & Expanded Inventory System] - 2026-08-08
+
+### 1. Database Architecture & Seeding (`server/prisma/schema.prisma`)
+- **`ItemDefinition` / `PlayerItem` / `InventoryTransaction`**: Replaced legacy item models with a scalable 400-item global template database (`ItemDefinition`), player instance database (`PlayerItem`), and audit log (`InventoryTransaction`).
+- **`SkillDefinition`**: Master skill template database storing skill metadata (`id`, `name`, `description`, `elementPath`, `tier`, `maxLevel`, `skillType`, `baseCostSP`, `statRequirements`, `prerequisiteSkillId`, `icon`).
+- **`PlayerSkill`**: Character skill ownership model tracking unlocked skills and current levels (`id`, `characterId`, `skillDefinitionId`, `currentLevel`).
+- **Character Model Upgrade**: Added `availableSP` (Skill Points) field to track earnable skill points.
+- **Python Seeding Engines**: Created `seed_items.py` (parsing 400 icons and item mapping JSON) and `seed_skills.py` (populating 29 elemental and ascension skills across Flame, Tempest, Earth, Tide, and Ascension paths).
+
+### 2. Backend API Services & Validation (`server/routers/` & `server/schemas/`)
+- **Inventory API** (`server/routers/inventory.py`): Pydantic schemas and endpoints for fetching player inventory, toggling item equipping (enforcing single-slot auto-unequip), toggling lock, and toggling favorite.
+- **Skills API** (`server/routers/skills.py`): Endpoints `GET /api/skills/{character_id}` and `POST /api/skills/{character_id}/unlock` enforcing strict multi-layer checks: available SP cost validation, max level validation, stat requirements parsing, and prerequisite skill dependency verification.
+
+### 3. Client Domain Stores & Combat Engine Integration (`client/src/features/`)
+- **Zustand Inventory Store** (`features/inventory/store/useInventoryStore.ts`): Manages item fetching, lock/favorite toggles, auto-unequip logic, and instant power recalculation upon equipment change.
+- **Zustand Skill Store** (`features/skills/store/useSkillStore.ts`): Manages global skill definitions, owned player skills, available SP tracking, optimistic unlocks, and instant dynamic power recalculation upon skill upgrades.
+- **CSS Sprite Engine** (`features/skills/components/SkillIcon.tsx`): 32x32 CSS background-position mapper translating `RowX_ColY` grid coordinates from `Free_Skills.png`.
+- **Stat Aggregation Engine** (`features/inventory/utils/combatStatCalculator.ts` & `hooks/useCombatStats.ts`): Incorporated skill passives into total combat stat calculation:
+  - **Body Conditioning (`asc_01`)**: +4% Strength and Endurance.
+  - **Mental Fortress (`asc_02`)**: +5% Focus and Discipline.
+  - **Rapid Recovery (`asc_03`)**: +8% Recovery.
+  - **Tactical Mind (`asc_04`)**: Converts 5% of Knowledge into Critical Damage.
+  - **Limitless Growth (`asc_05`)**: Intercepts `gainExp` in `useCharacterStore.ts` to grant +10% bonus EXP on all activities.
+
+### 4. Interactive Skill Tree UI (`client/src/app/(dashboard)/skills/page.tsx`)
+- **Elemental Tree Grid**: Visual layout organizing skills across Flame, Tempest, Earth, Tide, and Ascension columns.
+- **Interactive Nodes (`SkillNode.tsx`)**: Dynamic node states (Locked grayscale, Available glowing neon element borders, Unlocked golden border with Level badge).
+- **Skill Detail Modal (`SkillDetailModal.tsx`)**: `#151C33` RPG modal displaying skill lore, stats, requirements, and unlock/upgrade triggers.
+
+---
+
 ## [Phase 8 Completion - The Fitness Engine & Workout Boss System] - 2026-08-05
 
 ### 1. Database Schema & Models (`server/prisma/schema.prisma`)

@@ -14,11 +14,11 @@ export interface BaseReward {
  */
 export function getBaseReward(difficulty: HabitDifficulty): BaseReward {
   switch (difficulty) {
-    case 'Easy':
+    case 'EASY':
       return { exp: 15, gold: 5, stat: 2 };
-    case 'Medium':
+    case 'MEDIUM':
       return { exp: 35, gold: 12, stat: 5 };
-    case 'Hard':
+    case 'HARD':
       return { exp: 75, gold: 25, stat: 10 };
     default:
       return { exp: 15, gold: 5, stat: 2 };

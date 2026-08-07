@@ -1,9 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { BarChart3, TrendingUp, Sparkles, Activity, PieChart, ShieldAlert } from "lucide-react";
+import dynamic from "next/dynamic";
+import { HistoryTimeline } from "@/features/progression/components";
+import { useProgressionStore } from "@/features/progression/store";
+
+const WeeklyExpChart = dynamic(
+  () => import("@/features/progression/components/WeeklyExpChart").then((mod) => mod.WeeklyExpChart),
+  { ssr: false }
+);
 
 export default function AnalyticsPage() {
+  const {
+    goldLogs,
+    weeklyExpData,
+    loadGoldHistory,
+    loadWeeklyAnalytics,
+    isLoading: isAnalyticsLoading,
+  } = useProgressionStore();
+
+  useEffect(() => {
+    loadWeeklyAnalytics("char-id-123");
+    loadGoldHistory("char-id-123");
+  }, [loadWeeklyAnalytics, loadGoldHistory]);
+
   return (
     <div className="space-y-8 pb-12 text-slate-100">
       {/* HEADER SECTION */}
@@ -51,18 +72,13 @@ export default function AnalyticsPage() {
           </span>
         </div>
 
-        {/* BLANK CONTAINER UI */}
-        <div className="border border-dashed border-white/15 rounded-2xl p-12 text-center bg-[#0B1020]/50 space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center mx-auto">
-            <TrendingUp className="w-8 h-8 animate-pulse" />
+        {/* CHARTS GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <WeeklyExpChart data={weeklyExpData} isLoading={isAnalyticsLoading} />
           </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-white font-heading">
-              Analytics Module Ready
-            </h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Telemetry tracking active. Complete workouts, log habits, and defeat weekly bosses to generate deep performance insights and trend reports.
-            </p>
+          <div className="lg:col-span-1">
+            <HistoryTimeline logs={goldLogs} isLoading={isAnalyticsLoading} />
           </div>
         </div>
       </div>

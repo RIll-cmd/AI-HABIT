@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from db import db
 from db_utils import ensure_character_exists
 from schemas.habit import MissionCompleteSchema
+from services.mission_generator import recalculate_habit_strength
 
 router = APIRouter(prefix="/api/missions", tags=["missions"])
 
@@ -10,10 +11,8 @@ router = APIRouter(prefix="/api/missions", tags=["missions"])
 @router.get("/today/{character_id}")
 async def get_today_missions(character_id: str):
     """
-    Daily Mission Generator:
-    Ensures character exists, fetches active habit templates for character,
-    ensures a PENDING Mission instance exists for today, creates missing instances,
-    and returns today's missions.
+    Fetches today's missions for the character.
+    Generation should be triggered via the POST /api/habits/{character_id}/generate-missions endpoint.
     """
     await ensure_character_exists(character_id)
 
@@ -21,39 +20,6 @@ async def get_today_missions(character_id: str):
     today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     today_end = today_start + timedelta(days=1)
 
-    # Fetch active habit templates
-    active_habits = await db.habit.find_many(
-        where={"characterId": character_id, "isActive": True},
-        include={"schedule": True, "metrics": True},
-    )
-
-    # Find existing missions for today
-    existing_missions = await db.mission.find_many(
-        where={
-            "characterId": character_id,
-            "date": {
-                "gte": today_start,
-                "lt": today_end,
-            },
-        },
-        include={"habit": True},
-    )
-
-    existing_habit_ids = {m.habitId for m in existing_missions if m.habitId}
-
-    # Generate missing mission instances for today
-    for habit in active_habits:
-        if habit.id not in existing_habit_ids:
-            await db.mission.create(
-                data={
-                    "habitId": habit.id,
-                    "characterId": character_id,
-                    "date": today_start,
-                    "status": "PENDING",
-                }
-            )
-
-    # Return all today missions (including newly generated ones)
     today_missions = await db.mission.find_many(
         where={
             "characterId": character_id,
@@ -98,17 +64,6 @@ async def complete_mission(mission_id: str, payload: MissionCompleteSchema):
 
     # Update HabitMetrics if linked to a Habit template
     if updated_mission.habitId:
-        metrics = await db.habitmetrics.find_unique(
-            where={"habitId": updated_mission.habitId}
-        )
-        if metrics:
-            new_strength = min(100.0, metrics.habitStrength + 1.0)
-            await db.habitmetrics.update(
-                where={"habitId": updated_mission.habitId},
-                data={
-                    "habitStrength": new_strength,
-                    "completionRate": min(100.0, metrics.completionRate + 1.0),
-                },
-            )
+        await recalculate_habit_strength(updated_mission.habitId)
 
     return updated_mission
