@@ -56,6 +56,7 @@ model Character {
   workoutSessions WorkoutSession[]
   personalRecords PersonalRecord[]
   weeklyBosses    WeeklyBoss[]
+  bosses          Boss[]
 }
 
 model CharacterStats {
@@ -473,4 +474,55 @@ model TowerProgress {
   clearedAt            DateTime?
 
   @@unique([characterId, floorNumber])
+}
+
+model Boss {
+  id          String   @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  category    String
+  difficulty  String
+  maxHp       Int
+  currentHp   Int
+  deadline    DateTime?
+  status      String   @default("ACTIVE") // 'ACTIVE', 'DEFEATED', 'FAILED', 'ARCHIVED'
+  createdAt   DateTime @default(now())
+
+  phases      BossPhase[]
+  activities  BossActivity[]
+  damageLogs  BossDamageLog[]
+}
+
+model BossPhase {
+  id         String @id @default(uuid())
+  bossId     String
+  boss       Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  name       String
+  maxHp      Int
+  orderIndex Int
+
+  @@unique([bossId, orderIndex])
+}
+
+model BossActivity {
+  id           String @id @default(uuid())
+  bossId       String
+  boss         Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  activityType String // 'HABIT', 'MISSION', 'WORKOUT'
+  referenceId  String? // e.g. habitId or exerciseId
+  damageValue  Int
+
+  damageLogs   BossDamageLog[]
+}
+
+model BossDamageLog {
+  id         String @id @default(uuid())
+  bossId     String
+  boss       Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  activityId String?
+  activity   BossActivity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  damage     Int
+  createdAt  DateTime @default(now())
 }

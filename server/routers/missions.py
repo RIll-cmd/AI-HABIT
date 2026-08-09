@@ -4,6 +4,7 @@ from db import db
 from db_utils import ensure_character_exists
 from schemas.habit import MissionCompleteSchema
 from services.mission_generator import recalculate_habit_strength
+from services.boss_engine import deal_boss_damage
 
 router = APIRouter(prefix="/api/missions", tags=["missions"])
 
@@ -65,5 +66,15 @@ async def complete_mission(mission_id: str, payload: MissionCompleteSchema):
     # Update HabitMetrics if linked to a Habit template
     if updated_mission.habitId:
         await recalculate_habit_strength(updated_mission.habitId)
+        
+    # Deal Boss Damage (if linked)
+    # We use "HABIT" as the activityType because the user links the overall habit to the boss
+    if updated_mission.habitId:
+        await deal_boss_damage(
+            db=db,
+            character_id=updated_mission.characterId,
+            activity_type="HABIT",
+            reference_id=updated_mission.habitId
+        )
 
     return updated_mission

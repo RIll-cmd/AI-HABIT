@@ -6,6 +6,7 @@ from services.aira_service import (
     generate_aira_response,
     analyze_tower_combat,
     generate_daily_report,
+    analyze_boss_trajectory,
 )
 
 router = APIRouter(prefix="/api/aira", tags=["aira"])
@@ -88,3 +89,35 @@ async def get_daily_report(character_id: str):
     )
 
     return {"report": report_text}
+
+
+@router.get("/boss-trajectory/{character_id}/{boss_id}")
+async def get_boss_trajectory(character_id: str, boss_id: str):
+    """
+    GET /api/aira/boss-trajectory/{character_id}/{boss_id}
+    Retrieves Boss data, Damage Log history, and generates Ciel's tactical coaching on trajectory.
+    """
+    context_dict = await get_character_context_dict(character_id)
+    
+    # Fetch Boss
+    boss = await db.boss.find_first(
+        where={"id": boss_id, "characterId": character_id},
+        include={"damageLogs": {"orderBy": {"createdAt": "desc"}}}
+    )
+    if not boss:
+        raise HTTPException(status_code=404, detail="Boss not found")
+        
+    boss_dict = boss.model_dump() if hasattr(boss, "model_dump") else dict(boss)
+    # Ensure datetime objects are converted to strings if needed for JSON serialization later, but we just need them in memory here
+    if "deadline" in boss_dict and boss_dict["deadline"]:
+        boss_dict["deadline"] = str(boss_dict["deadline"])
+        
+    damage_logs = [log.model_dump() if hasattr(log, "model_dump") else dict(log) for log in boss_dict.get("damageLogs", [])]
+    
+    analysis_text = await analyze_boss_trajectory(
+        character_context=context_dict,
+        boss_data=boss_dict,
+        damage_logs=damage_logs,
+    )
+
+    return {"analysis": analysis_text}

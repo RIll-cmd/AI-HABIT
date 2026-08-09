@@ -11,6 +11,7 @@ from services.fitness_engine import (
     check_boss_defeat,
 )
 from services.text_parser import parse_workout_text
+from services.boss_engine import deal_boss_damage
 
 router = APIRouter(prefix="/api/fitness", tags=["fitness"])
 
@@ -236,6 +237,14 @@ async def finish_workout_session(session_id: str):
 
         # Calculate rewards
         rewards = await calculate_workout_rewards(session_id, len(new_prs))
+
+        # Deal Real-Life Boss Damage (if linked)
+        await deal_boss_damage(
+            db=db,
+            character_id=session.characterId,
+            activity_type="WORKOUT",
+            reference_id=session.planId or ""
+        )
 
         res_dict = session.model_dump() if hasattr(session, "model_dump") else session.__dict__
         res_dict["newPRs"] = new_prs

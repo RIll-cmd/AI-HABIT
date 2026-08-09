@@ -221,3 +221,54 @@ async def generate_daily_report(
         f"There are currently {pending_habits_count} pending Skill Acquisition tasks scheduled for today. "
         f"I shall monitor your progress and ensure optimal Attribute Enhancement throughout the cycle."
     )
+
+
+async def analyze_boss_trajectory(
+    character_context: Dict[str, Any],
+    boss_data: Dict[str, Any],
+    damage_logs: List[Dict[str, Any]],
+) -> str:
+    """
+    Analyzes Boss Damage Log history and compares current velocity to remaining HP and deadline.
+    """
+    context_str = format_character_context(character_context)
+    
+    boss_name = boss_data.get("name", "Unknown Boss")
+    max_hp = boss_data.get("maxHp", 10000)
+    current_hp = boss_data.get("currentHp", 10000)
+    deadline = boss_data.get("deadline", "None")
+    
+    # Calculate some basic metrics
+    total_damage = max_hp - current_hp
+    
+    prompt = (
+        f"[Task: Boss Trajectory Analysis]\n"
+        f"Context:\n{context_str}\n\n"
+        f"Boss Name: {boss_name}\n"
+        f"Total HP: {max_hp} | Current HP: {current_hp} (Damage Dealt: {total_damage})\n"
+        f"Deadline: {deadline}\n"
+        f"Recent Damage Logs count: {len(damage_logs)}\n\n"
+        f"Act as Ciel (AIRA). Analyze the current trajectory against the {boss_name} boss. "
+        f"Calculate the apparent pace of damage dealing based on the remaining HP and deadline (if any). "
+        f"If the pace is good, commend Master with exact numbers. If falling behind, issue a tactical warning to increase Skill Acquisition (habit) completion rates."
+    )
+
+    client = get_gemini_client()
+    if client:
+        result_text = call_gemini_generate(client, prompt)
+        if result_text:
+            return result_text
+
+    # Fallback response
+    if current_hp <= max_hp / 2:
+        return (
+            f"<< Report. >> Trajectory analysis for {boss_name} complete. "
+            f"Master has successfully depleted over 50% of the target's vitality. "
+            f"At the current velocity, victory probability is exceedingly high. Maintain current Skill Acquisition routines."
+        )
+    else:
+        return (
+            f"<< Warning. >> Trajectory analysis for {boss_name} indicates sub-optimal damage velocity. "
+            f"Target HP remains dangerously high at {current_hp}. "
+            f"I recommend temporarily increasing the completion rate of your daily Skill Acquisition tasks to accelerate damage output."
+        )
