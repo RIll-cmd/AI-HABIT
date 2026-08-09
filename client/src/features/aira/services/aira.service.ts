@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "@/constants";
-import { AIRAChatResponse, AIRADefeatResponse, AIRADailyReportResponse } from "../types";
+import { AIRAChatResponse, AIRADefeatResponse, AIRADailyReportResponse, AIRAPendingAction, AIRASystemStatusResponse } from "../types";
 
 /**
  * Sends a chat prompt to AIRA via POST /api/aira/chat
@@ -74,6 +74,60 @@ export async function fetchDailyReport(
     return (await res.json()) as AIRADailyReportResponse;
   } catch (error) {
     console.error("[aira.service] Error fetching daily report:", error);
+    return null;
+  }
+}
+
+/**
+ * Executes a pending action via POST /api/aira/execute
+ */
+export async function executeAiraAction(
+  pendingAction: AIRAPendingAction,
+  characterId: string = "char-id-123"
+): Promise<{ success: boolean; message: string } | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/aira/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action_type: pendingAction.action_type,
+        action_args: pendingAction.action_args,
+        characterId,
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn(`[aira.service] Failed to execute action: ${res.statusText}`);
+      return null;
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("[aira.service] Error executing action:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetches AIRA's proactive system status via GET /api/aira/status/{character_id}
+ */
+export async function fetchSystemStatus(
+  characterId: string
+): Promise<AIRASystemStatusResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/aira/status/${characterId}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+      console.warn(`[aira.service] Failed to fetch system status: ${res.statusText}`);
+      return null;
+    }
+
+    return (await res.json()) as AIRASystemStatusResponse;
+  } catch (error) {
+    console.error("[aira.service] Error fetching system status:", error);
     return null;
   }
 }

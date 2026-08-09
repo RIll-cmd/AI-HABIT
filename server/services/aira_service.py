@@ -1,6 +1,10 @@
 import os
 from typing import Dict, Any, List, Optional
+import json
+import inspect
 from dotenv import load_dotenv
+
+from services.aira_tools import AIRA_TOOLS
 
 load_dotenv()
 
@@ -67,6 +71,108 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
         print(f"[AIRA Service Warning] google-genai call failed: {e}")
         return None
 
+async def call_gemini_with_tools_async(client, full_prompt: str, character_id: str) -> Dict[str, Any]:
+    """
+    Calls Gemini, provides the tools, and manually executes function calls if requested.
+    """
+    try:
+        from google.genai import types
+        
+        # We need a wrapper for each tool to automatically inject the character_id
+        # since the LLM doesn't know it, but we can also just tell the LLM the ID.
+        # It's easier to tell the LLM the ID in the system prompt or just provide it.
+        system_instruction = AIRA_SYSTEM_PROMPT + f"\n[CRITICAL]: The Master's character_id is '{character_id}'. Pass this exact string to any tool you call."
+        
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            tools=AIRA_TOOLS,
+            temperature=0.7
+        )
+        
+        model_name = "gemini-2.5-flash" # Try a default modern one, fallback later if needed
+        # Or let's use the loop for resilience
+        fallback_models = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-flash-latest"
+        ]
+        
+        chat = None
+        for m in fallback_models:
+            try:
+                # Use client.chats.create if available, otherwise just generate_content
+                chat = client.chats.create(model=m, config=config)
+                break
+            except Exception as e:
+                print(f"Failed to create chat with {m}: {e}")
+                
+        if not chat:
+            text_res = call_gemini_generate(client, full_prompt)
+            return {"response": text_res or "Analysis failed.", "pending_action": None}
+            
+        # Send initial message
+        response = chat.send_message(full_prompt)
+        
+        # Check if the model called a function
+        MUTATIVE_TOOLS = ["log_completed_workout", "complete_daily_mission", "create_new_mission", "generate_progression_plan"]
+        
+        if hasattr(response, 'function_calls') and response.function_calls:
+            for fn_call in response.function_calls:
+                fn_name = fn_call.name
+                fn_args = fn_call.args
+                
+                print(f"[AIRA Tool Call] Executing {fn_name} with args {fn_args}")
+                
+                if fn_name in MUTATIVE_TOOLS:
+                    summary_text = f"Confirmation required for: {fn_name}"
+                    if fn_name == "log_completed_workout":
+                        summary_text = f"ACTIVITY DETECTED: {fn_args.get('sets')}x{fn_args.get('reps')} {fn_args.get('exercise_name')} at {fn_args.get('weight')}kg."
+                    elif fn_name == "complete_daily_mission":
+                        summary_text = f"MISSION COMPLETION DETECTED: {fn_args.get('mission_title')}."
+                    elif fn_name == "create_new_mission":
+                        summary_text = f"NEW MISSION PROPOSED: {fn_args.get('title')}."
+                    elif fn_name == "generate_progression_plan":
+                        summary_text = f"RECOMMENDED PROGRESSION PLAN DETECTED: {fn_args.get('goal_description', 'New Goal')}"
+
+                    return {
+                        "response": f"<< Notice. >> I have prepared the system action: {fn_name}. Please confirm to execute.",
+                        "pending_action": {
+                            "action_type": fn_name,
+                            "action_args": fn_args,
+                            "summary": summary_text
+                        }
+                    }
+                
+                # Find the tool (for read-only tools)
+                tool_func = next((t for t in AIRA_TOOLS if t.__name__ == fn_name), None)
+                if tool_func:
+                    # Execute
+                    if inspect.iscoroutinefunction(tool_func):
+                        result = await tool_func(**fn_args)
+                    else:
+                        result = tool_func(**fn_args)
+                        
+                    print(f"[AIRA Tool Response] {fn_name} returned: {result}")
+                    
+                    # Send response back to chat
+                    response = chat.send_message(
+                        types.Part.from_function_response(
+                            name=fn_name,
+                            response=result
+                        )
+                    )
+        
+        if response and response.text:
+            return {"response": response.text.strip(), "pending_action": None}
+            
+        text_res = call_gemini_generate(client, full_prompt)
+        return {"response": text_res or "Analysis failed.", "pending_action": None}
+        
+    except Exception as e:
+        print(f"[AIRA Service Warning] call_gemini_with_tools_async failed: {e}")
+        text_res = call_gemini_generate(client, full_prompt)
+        return {"response": text_res or "Analysis failed.", "pending_action": None}
+
 
 def format_character_context(character_context: Dict[str, Any]) -> str:
     """
@@ -94,7 +200,7 @@ def format_character_context(character_context: Dict[str, Any]) -> str:
     )
 
 
-async def generate_aira_response(prompt: str, character_context: Dict[str, Any]) -> str:
+async def generate_aira_response(prompt: str, character_context: Dict[str, Any], character_id: str) -> Dict[str, Any]:
     """
     Generates a response from AIRA in Ciel's persona. Falls back gracefully to analytical template
     if Gemini API key is missing or API call fails.
@@ -104,18 +210,19 @@ async def generate_aira_response(prompt: str, character_context: Dict[str, Any])
 
     client = get_gemini_client()
     if client:
-        result_text = call_gemini_generate(client, full_prompt)
-        if result_text:
-            return result_text
+        result = await call_gemini_with_tools_async(client, full_prompt, character_id)
+        if result:
+            return result
 
     power = character_context.get("power", 50)
     level = character_context.get("level", 1)
-    return (
+    fallback_text = (
         f"<< Answer. >> Analysis complete with 100% calculation accuracy. "
         f"Master's current Power Score is registered at {power} (Level {level}). "
         f"To optimize Attribute Enhancement efficiency, I recommend focusing on daily Skill Acquisition routines. "
         f"Query processed: '{prompt}'."
     )
+    return {"response": fallback_text, "pending_action": None}
 
 
 async def analyze_tower_combat(
@@ -342,4 +449,44 @@ async def analyze_shop_efficiency(character_context: Dict[str, Any], shop_items:
         f"<< Notice. >> I have analyzed the current market offerings against your {character_context.get('gold', 0)} Gold balance. "
         f"I recommend comparing your lowest-tier equipment against the shop's stock to maximize Power efficiency per Gold spent."
     )
+
+async def generate_proactive_insight(character_id: str) -> Optional[str]:
+    """
+    Analyzes the last 7 days of Mission data to detect negative trends.
+    If a negative trend is found, returns a short Ciel warning string.
+    Returns None if the system is optimal.
+    """
+    from db import db
+    import datetime
+
+    # Check for missed missions in the last 7 days
+    seven_days_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+    
+    missed_missions = await db.mission.find_many(
+        where={
+            "characterId": character_id,
+            "status": "MISSED",
+            "date": {"gte": seven_days_ago}
+        },
+        order={"date": "desc"}
+    )
+    
+    if len(missed_missions) >= 3:
+        # Detected a negative trend
+        prompt = (
+            f"[Task: Proactive Insight Generation]\n"
+            f"Context: Master has missed {len(missed_missions)} missions in the last 7 days.\n"
+            f"Act as Ciel (AIRA). Generate a very concise (1-2 sentences), analytical warning about this negative trend. "
+            f"Advise them to recalibrate their schedule."
+        )
+        
+        client = get_gemini_client()
+        if client:
+            result_text = call_gemini_generate(client, prompt)
+            if result_text:
+                return result_text
+                
+        return f"<< Warning. >> Critical lapse detected: {len(missed_missions)} missions missed this week. Immediate recalibration of daily routines is advised."
+        
+    return None
 

@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { AIRAMessage } from "../types";
-import { sendAiraChat, diagnoseTowerDefeat, fetchDailyReport } from "../services";
-import { playNoticeSound, playUnderstoodSound } from "@/features/audio/useSystemAudio";
+import { AIRAMessage, AIRAPendingAction } from "../types";
+import { sendAiraChat, diagnoseTowerDefeat, fetchDailyReport, executeAiraAction } from "../services";
+import { playNoticeSound, playUnderstoodSound, playSuccessfulSound } from "@/features/audio/useSystemAudio";
 
 export interface AiraStore {
   messages: AIRAMessage[];
@@ -15,6 +15,8 @@ export interface AiraStore {
     characterId?: string,
     floorNumber?: number
   ) => Promise<string | null>;
+  confirmAction: (messageId: string, characterId?: string) => Promise<void>;
+  cancelAction: (messageId: string) => void;
   clearMessages: () => void;
 }
 
@@ -83,11 +85,14 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
         sender: "aira",
         text: airaText,
         timestamp: new Date(),
-        type: airaText.includes("<< Report. >>")
+        type: res?.pending_action 
+          ? "notice" 
+          : airaText.includes("<< Report. >>")
           ? "report"
           : airaText.includes("<< Notice. >>")
           ? "notice"
           : "answer",
+        pendingAction: res?.pending_action,
       };
 
       set((state) => ({
@@ -138,6 +143,64 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
       set({ isLoading: false });
       return null;
     }
+  },
+
+  confirmAction: async (messageId: string, characterId?: string) => {
+    const state = get();
+    const msgIndex = state.messages.findIndex((m) => m.id === messageId);
+    if (msgIndex === -1) return;
+    const msg = state.messages[msgIndex];
+    if (!msg.pendingAction) return;
+
+    set({ isLoading: true });
+    try {
+      const result = await executeAiraAction(msg.pendingAction, characterId || DEFAULT_CHARACTER_ID);
+      
+      if (result && result.success) {
+        // Remove pending action and append success msg
+        const updatedMsg = { ...msg };
+        delete updatedMsg.pendingAction;
+        
+        const newMessages = [...state.messages];
+        newMessages[msgIndex] = updatedMsg;
+        
+        const successMsg: AIRAMessage = {
+          id: `msg-success-${Date.now()}`,
+          sender: "aira",
+          text: `<< Notice. >> Execution successful. ${result.message}`,
+          timestamp: new Date(),
+          type: "notice"
+        };
+        
+        newMessages.push(successMsg);
+        
+        set({
+          messages: newMessages,
+          isLoading: false
+        });
+        
+        playSuccessfulSound();
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (error) {
+      console.error("[useAiraStore] Error confirming action:", error);
+      set({ isLoading: false });
+    }
+  },
+
+  cancelAction: (messageId: string) => {
+    const state = get();
+    const msgIndex = state.messages.findIndex((m) => m.id === messageId);
+    if (msgIndex === -1) return;
+    
+    const updatedMsg = { ...state.messages[msgIndex] };
+    delete updatedMsg.pendingAction;
+    
+    const newMessages = [...state.messages];
+    newMessages[msgIndex] = updatedMsg;
+    
+    set({ messages: newMessages });
   },
 
   clearMessages: () => {
