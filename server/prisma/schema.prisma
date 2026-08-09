@@ -37,6 +37,7 @@ model Character {
   rank      String   @default("F")
   gold      Int      @default(0)
   availableSP Int    @default(0)
+  highestTowerFloor Int @default(0)
   createdAt DateTime @default(now())
 
   stats         CharacterStats?
@@ -46,6 +47,7 @@ model Character {
   achievements  CharacterAchievement[]
   economyLogs   EconomyLog[]
   towerProgress         FloorProgress[]
+  towerProgresses       TowerProgress[]
   playerItems           PlayerItem[]
   inventoryTransactions InventoryTransaction[]
   playerSkills          PlayerSkill[]
@@ -278,6 +280,7 @@ model ItemDefinition {
   passive     String?
 
   playerItems PlayerItem[]
+  towerFloors TowerFloor[]
 }
 
 model PlayerItem {
@@ -421,4 +424,53 @@ model PlayerSkill {
   @@unique([characterId, skillDefinitionId])
 }
 
+model TowerEnemy {
+  id              String   @id @default(uuid())
+  name            String
+  level           Int
+  hp              Int
+  attack          Int
+  defense         Int
+  speed           Int
+  weaknessStat    String?
+  resistanceStat  String?
+  icon            String?
+  isBoss          Boolean  @default(false)
 
+  towerFloors     TowerFloor[]
+}
+
+model TowerFloor {
+  id                     String      @id @default(uuid())
+  floorNumber            Int         @unique
+  requiredPower          Int
+  requiredStrength       Int         @default(1)
+  requiredEndurance      Int         @default(1)
+  requiredKnowledge      Int         @default(1)
+  requiredRecovery       Int         @default(1)
+  requiredFocus          Int         @default(1)
+  requiredDiscipline     Int         @default(1)
+  enemyId                String
+  enemy                  TowerEnemy  @relation(fields: [enemyId], references: [id], onDelete: Cascade)
+  isBoss                 Boolean     @default(false)
+  goldReward             Int         @default(0)
+  expReward              Int         @default(0)
+  itemRewardDefinitionId String?
+  itemRewardDefinition   ItemDefinition? @relation(fields: [itemRewardDefinitionId], references: [id], onDelete: SetNull)
+
+  towerProgresses        TowerProgress[]
+}
+
+model TowerProgress {
+  id                   String     @id @default(uuid())
+  characterId          String
+  character            Character  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  floorNumber          Int
+  floor                TowerFloor @relation(fields: [floorNumber], references: [floorNumber], onDelete: Cascade)
+  isCleared            Boolean    @default(false)
+  attempts             Int        @default(0)
+  bestClearTimeSeconds Int?
+  clearedAt            DateTime?
+
+  @@unique([characterId, floorNumber])
+}

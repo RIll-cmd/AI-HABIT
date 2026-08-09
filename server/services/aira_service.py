@@ -118,27 +118,41 @@ async def generate_aira_response(prompt: str, character_context: Dict[str, Any])
     )
 
 
-async def diagnose_tower_defeat(
+async def analyze_tower_combat(
     character_data: Dict[str, Any],
     battle_logs: List[str],
     floor_number: int = 1,
+    is_victory: bool = False,
+    turns_elapsed: int = 0,
+    player_hp: int = 0
 ) -> str:
     """
-    Analyzes battle logs and character attributes to provide tactical Ciel-style defeat diagnosis.
+    Analyzes battle logs and character attributes to provide tactical Ciel-style combat analysis.
     """
     context_str = format_character_context(character_data)
     log_sample = (
         "\n".join(battle_logs[-10:]) if battle_logs else "No battle log entries recorded."
     )
 
-    prompt = (
-        f"[Task: Defeat Analysis for Tower Floor {floor_number}]\n"
-        f"Context:\n{context_str}\n\n"
-        f"Recent Battle Log Sample:\n{log_sample}\n\n"
-        f"Diagnose the primary attribute deficiency that caused Master's loss on Floor {floor_number}. "
-        f"Recommend specific real-life habits (Skill Acquisition routines like Workout, Study, Sleep, Discipline) "
-        f"to increase the deficient stat and raise Master's victory probability above 95%."
-    )
+    if is_victory:
+        prompt = (
+            f"[Task: Victory Analysis for Tower Floor {floor_number}]\n"
+            f"Context:\n{context_str}\n\n"
+            f"Turns: {turns_elapsed} | Remaining HP: {player_hp}\n"
+            f"Recent Battle Log Sample:\n{log_sample}\n\n"
+            f"Provide a Ciel-style tactical summary of Master's victory on Floor {floor_number}. "
+            f"Acknowledge the efficiency (Turns: {turns_elapsed}, HP: {player_hp}). Commend them but remind them the next floor will require further Attribute Enhancement."
+        )
+    else:
+        prompt = (
+            f"[Task: Defeat Analysis for Tower Floor {floor_number}]\n"
+            f"Context:\n{context_str}\n\n"
+            f"Turns survived: {turns_elapsed}\n"
+            f"Recent Battle Log Sample:\n{log_sample}\n\n"
+            f"Diagnose the primary attribute deficiency that caused Master's loss on Floor {floor_number}. "
+            f"Recommend specific real-life habits (Skill Acquisition routines like Workout, Study, Sleep, Discipline) "
+            f"to increase the deficient stat and raise Master's victory probability above 95%."
+        )
 
     client = get_gemini_client()
     if client:
@@ -147,6 +161,14 @@ async def diagnose_tower_defeat(
             return result_text
 
     stats = character_data.get("stats") or {}
+    
+    if is_victory:
+        return (
+            f"<< Report. >> Combat Simulation Analysis on Floor {floor_number} complete. "
+            f"Master secured victory in {turns_elapsed} turns with {player_hp} HP remaining. "
+            f"Optimal performance achieved. I recommend continuing daily Skill Acquisition to prepare for upper floors."
+        )
+
     rec = stats.get("recovery", 1)
     dis = stats.get("discipline", 1)
     str_val = stats.get("strength", 1)

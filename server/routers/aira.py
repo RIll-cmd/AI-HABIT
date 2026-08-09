@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 from db import db
 from db_utils import ensure_character_exists
-from schemas.aira import AIRAChatSchema, AIRADefeatSchema
+from schemas.aira import AIRAChatSchema, AIRACombatAnalysisSchema
 from services.aira_service import (
     generate_aira_response,
-    diagnose_tower_defeat,
+    analyze_tower_combat,
     generate_daily_report,
 )
 
@@ -46,23 +46,26 @@ async def chat_with_aira(payload: AIRAChatSchema):
     return {"response": response_text}
 
 
-@router.post("/diagnose-defeat")
-async def diagnose_defeat(payload: AIRADefeatSchema):
+@router.post("/analyze-combat")
+async def analyze_combat(payload: AIRACombatAnalysisSchema):
     """
-    POST /api/aira/diagnose-defeat
-    Accepts battle logs and character data, processes tactical defeat diagnosis through AIRA,
+    POST /api/aira/analyze-combat
+    Accepts combat logs and character data, processes tactical combat analysis through AIRA,
     and returns her analytical recommendation.
     """
     character_id = payload.characterId or "char-id-123"
     context_dict = await get_character_context_dict(character_id)
 
-    diagnosis_text = await diagnose_tower_defeat(
+    analysis_text = await analyze_tower_combat(
         character_data=context_dict,
         battle_logs=payload.battleLogs,
         floor_number=payload.floorNumber or 1,
+        is_victory=payload.isVictory,
+        turns_elapsed=payload.turnsElapsed,
+        player_hp=payload.playerHpRemaining,
     )
 
-    return {"diagnosis": diagnosis_text}
+    return {"analysis": analysis_text}
 
 
 @router.get("/daily-report/{character_id}")
