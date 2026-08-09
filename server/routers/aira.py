@@ -7,6 +7,7 @@ from services.aira_service import (
     analyze_tower_combat,
     generate_daily_report,
     analyze_boss_trajectory,
+    analyze_workout_performance
 )
 
 router = APIRouter(prefix="/api/aira", tags=["aira"])
@@ -120,4 +121,26 @@ async def get_boss_trajectory(character_id: str, boss_id: str):
         damage_logs=damage_logs,
     )
 
+    return {"analysis": analysis_text}
+
+@router.post("/analyze-workout")
+async def analyze_workout(payload: AIRAChatSchema):
+    """
+    POST /api/aira/analyze-workout
+    Takes standard AIRAChatSchema. Analyzes the character's recent workout ranks 
+    and returns a tactical Ciel assessment.
+    """
+    from routers.workouts import get_workout_ranks
+    
+    character_id = payload.characterId or "char-id-123"
+    context_dict = await get_character_context_dict(character_id)
+    
+    ranks_res = await get_workout_ranks(character_id)
+    workout_ranks = ranks_res.get("ranks", [])
+    
+    analysis_text = await analyze_workout_performance(
+        character_context=context_dict,
+        workout_ranks=workout_ranks
+    )
+    
     return {"analysis": analysis_text}

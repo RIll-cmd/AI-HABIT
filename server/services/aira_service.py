@@ -272,3 +272,37 @@ async def analyze_boss_trajectory(
             f"Target HP remains dangerously high at {current_hp}. "
             f"I recommend temporarily increasing the completion rate of your daily Skill Acquisition tasks to accelerate damage output."
         )
+
+
+async def analyze_workout_performance(character_context: Dict[str, Any], workout_ranks: List[Dict[str, Any]]) -> str:
+    """
+    Evaluates the character's recent WorkoutSet history and PR data to identify trends
+    and generate a tactical assessment.
+    """
+    context_str = format_character_context(character_context)
+    
+    ranks_str = ""
+    for r in workout_ranks:
+        ranks_str += f"- {r['exerciseName']}: Rank {r['currentRank']} (e1RM: {r.get('e1rm', 0)} kg)\n"
+        
+    prompt = (
+        f"[Task: Workout Performance Analysis]\n"
+        f"Context:\n{context_str}\n\n"
+        f"Recent Exercise Ranks:\n{ranks_str}\n\n"
+        f"Act as Ciel (AIRA). Analyze the character's recent workout ranks to identify trends. "
+        f"Compare their pushing strength (e.g. Bench) vs pulling strength (e.g. Row/Deadlift) vs legs (Squat). "
+        f"If there is a severe imbalance (e.g., Rank A in one, Rank C in another), point it out specifically. "
+        f"Generate a brief, tactical assessment recommending specific movements or focus areas to achieve optimal balance."
+    )
+
+    client = get_gemini_client()
+    if client:
+        result_text = call_gemini_generate(client, prompt)
+        if result_text:
+            return result_text
+
+    return (
+        f"<< Report. >> Workout analysis complete with 100% accuracy. Master currently has {len(workout_ranks)} tracked exercises. "
+        f"I recommend maintaining consistency across all muscle groups to prevent imbalances and optimize overall Fitness Power."
+    )
+

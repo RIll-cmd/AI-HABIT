@@ -4,10 +4,11 @@ import * as React from "react";
 
 export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   value?: number;
+  indicatorClassName?: string;
 }
 
 export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  ({ className = "", value = 0, ...props }, ref) => {
+  ({ className = "", value = 0, indicatorClassName = "bg-blue-500", ...props }, ref) => {
     const percentage = Math.max(0, Math.min(100, value || 0));
 
     return (
@@ -17,7 +18,7 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         {...props}
       >
         <div
-          className="h-full w-full flex-1 bg-blue-500 transition-all duration-300 ease-in-out"
+          className={`h-full w-full flex-1 transition-all duration-300 ease-in-out ${indicatorClassName}`}
           style={{ transform: `translateX(-${100 - percentage}%)` }}
         />
       </div>
