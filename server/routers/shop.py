@@ -5,7 +5,7 @@ from schemas.shop import ShopItemBuyRequest, ShopItemDetailSchema
 from routers.inventory import grant_item
 from typing import List
 
-router = APIRouter(prefix="/api/shop", tags=["Shop"])
+router = APIRouter()
 
 @router.get("/{character_id}", response_model=List[ShopItemDetailSchema])
 async def get_shop_items(character_id: str):
@@ -128,3 +128,61 @@ async def buy_item(character_id: str, request: ShopItemBuyRequest):
         )
         
     return {"message": "Purchase successful", "item": granted}
+
+import random
+
+@router.post("/{character_id}/refresh", response_model=List[ShopItemDetailSchema])
+async def refresh_shop_items(character_id: str):
+    character = await db.character.find_unique(where={"id": character_id})
+    if not character:
+        raise HTTPException(status_code=404, detail="Character not found")
+
+    all_item_defs = await db.itemdefinition.find_many()
+    if not all_item_defs:
+        raise HTTPException(status_code=404, detail="No Item Definitions available in database")
+
+    # Pick up to 8 random items from ItemDefinition
+    sample_size = min(8, len(all_item_defs))
+    selected_defs = random.sample(all_item_defs, sample_size)
+
+    # Delete existing shop items
+    await db.shopitem.delete_many()
+
+    # Create new rotated shop items
+    for item_def in selected_defs:
+        rarity = (item_def.rarity or "COMMON").upper()
+        
+        if rarity == "COMMON":
+            currency_type = "GOLD"
+            price = random.randint(150, 350)
+            stock = 10
+            req_level = 1
+        elif rarity == "RARE":
+            currency_type = random.choice(["GOLD", "TOWER_TOKENS"])
+            price = random.randint(500, 1200) if currency_type == "GOLD" else random.randint(50, 150)
+            stock = 3
+            req_level = random.randint(3, 8)
+        elif rarity == "EPIC":
+            currency_type = random.choice(["GOLD", "GEMS"])
+            price = random.randint(2500, 5000) if currency_type == "GOLD" else random.randint(100, 300)
+            stock = 1
+            req_level = random.randint(10, 20)
+        else: # LEGENDARY / MYTHIC
+            currency_type = random.choice(["GOLD", "GEMS"])
+            price = random.randint(8000, 15000) if currency_type == "GOLD" else random.randint(500, 1000)
+            stock = 1
+            req_level = random.randint(15, 30)
+
+        await db.shopitem.create(
+            data={
+                "itemId": item_def.id,
+                "currencyType": currency_type,
+                "price": price,
+                "stock": stock,
+                "requiredLevel": req_level
+            }
+        )
+
+    # Return refreshed items list
+    return await get_shop_items(character_id)
+

@@ -203,3 +203,32 @@ export async function updateHabitStatus(
     return null;
   }
 }
+
+/**
+ * Updates a habit template details, schedule, and tiers
+ */
+export async function updateHabitDetails(
+  habitId: string,
+  payload: Partial<HabitCreatePayload>
+): Promise<Habit | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/habits/${habitId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`[habit.service] Failed to update habit (HTTP ${res.status}):`, errorText);
+      return null;
+    }
+
+    const data = await res.json();
+    return data as Habit;
+  } catch (error) {
+    console.error("[habit.service] Error updating habit details:", error);
+    return null;
+  }
+}
+

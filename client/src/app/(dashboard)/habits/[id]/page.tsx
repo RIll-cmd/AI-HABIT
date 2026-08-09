@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHabitStore } from "@/features/habits/store/useHabitStore";
+import { EditHabitModal } from "@/features/habits/components/EditHabitModal";
 
 export default function HabitDetailPage() {
   const params = useParams();
@@ -12,6 +13,7 @@ export default function HabitDetailPage() {
   
   const { habits, loadHabits, updateHabitStatus, isLoading } = useHabitStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (habits.length === 0) {
@@ -80,11 +82,13 @@ export default function HabitDetailPage() {
             {isMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-xl z-10 overflow-hidden">
                 <button 
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 disabled:opacity-50"
-                  disabled
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsEditModalOpen(true);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-cyan-300 hover:bg-slate-700 font-semibold"
                 >
-                  Edit (Coming Soon)
+                  Edit Habit & Frequency
                 </button>
                 
                 {habit.status === "ACTIVE" ? (
@@ -163,8 +167,13 @@ export default function HabitDetailPage() {
           
           <div className="space-y-4">
             <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Schedule</span>
-              <span className="text-slate-200 font-medium">{habit.scheduleType}</span>
+              <span className="block text-xs font-semibold text-slate-500 uppercase">Schedule & Frequency</span>
+              <span className="text-slate-200 font-medium">
+                {habit.scheduleType}
+                {habit.tiers?.find((t) => t.tier === "NORMAL")?.targetValue
+                  ? ` (${habit.tiers.find((t) => t.tier === "NORMAL")?.targetValue} ${habit.tiers.find((t) => t.tier === "NORMAL")?.targetUnit || "times"})`
+                  : ""}
+              </span>
             </div>
             <div>
               <span className="block text-xs font-semibold text-slate-500 uppercase">Difficulty</span>
@@ -207,6 +216,12 @@ export default function HabitDetailPage() {
           </div>
         </div>
       </div>
+
+      <EditHabitModal
+        habit={habit}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </div>
   );
 }

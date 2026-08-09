@@ -34,6 +34,38 @@ export const StepSchedule: React.FC = () => {
         ))}
       </div>
 
+      {draft.scheduleType === "DAILY" && (
+        <div className="p-4 bg-[#0D1117] border border-slate-700 rounded-lg">
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Target Frequency (Times per day)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="1"
+              max="20"
+              className="w-full bg-[#151C33] border border-slate-700 rounded-md px-4 py-2 text-slate-100 focus:border-cyan-500 focus:outline-none"
+              placeholder="e.g. 1 (Once daily), 3, 4, or 5"
+              value={draft.tiers.NORMAL.targetValue || 1}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                updateDraft({
+                  tiers: {
+                    ...draft.tiers,
+                    NORMAL: { ...draft.tiers.NORMAL, targetValue: val },
+                    MINI: { ...draft.tiers.MINI, targetValue: Math.max(1, Math.floor(val / 2)) },
+                    ELITE: { ...draft.tiers.ELITE, targetValue: val + 2 }
+                  }
+                });
+              }}
+            />
+          </div>
+          <p className="text-xs text-slate-500 mt-2">
+            Example: For "Drink Water", set 4 to accomplish 4 glasses per day.
+          </p>
+        </div>
+      )}
+
       {draft.scheduleType === "SPECIFIC_DAYS" && (
         <div className="p-4 bg-[#0D1117] border border-slate-700 rounded-lg">
           <p className="text-sm text-slate-300 mb-3">Select Days:</p>
@@ -45,7 +77,6 @@ export const StepSchedule: React.FC = () => {
               </label>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-2 italic">*Days selection state handling left simple for MVP.</p>
         </div>
       )}
 
@@ -58,8 +89,27 @@ export const StepSchedule: React.FC = () => {
             type="number"
             min="1"
             max="7"
-            className="w-full bg-[#151C33] border border-slate-700 rounded-md px-4 py-2 text-slate-100"
+            className="w-full bg-[#151C33] border border-slate-700 rounded-md px-4 py-2 text-slate-100 focus:border-cyan-500 focus:outline-none"
             placeholder="e.g., 3"
+            value={draft.schedule.timesPerWeek || ""}
+            onChange={(e) => useCreateHabitStore.getState().updateSchedule({ timesPerWeek: parseInt(e.target.value) || null })}
+          />
+        </div>
+      )}
+
+      {draft.scheduleType === "MONTHLY" && (
+        <div className="p-4 bg-[#0D1117] border border-slate-700 rounded-lg">
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Times per month
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="31"
+            className="w-full bg-[#151C33] border border-slate-700 rounded-md px-4 py-2 text-slate-100 focus:border-cyan-500 focus:outline-none"
+            placeholder="e.g., 4"
+            value={draft.schedule.timesPerMonth || ""}
+            onChange={(e) => useCreateHabitStore.getState().updateSchedule({ timesPerMonth: parseInt(e.target.value) || null })}
           />
         </div>
       )}

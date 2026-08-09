@@ -1,14 +1,14 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from typing import List
 from prisma import Prisma
-from db import get_db
+from db import db
 from schemas.bosses import BossCreate, BossSchema
 from services.boss_engine import calculate_boss_hp, generate_boss_phases
 
 router = APIRouter()
 
 @router.post("/{character_id}", response_model=BossSchema)
-async def create_boss(character_id: str, payload: BossCreate, db: Prisma = Depends(get_db)):
+async def create_boss(character_id: str, payload: BossCreate):
     # Verify character exists
     character = await db.character.find_unique(where={"id": character_id})
     if not character:
@@ -59,7 +59,7 @@ async def create_boss(character_id: str, payload: BossCreate, db: Prisma = Depen
     return complete_boss
 
 @router.get("/{character_id}", response_model=List[BossSchema])
-async def get_bosses(character_id: str, db: Prisma = Depends(get_db)):
+async def get_bosses(character_id: str):
     bosses = await db.boss.find_many(
         where={"characterId": character_id},
         include={

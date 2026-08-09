@@ -63,3 +63,17 @@ class MissionCompleteSchema(BaseModel):
 
 class HabitStatusUpdateSchema(BaseModel):
     status: HabitStatus
+
+class HabitUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    category: Optional[str] = None
+    difficulty: Optional[Difficulty] = None
+    primaryStat: Optional[str] = None
+    scheduleType: Optional[ScheduleType] = None
+    preferredTime: Optional[str] = None
+    schedule: Optional[HabitScheduleCreateSchema] = None
+    tiers: Optional[List[HabitTierCreateSchema]] = None
+

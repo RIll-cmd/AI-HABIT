@@ -8,6 +8,7 @@ import {
   fetchTodayMissions,
   completeMission,
   updateHabitStatus,
+  updateHabitDetails,
   HabitCreatePayload,
 } from "../services/habit.service";
 import { eventBus } from "@/features/progression/services/EventBus";
@@ -27,6 +28,7 @@ export interface HabitStore {
     completionType: CompletionType
   ) => Promise<void>;
   updateHabitStatus: (habitId: string, status: HabitStatus) => Promise<void>;
+  updateHabitDetails: (habitId: string, payload: Partial<HabitCreatePayload>) => Promise<Habit | null>;
 }
 
 const MOCK_CHARACTER_ID = "char-id-123";
@@ -139,6 +141,26 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
     const updated = await updateHabitStatus(habitId, status);
     if (!updated) {
       console.error("[useHabitStore] Failed to update habit status, rolling back is not implemented yet");
+    }
+  },
+
+  updateHabitDetails: async (habitId: string, payload: Partial<HabitCreatePayload>) => {
+    set({ isLoading: true });
+    try {
+      const updated = await updateHabitDetails(habitId, payload);
+      if (updated) {
+        set((state) => ({
+          habits: state.habits.map((h) => (h.id === habitId ? updated : h)),
+          isLoading: false,
+        }));
+      } else {
+        set({ isLoading: false });
+      }
+      return updated;
+    } catch (error) {
+      console.error("[useHabitStore] Error updating habit details:", error);
+      set({ isLoading: false });
+      return null;
     }
   },
 }));

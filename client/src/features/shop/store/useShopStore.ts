@@ -2,19 +2,23 @@ import { create } from "zustand";
 import { ShopItem } from "../types/shop";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
+import { playUISound } from "@/utils/audio";
 import { toast } from "sonner";
 
 interface ShopStore {
   items: ShopItem[];
   isLoading: boolean;
+  isRefreshing: boolean;
   error: string | null;
   fetchShopItems: (characterId: string) => Promise<void>;
+  refreshShopItems: (characterId: string) => Promise<void>;
   buyItem: (characterId: string, shopItemId: string) => Promise<boolean>;
 }
 
 export const useShopStore = create<ShopStore>((set, get) => ({
   items: [],
   isLoading: false,
+  isRefreshing: false,
   error: null,
   
   fetchShopItems: async (characterId) => {
@@ -26,6 +30,23 @@ export const useShopStore = create<ShopStore>((set, get) => ({
       set({ items: data, isLoading: false });
     } catch (e: any) {
       set({ error: e.message, isLoading: false });
+    }
+  },
+
+  refreshShopItems: async (characterId) => {
+    set({ isRefreshing: true, error: null });
+    playUISound("/sounds/General/10_UI_Menu_SFX/079_Buy_sell_01.wav");
+    try {
+      const res = await fetch(`http://localhost:8000/api/shop/${characterId}/refresh`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to rotate shop stock");
+      const data = await res.json();
+      set({ items: data, isRefreshing: false });
+      toast.success("Shop stock rotated with new items!");
+    } catch (e: any) {
+      toast.error("Failed to rotate shop stock.");
+      set({ error: e.message, isRefreshing: false });
     }
   },
   

@@ -1,74 +1,93 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { Card } from "@/components/ui/card";
-import { Bot, Loader2, Sparkles } from "lucide-react";
-import { playVoiceLine } from "@/utils/audio";
+import { Button } from "@/components/ui/button";
+import { Bot, Loader2, Sparkles, LineChart } from "lucide-react";
+import { playVoiceLine, playUISound } from "@/utils/audio";
 
 export function CielShopCoaching() {
   const { character } = useCharacterStore();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchAnalysis = async () => {
     if (!character) return;
-    
-    const fetchAnalysis = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(`http://localhost:8000/api/aira/shop-analysis/${character.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setAnalysis(data.analysis);
-          playVoiceLine("/sounds/AIRA Persona/AI-NOTICE.mp3");
-        }
-      } catch (e) {
-        console.error("Failed to fetch Ciel shop analysis", e);
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    playUISound("/sounds/General/10_UI_Menu_SFX/001_Hover_01.wav");
+    try {
+      const res = await fetch(`http://localhost:8000/api/aira/shop-analysis/${character.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAnalysis(data.analysis);
+        playVoiceLine("/sounds/AIRA Persona/AI-NOTICE.mp3");
       }
-    };
-    
-    fetchAnalysis();
-  }, [character?.id]);
+    } catch (e) {
+      console.error("Failed to fetch Ciel shop analysis", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!character) return null;
 
   return (
     <Card className="relative overflow-hidden border-indigo-500/20 bg-black/40 backdrop-blur-xl mb-8 p-0">
       <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 mix-blend-overlay"></div>
-      <div className="relative z-10 p-5 sm:p-6 flex flex-col md:flex-row gap-6 items-start md:items-center">
+      <div className="relative z-10 p-5 sm:p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
         
-        {/* Ciel Avatar / Icon */}
-        <div className="flex-shrink-0 relative">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-            <Bot className="w-8 h-8 text-indigo-400" />
+        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center flex-grow">
+          {/* Ciel Avatar / Icon */}
+          <div className="flex-shrink-0 relative">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <Bot className="w-8 h-8 text-indigo-400" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center border-2 border-black animate-pulse">
+              <Sparkles className="w-3 h-3 text-white" />
+            </div>
           </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center border-2 border-black animate-pulse">
-            <Sparkles className="w-3 h-3 text-white" />
+
+          {/* Coaching Content */}
+          <div className="space-y-2 flex-grow">
+            <h3 className="font-bold text-lg text-indigo-300 flex items-center gap-2">
+              AIRA Economic Analysis
+            </h3>
+            <div className="text-sm text-indigo-100/80 leading-relaxed font-mono">
+              {isLoading ? (
+                <div className="flex items-center gap-2 text-indigo-400/60">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Running tactical market analysis...</span>
+                </div>
+              ) : analysis ? (
+                <p>{analysis}</p>
+              ) : (
+                <p className="text-indigo-300/60 italic text-xs">
+                  Click the button to request Ciel's tactical market & purchasing analysis.
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Coaching Content */}
-        <div className="flex-grow space-y-2">
-          <h3 className="font-bold text-lg text-indigo-300 flex items-center gap-2">
-            AIRA Economic Analysis
-          </h3>
-          <div className="text-sm text-indigo-100/80 leading-relaxed font-mono">
+        {/* Action Button */}
+        <div className="shrink-0 w-full md:w-auto">
+          <Button
+            onClick={fetchAnalysis}
+            disabled={isLoading}
+            className="w-full md:w-auto bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 font-mono text-xs uppercase tracking-wider gap-2 shadow-lg shadow-indigo-950/50 transition-all"
+          >
             {isLoading ? (
-              <div className="flex items-center gap-2 text-indigo-400/60">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Running tactical market analysis...</span>
-              </div>
-            ) : analysis ? (
-              <p>{analysis}</p>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <p className="text-muted-foreground opacity-50">Analysis unavailable at this time.</p>
+              <LineChart className="w-3.5 h-3.5 text-indigo-400" />
             )}
-          </div>
+            <span>{analysis ? "Re-Analyze Market" : "Analyze Market"}</span>
+          </Button>
         </div>
+
       </div>
     </Card>
   );
 }
+

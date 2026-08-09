@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useHabitStore } from "@/features/habits/store";
 import { MissionCard } from "@/features/habits/components/MissionCard";
@@ -42,8 +43,10 @@ import { playSystemOpen } from "@/features/audio/useSystemAudio";
 import { PaperDoll } from "@/features/inventory/components";
 import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
 import { useCombatStats } from "@/features/inventory/hooks/useCombatStats";
+import { useTowerStore } from "@/features/tower/store/useTowerStore";
 
 export function DashboardOverview() {
+  const router = useRouter();
   const { character, loadCharacter } = useCharacterStore();
   const { items, fetchInventory } = useInventoryStore();
   const finalStats = useCombatStats();
@@ -51,11 +54,14 @@ export function DashboardOverview() {
   const { todayMissions, loadTodayMissions, executeMissionCompletion, isLoading } =
     useHabitStore();
 
+  const { floors, fetchFloors, selectFloor } = useTowerStore();
+
   useEffect(() => {
     loadCharacter("char-id-123");
     loadTodayMissions("char-id-123");
     fetchInventory("char-id-123");
-  }, [loadCharacter, loadTodayMissions, fetchInventory]);
+    fetchFloors("char-id-123");
+  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors]);
 
   const totalMissionsCount = todayMissions.length;
   const completedMissionsCount = todayMissions.filter(
@@ -277,80 +283,100 @@ export function DashboardOverview() {
             
             {/* Tower Floors */}
             <div className="flex-1 flex flex-col gap-3 relative z-10">
-              
-              {/* Floor 15 (Locked) */}
-              <div className="p-3 rounded-2xl border border-white/5 bg-[#151C33]/50 text-center relative overflow-hidden opacity-50">
-                <div className="text-[11px] font-mono text-slate-400 font-bold">Floor 15</div>
-                <div className="text-[9px] font-mono text-slate-500 uppercase mt-0.5">LOCKED</div>
-              </div>
+              {(() => {
+                const sortedTowerFloors = [...floors].sort((a, b) => a.floorNumber - b.floorNumber);
+                const activeFloor = sortedTowerFloors.find((f) => f.status === "AVAILABLE" || f.status === "ATTEMPTED") || sortedTowerFloors[0];
+                const nextFloor = activeFloor ? sortedTowerFloors.find((f) => f.floorNumber === activeFloor.floorNumber + 1) : null;
+                const previousFloors = activeFloor
+                  ? sortedTowerFloors.filter((f) => f.floorNumber < activeFloor.floorNumber).slice(-3).reverse()
+                  : [];
 
-              {/* Floor 14 (Current Boss Floor) */}
-              <div className="p-4 rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-900/20 to-blue-900/20 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-4 relative overflow-hidden group">
-                 {/* Floor Image/Boss Icon */}
-                 <div className="w-16 h-16 rounded-xl bg-purple-950/60 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
-                    <Skull className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
-                 </div>
-                 <div className="flex-1">
-                   <div className="text-sm font-bold text-white font-heading">Floor 14</div>
-                   <div className="text-[10px] text-purple-300 font-mono mb-2">Crystal Guardian</div>
-                   <div className="text-[9px] text-slate-400 font-mono">Recommended Power <span className="text-amber-400 ml-1 font-bold">5,500</span></div>
-                 </div>
-                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                   <Button size="sm" className="bg-purple-600 hover:bg-purple-500 text-white text-xs h-8 px-4 rounded-xl shadow-lg shadow-purple-600/30">Enter Floor</Button>
-                 </div>
-              </div>
+                if (!activeFloor) {
+                  return (
+                    <div className="text-center text-xs text-slate-500 py-6 font-mono">
+                      Loading Tower Data...
+                    </div>
+                  );
+                }
 
-              {/* Floor 13, 12, 11 (Cleared) */}
-              {[13, 12, 11].map(floor => (
-                <div key={floor} className="py-2.5 px-4 flex items-center justify-between border-b border-white/5 last:border-0">
-                  <div>
-                    <div className="text-[11px] font-mono text-slate-300 font-bold">Floor {floor}</div>
-                    <div className="text-[9px] font-mono text-emerald-500 uppercase mt-0.5 tracking-wider">CLEARED</div>
-                  </div>
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                </div>
-              ))}
+                return (
+                  <>
+                    {/* Next Floor (Locked) */}
+                    {nextFloor && (
+                      <div className="p-3 rounded-2xl border border-white/5 bg-[#151C33]/50 text-center relative overflow-hidden opacity-50">
+                        <div className="text-[11px] font-mono text-slate-400 font-bold">Floor {nextFloor.floorNumber}</div>
+                        <div className="text-[9px] font-mono text-slate-500 uppercase mt-0.5">LOCKED</div>
+                      </div>
+                    )}
 
-              {/* Floor 10 (Boss Floor Cleared) */}
-              <div className="py-2.5 px-4 flex items-center justify-between border-t border-white/10 mt-2 pt-4">
-                  <div>
-                    <div className="text-[11px] font-mono text-slate-300 font-bold">Floor 10</div>
-                    <div className="text-[9px] font-mono text-red-400 uppercase mt-0.5 tracking-wider">BOSS FLOOR</div>
-                  </div>
-                  <div className="w-5 h-5 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
-                    <X className="w-3 h-3 text-red-400" />
-                  </div>
-              </div>
+                    {/* Active Floor (Current Challengeable Floor) */}
+                    <div className="p-4 rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-900/20 to-blue-900/20 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-4 relative overflow-hidden group">
+                      <div className="w-16 h-16 rounded-xl bg-purple-950/60 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                        <Skull className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-white font-heading">Floor {activeFloor.floorNumber}</div>
+                        <div className="text-[10px] text-purple-300 font-mono mb-2">{activeFloor.enemy?.name || `Floor ${activeFloor.floorNumber} Guardian`}</div>
+                        <div className="text-[9px] text-slate-400 font-mono">
+                          Req. Power <span className="text-amber-400 ml-1 font-bold">{activeFloor.requiredPower.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            selectFloor(activeFloor);
+                            router.push("/tower");
+                          }}
+                          className="bg-purple-600 hover:bg-purple-500 text-white text-xs h-8 px-4 rounded-xl shadow-lg shadow-purple-600/30"
+                        >
+                          Enter Floor
+                        </Button>
+                      </div>
+                    </div>
 
-            </div>
+                    {/* Previous Cleared/Attempted Floors */}
+                    {previousFloors.length > 0 ? (
+                      previousFloors.map((floor) => (
+                        <div key={floor.id} className="py-2.5 px-4 flex items-center justify-between border-b border-white/5 last:border-0">
+                          <div>
+                            <div className="text-[11px] font-mono text-slate-300 font-bold">Floor {floor.floorNumber}</div>
+                            <div className="text-[9px] font-mono text-emerald-500 uppercase mt-0.5 tracking-wider">
+                              {floor.status === "CLEARED" ? "CLEARED" : floor.status}
+                            </div>
+                          </div>
+                          <div className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-3 text-center text-[10px] text-slate-500 font-mono">
+                        Begin your ascent on Floor 1!
+                      </div>
+                    )}
 
-            {/* Tower Rewards */}
-            <div className="mt-6 pt-4 border-t border-white/10 relative z-10">
-              <h3 className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mb-3">TOWER REWARDS</h3>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-purple-950/30 border border-purple-500/20 flex items-center justify-center transform rotate-45"><Gem className="w-4 h-4 text-purple-400 -rotate-45"/></div>
-                  <span className="text-[9px] font-mono text-slate-400 mt-1">500</span>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-amber-950/30 border border-amber-500/20 flex items-center justify-center"><Circle className="w-4 h-4 text-amber-400 fill-amber-400"/></div>
-                  <span className="text-[9px] font-mono text-slate-400 mt-1">1,000</span>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-blue-950/30 border border-blue-500/20 flex items-center justify-center transform rotate-45"><Gem className="w-4 h-4 text-blue-400 -rotate-45"/></div>
-                  <span className="text-[9px] font-mono text-slate-400 mt-1">50</span>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-[#151C33] border border-white/10 flex items-center justify-center"><Package className="w-5 h-5 text-amber-500/80"/></div>
-                  <span className="text-[9px] font-mono text-slate-400 mt-1">1</span>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-[#151C33] border border-purple-500/30 flex items-center justify-center"><Shield className="w-5 h-5 text-purple-400"/></div>
-                  <span className="text-[9px] font-mono text-slate-400 mt-1">1</span>
-                </div>
-              </div>
+                    {/* Active Floor Rewards Footer */}
+                    <div className="mt-6 pt-4 border-t border-white/10 relative z-10">
+                      <h3 className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mb-3">FLOOR {activeFloor.floorNumber} REWARDS</h3>
+                      <div className="flex items-center justify-around gap-2">
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="w-10 h-10 rounded-xl bg-amber-950/30 border border-amber-500/20 flex items-center justify-center">
+                            <Circle className="w-4 h-4 text-amber-400 fill-amber-400"/>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400 mt-1">{activeFloor.goldReward} Gold</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="w-10 h-10 rounded-xl bg-purple-950/30 border border-purple-500/20 flex items-center justify-center transform rotate-45">
+                            <Gem className="w-4 h-4 text-purple-400 -rotate-45"/>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400 mt-1">{activeFloor.expReward} EXP</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
           </div>

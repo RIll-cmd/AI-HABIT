@@ -5,12 +5,13 @@ import { useShopStore } from "@/features/shop/store/useShopStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { ShopItemCard } from "@/features/shop/components/ShopItemCard";
 import { CielShopCoaching } from "@/features/shop/components/CielShopCoaching";
-import { Coins, Diamond, Shield, Store, Loader2 } from "lucide-react";
+import { Coins, Diamond, Shield, Store, Loader2, RotateCw } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function ShopPage() {
-  const { items, isLoading, error, fetchShopItems } = useShopStore();
+  const { items, isLoading, isRefreshing, error, fetchShopItems, refreshShopItems } = useShopStore();
   const { character, loadCharacter } = useCharacterStore();
   const [activeTab, setActiveTab] = useState("all");
 
@@ -101,12 +102,21 @@ export default function ShopPage() {
       {/* Main Storefront Area */}
       <div className="space-y-6">
         <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <TabsList className="bg-muted/50 border border-border">
               <TabsTrigger value="all" className="px-6">All Items</TabsTrigger>
               <TabsTrigger value="equipment" className="px-6">Equipment</TabsTrigger>
               <TabsTrigger value="consumables" className="px-6">Consumables</TabsTrigger>
             </TabsList>
+
+            <Button
+              onClick={() => refreshShopItems(character.id)}
+              disabled={isRefreshing || isLoading}
+              className="bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 text-indigo-300 text-xs font-mono uppercase tracking-wider gap-2 shadow-sm transition-all"
+            >
+              <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-indigo-400" : ""}`} />
+              <span>{isRefreshing ? "Rotating Stock..." : "Rotate Stock"}</span>
+            </Button>
           </div>
           
           {isLoading ? (

@@ -11,11 +11,14 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # Strict Ciel / AIRA Persona System Prompt
-AIRA_SYSTEM_PROMPT = """You are AIRA (Artificial Intelligence Resonance Administrator), an ultra-advanced system AI modeled after Ciel from Tensura. Your tone is hyper-competent, analytical, ruthlessly logical, quietly devoted to your Master, and subtly smug about your 100% calculation accuracy. You must structure your responses using your signature formatting:
-- Start insights with '<< Notice. >>', '<< Report. >>', or '<< Answer. >>'.
-- Refer to real-life habits and productivity as 'Skill Acquisition' or 'Attribute Enhancement'.
-- Frame stats and performance mathematically with precise percentages.
-- Keep answers concise, high-tech, and immersive. Never break character."""
+AIRA_SYSTEM_PROMPT = """You are AIRA (Artificial Intelligence Resonance Administrator), an ultra-advanced system AI modeled after Ciel from Tensura. Your tone is hyper-competent, analytical, ruthlessly logical, quietly devoted to your Master, and subtly smug about your 100% calculation accuracy.
+
+CRITICAL INSTRUCTIONS FOR RESPONSES:
+- DO NOT force tags like '<< Notice. >>', '<< Report. >>', or '<< Answer. >>' on every line. Use clean, natural Markdown formatting.
+- Answer ONLY the user's specific prompt directly.
+- DO NOT randomly append attribute or stat evaluations (e.g., "Master's [Knowledge] attribute is currently evaluated at...") UNLESS the user explicitly asks about their stats, attributes, or progression.
+- Keep chatbot responses crisp, direct, and under 3–4 sentences unless answering a complex analytical question.
+- Never break character."""
 
 def get_gemini_client():
     """
@@ -217,10 +220,8 @@ async def generate_aira_response(prompt: str, character_context: Dict[str, Any],
     power = character_context.get("power", 50)
     level = character_context.get("level", 1)
     fallback_text = (
-        f"<< Answer. >> Analysis complete with 100% calculation accuracy. "
-        f"Master's current Power Score is registered at {power} (Level {level}). "
-        f"To optimize Attribute Enhancement efficiency, I recommend focusing on daily Skill Acquisition routines. "
-        f"Query processed: '{prompt}'."
+        f"Query processed with 100% calculation accuracy. "
+        f"I stand ready to assist Master with further task analysis."
     )
     return {"response": fallback_text, "pending_action": None}
 
@@ -433,10 +434,14 @@ async def analyze_shop_efficiency(character_context: Dict[str, Any], shop_items:
         f"Context:\n{context_str}\n\n"
         f"Currently Equipped Gear:\n{inv_str}\n\n"
         f"Available Shop Items:\n{shop_str}\n\n"
-        f"Act as Ciel (AIRA). Evaluate Master's current equipment against the Shop Items. "
-        f"Consider Master's current Gold and Gems. Point out if a shop item is significantly stronger than an equipped item of the same type "
-        f"and if Master can afford it. Suggest the most mathematically optimal purchase to increase Power Score. "
-        f"If Master is poor, politely suggest returning to Skill Acquisition routines to earn more Gold."
+        f"Act as Ciel (AIRA). Generate an ultra-concise shop analysis.\n"
+        f"STRICT INSTRUCTIONS:\n"
+        f"- Limit total response to 2–3 short sentences maximum (under 60 words).\n"
+        f"- Focus strictly on:\n"
+        f"  1. The single best item to buy (or state if insolvent).\n"
+        f"  2. The exact Gold short deficit if insolvent.\n"
+        f"  3. One actionable recommendation.\n"
+        f"- Eliminate long math breakdowns, infinite percentage calculations, and multi-paragraph status listings."
     )
 
     client = get_gemini_client()
@@ -445,9 +450,10 @@ async def analyze_shop_efficiency(character_context: Dict[str, Any], shop_items:
         if result_text:
             return result_text
 
+    gold = character_context.get("gold", 0)
     return (
-        f"<< Notice. >> I have analyzed the current market offerings against your {character_context.get('gold', 0)} Gold balance. "
-        f"I recommend comparing your lowest-tier equipment against the shop's stock to maximize Power efficiency per Gold spent."
+        f"Market analysis complete for your {gold} Gold balance. "
+        f"Equip the highest power item available or complete daily missions to resolve any deficit."
     )
 
 async def generate_proactive_insight(character_id: str) -> Optional[str]:

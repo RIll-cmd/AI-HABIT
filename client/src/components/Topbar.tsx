@@ -32,9 +32,9 @@ export function Topbar() {
   const name = character?.name || "Cyrill";
   const rank = character?.rank || "E";
   const levelData = calculateLevelData(character?.exp || 0);
-  const gold = character?.gold || 12450;
-  const purpleCrystals = 1250;
-  const blueCrystals = 85;
+  const gold = character?.gold || 0;
+  const gems = character?.gems || 0;
+  const towerTokens = character?.towerTokens || 0;
 
   return (
     <header className="h-[72px] px-4 sm:px-6 border-b border-white/5 bg-[#0B1020]/95 backdrop-blur-md flex items-center justify-between shrink-0 select-none font-sans sticky top-0 z-40">
@@ -100,18 +100,18 @@ export function Topbar() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-purple-500/10 flex items-center justify-center border border-purple-500/20 transform rotate-45">
-              <Gem className="w-3 h-3 text-purple-400 -rotate-45" />
+            <div className="w-6 h-6 rounded-md bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+              <Gem className="w-3.5 h-3.5 text-cyan-400" />
             </div>
-            <span className="text-xs font-mono text-purple-200 font-bold">{purpleCrystals.toLocaleString()}</span>
+            <span className="text-xs font-mono text-cyan-200 font-bold">{gems.toLocaleString()}</span>
             <span className="text-[10px] text-slate-500 ml-1">+</span>
           </div>
 
           <div className="flex items-center gap-2">
-             <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-              <Hexagon className="w-3.5 h-3.5 text-blue-400" />
+             <div className="w-6 h-6 rounded-md bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+              <Hexagon className="w-3.5 h-3.5 text-purple-400" />
             </div>
-            <span className="text-xs font-mono text-blue-200 font-bold">{blueCrystals.toLocaleString()}</span>
+            <span className="text-xs font-mono text-purple-200 font-bold">{towerTokens.toLocaleString()}</span>
             <span className="text-[10px] text-slate-500 ml-1">+</span>
           </div>
         </div>
