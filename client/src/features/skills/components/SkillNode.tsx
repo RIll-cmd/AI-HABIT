@@ -1,6 +1,7 @@
 import React from 'react';
 import { SkillDefinition, PlayerSkill } from '../types';
 import { SkillIcon } from './SkillIcon';
+import { playUISound } from '@/utils/audio';
 
 interface SkillNodeProps {
   skill: SkillDefinition;
@@ -31,7 +32,10 @@ export const SkillNode: React.FC<SkillNodeProps> = ({ skill, playerSkill, status
 
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        playUISound("/sounds/General/10_UI_Menu_SFX/001_Hover_01.wav");
+        onClick();
+      }}
       className={`
         relative group transition-all duration-200 
         rounded-lg border-2 bg-slate-900 p-1 flex flex-col items-center justify-center

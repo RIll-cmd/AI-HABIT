@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { Card } from "@/components/ui/card";
 import { Bot, Loader2, Sparkles } from "lucide-react";
+import { playVoiceLine } from "@/utils/audio";
 
 export function CielShopCoaching() {
   const { character } = useCharacterStore();
@@ -20,6 +21,7 @@ export function CielShopCoaching() {
         if (res.ok) {
           const data = await res.json();
           setAnalysis(data.analysis);
+          playVoiceLine("/sounds/AIRA Persona/AI-NOTICE.mp3");
         }
       } catch (e) {
         console.error("Failed to fetch Ciel shop analysis", e);

@@ -4,6 +4,10 @@ import { ShopItem } from "../types/shop";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { Coins, Diamond, Shield } from "lucide-react";
 import { rarityColors } from "@/features/inventory/utils/rarityColors";
+import { useEffect } from "react";
+import Image from "next/image";
+import { playUISound } from "@/utils/audio";
+import { getItemIconPath } from "@/utils/itemIcons";
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -15,6 +19,12 @@ interface PurchaseModalProps {
 
 export function PurchaseModal({ isOpen, onClose, onConfirm, item, isPurchasing }: PurchaseModalProps) {
   const { character } = useCharacterStore();
+
+  useEffect(() => {
+    if (isOpen) {
+      playUISound("/sounds/System UI & Navigation/SYSTEM--OPEN.mp3");
+    }
+  }, [isOpen]);
 
   if (!item || !character) return null;
 
@@ -50,11 +60,13 @@ export function PurchaseModal({ isOpen, onClose, onConfirm, item, isPurchasing }
         </DialogHeader>
 
         <div className="py-6 flex flex-col items-center justify-center space-y-4">
-          <div 
-            className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-muted/50 border border-muted"
-            style={{ borderColor: `${rarityColor}40`, color: rarityColor }}
-          >
-            {item.icon || "📦"}
+          <div className="relative w-16 h-16 rounded-xl bg-muted/50 border flex items-center justify-center" style={{ borderColor: `${rarityColor}40` }}>
+            <Image 
+              src={getItemIconPath(item.name)} 
+              alt={item.name} 
+              fill 
+              className="object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] p-2" 
+            />
           </div>
           <div className="text-center">
             <h3 className="font-bold text-xl">{item.name}</h3>

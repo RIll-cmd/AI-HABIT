@@ -24,6 +24,7 @@ import { useCharacterStore } from "@/store/useCharacterStore";
 import { playNoticeSound } from "@/features/audio/useSystemAudio";
 import { fetchSystemStatus } from "@/features/aira/services/aira.service";
 import { AIRASystemStatusResponse } from "@/features/aira/types";
+import { playVoiceLine } from "@/utils/audio";
 
 export default function AiraTerminalPage() {
   const { character } = useCharacterStore();
@@ -45,6 +46,9 @@ export default function AiraTerminalPage() {
       const status = await fetchSystemStatus(characterId);
       if (status) {
         setSystemStatus(status);
+        if (status.status === "warning") {
+          playVoiceLine("/sounds/AIRA Persona/AI-NOTICE.mp3");
+        }
       }
     };
     loadStatus();
@@ -54,11 +58,13 @@ export default function AiraTerminalPage() {
     if (!inputPrompt.trim() || isLoading) return;
     const promptToSend = inputPrompt;
     setInputPrompt("");
+    playVoiceLine("/sounds/AIRA Persona/AI-UNDERSTOOD.mp3");
     await sendPrompt(promptToSend, characterId);
   };
 
   const handleQuickPrompt = async (text: string) => {
     if (isLoading) return;
+    playVoiceLine("/sounds/AIRA Persona/AI-UNDERSTOOD.mp3");
     await sendPrompt(text, characterId);
   };
 
@@ -268,7 +274,14 @@ export default function AiraTerminalPage() {
 
                       <div className="flex gap-2 pt-1">
                         <Button
-                          onClick={() => confirmAction(msg.id, characterId)}
+                          onClick={() => {
+                            if (msg.pendingAction?.action_type === 'generate_progression_plan') {
+                              playVoiceLine("/sounds/AIRA Persona/AI-SUCCESSFUL.mp3");
+                            } else {
+                              playVoiceLine("/sounds/AIRA Persona/AI-CONFRIMED.mp3"); // The typo exists in the filesystem (AI-CONFRIMED)
+                            }
+                            confirmAction(msg.id, characterId);
+                          }}
                           disabled={isLoading}
                           className={`flex-1 ${msg.pendingAction.action_type === 'generate_progression_plan' ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-amber-600 hover:bg-amber-500'} text-slate-950 font-bold h-8 text-xs uppercase`}
                         >

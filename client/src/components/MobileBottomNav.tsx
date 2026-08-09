@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Target, Flame, User, Menu } from "lucide-react";
+import { playUISound } from "@/utils/audio";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -27,6 +28,7 @@ export function MobileBottomNav() {
           <Link
             key={item.name}
             href={item.href}
+            onClick={() => playUISound("/sounds/General/10_UI_Menu_SFX/001_Hover_01.wav")}
             className={`flex flex-col items-center justify-center gap-1 flex-1 py-1.5 rounded-[12px] transition-colors ${
               isActive
                 ? "text-blue-400 font-semibold"

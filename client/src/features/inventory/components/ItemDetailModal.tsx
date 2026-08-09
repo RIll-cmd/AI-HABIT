@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PlayerItem } from '../types/inventory';
 import Image from 'next/image';
 import { X, Lock, Star, Shield, Sword } from 'lucide-react';
+import { playUISound } from '@/utils/audio';
+import { getItemIconPath } from '@/utils/itemIcons';
 
 interface ItemDetailModalProps {
   item: PlayerItem | null;
@@ -30,6 +32,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   onToggleLock,
   onToggleFavorite
 }) => {
+  useEffect(() => {
+    if (item) {
+      playUISound("/sounds/System UI & Navigation/SYSTEM--OPEN.mp3");
+    }
+  }, [!!item]);
+
   if (!item) return null;
 
   const { itemDefinition } = item;
@@ -58,16 +66,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         {/* Header & Icon */}
         <div className="flex gap-4 items-start pr-8">
           <div className="relative w-24 h-24 rounded-xl bg-black/40 border border-white/10 flex-shrink-0 p-3 flex items-center justify-center">
-             {itemDefinition.icon ? (
-               <Image 
-                 src={itemDefinition.icon.replace('client/public', '')} 
-                 alt={itemDefinition.name} 
-                 fill 
-                 className="object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] p-2" 
-               />
-             ) : (
-               <Shield className="w-12 h-12 text-white/30" />
-             )}
+             <Image 
+               src={getItemIconPath(itemDefinition.name)} 
+               alt={itemDefinition.name} 
+               fill 
+               className="object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] p-2" 
+             />
           </div>
           <div className="flex flex-col mt-1">
             <h2 className="text-xl font-bold text-white leading-tight font-heading">{itemDefinition.name}</h2>
@@ -109,7 +113,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         <div className="flex flex-col gap-2 mt-2">
           {canEquip && (
             <button 
-              onClick={() => onEquip(item.id)}
+              onClick={() => {
+                if (item.isEquipped) {
+                  playUISound("/sounds/General/10_UI_Menu_SFX/071_Unequip_01.wav");
+                } else {
+                  playUISound("/sounds/General/10_UI_Menu_SFX/070_Equip_10.wav");
+                }
+                onEquip(item.id);
+              }}
               className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider transition-all text-xs flex items-center justify-center gap-2 ${
                 item.isEquipped 
                   ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50" 

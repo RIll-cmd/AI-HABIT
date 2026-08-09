@@ -5,6 +5,7 @@ import { useTowerStore } from "@/features/tower/store/useTowerStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { CheckCircle2, ShieldAlert, Sparkles, BrainCircuit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { playUISound } from "@/utils/audio";
 
 export function BattleModal() {
   const { combatLog, clearCombatLog, cielAnalysis, isAnalyzing } = useTowerStore();
@@ -23,15 +24,43 @@ export function BattleModal() {
     
     // Animate combat events appearing one by one
     let i = 0;
+    
+    // Play initial victory or defeat sound
+    if (combatLog.isVictory) {
+      playUISound("/sounds/General/8_Buffs_Heals_SFX/30_Revive_03.wav");
+    } else {
+      playUISound("/sounds/General/12_Player_Movement_SFX/61_Hit_03.wav");
+    }
+
     const interval = setInterval(() => {
       if (i < combatLog.events.length) {
-        setDisplayedEvents(prev => [...prev, combatLog.events[i]]);
+        const ev = combatLog.events[i];
+        setDisplayedEvents(prev => [...prev, ev]);
+        
+        // Play SFX based on the event
+        const isPlayer = ev.actor === character?.name;
+        const isCrit = ev.message && ev.message.toLowerCase().includes("critical");
+        const isMiss = ev.message && (ev.message.toLowerCase().includes("miss") || ev.message.toLowerCase().includes("evade"));
+        const isBlock = ev.message && ev.message.toLowerCase().includes("block");
+        
+        if (isCrit) {
+          playUISound("/sounds/General/8_Atk_Magic_SFX/18_Thunder_02.wav");
+        } else if (isMiss) {
+          playUISound("/sounds/General/10_Battle_SFX/35_Miss_Evade_02.wav");
+        } else if (isBlock) {
+          playUISound("/sounds/General/10_Battle_SFX/39_Block_03.wav");
+        } else if (isPlayer) {
+          playUISound("/sounds/General/12_Player_Movement_SFX/56_Attack_03.wav");
+        } else {
+          playUISound("/sounds/General/10_Battle_SFX/03_Claw_03.wav");
+        }
+        
         i++;
       } else {
         setIsAnimationComplete(true);
         clearInterval(interval);
       }
-    }, 200); // 200ms per combat event for snappier animation
+    }, 400); // Increased interval slightly to let sounds breathe
     
     return () => clearInterval(interval);
   }, [combatLog]);

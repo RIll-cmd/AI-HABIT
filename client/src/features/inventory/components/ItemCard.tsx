@@ -2,6 +2,7 @@ import React from 'react';
 import { PlayerItem } from '../types/inventory';
 import Image from 'next/image';
 import { Lock, Star, Shield } from 'lucide-react';
+import { getItemIconPath } from '@/utils/itemIcons';
 
 interface ItemCardProps {
   item: PlayerItem;
@@ -48,19 +49,13 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onClick }) => {
       )}
 
       {/* Icon */}
-      <div className="relative w-16 h-16 mt-4">
-        {itemDefinition.icon ? (
-          <Image 
-            src={itemDefinition.icon.replace('client/public', '')} // Ensure path works for next/image
-            alt={itemDefinition.name} 
-            fill
-            className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]"
-          />
-        ) : (
-          <div className="w-full h-full bg-black/40 rounded-lg flex items-center justify-center border border-white/10">
-            <Shield className="w-8 h-8 text-white/30" />
-          </div>
-        )}
+      <div className="relative w-16 h-16 mt-4 p-1">
+        <Image 
+          src={getItemIconPath(itemDefinition.name)} 
+          alt={itemDefinition.name} 
+          fill
+          className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+        />
       </div>
 
       {/* Details */}

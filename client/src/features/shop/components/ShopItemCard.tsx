@@ -5,8 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, Diamond, Shield, Swords, Activity, Lock } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 import { rarityColors } from "@/features/inventory/utils/rarityColors";
 import { PurchaseModal } from "./PurchaseModal";
+import { playUISound } from "@/utils/audio";
+import { getItemIconPath } from "@/utils/itemIcons";
 
 interface ShopItemCardProps {
   item: ShopItem;
@@ -23,7 +26,10 @@ export function ShopItemCard({ item }: ShopItemCardProps) {
     setIsPurchasing(true);
     const success = await buyItem(character.id, item.id);
     setIsPurchasing(false);
-    if (success) setIsModalOpen(false);
+    if (success) {
+      playUISound("/sounds/General/10_UI_Menu_SFX/079_Buy_sell_01.wav");
+      setIsModalOpen(false);
+    }
   };
 
   const CurrencyIcon = () => {
@@ -54,11 +60,13 @@ export function ShopItemCard({ item }: ShopItemCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl bg-muted/50 border border-muted"
-              style={{ borderColor: `${rarityColor}40`, color: rarityColor }}
-            >
-              {item.icon || "📦"}
+            <div className="relative w-12 h-12 rounded-lg bg-muted/50 border flex-shrink-0 p-1 flex items-center justify-center" style={{ borderColor: `${rarityColor}40` }}>
+              <Image 
+                src={getItemIconPath(item.name)} 
+                alt={item.name} 
+                fill 
+                className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] p-1.5" 
+              />
             </div>
             <div>
               <h3 className="font-bold text-lg leading-tight truncate">{item.name}</h3>

@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mission, Habit, CompletionType, HabitDifficulty } from "../types";
 import { getBaseReward, calculateFinalReward } from "../utils";
+import { playUISound } from "@/utils/audio";
 
 export interface MissionCardProps {
   mission: Mission;
@@ -149,7 +150,10 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onComplete(mission.id, habit, "MINI")}
+                onClick={() => {
+                  playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
+                  onComplete(mission.id, habit, "MINI");
+                }}
                 className="border-white/10 hover:border-slate-400 hover:bg-slate-800/80 flex flex-col items-center py-2.5 h-auto text-slate-300"
               >
                 <span className="text-xs font-bold text-slate-200">MINI (40%)</span>
@@ -162,7 +166,10 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onComplete(mission.id, habit, "NORMAL")}
+                onClick={() => {
+                  playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
+                  onComplete(mission.id, habit, "NORMAL");
+                }}
                 className="border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-white flex flex-col items-center py-2.5 h-auto"
               >
                 <span className="text-xs font-bold text-blue-300">NORMAL (100%)</span>
@@ -175,7 +182,10 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onComplete(mission.id, habit, "ELITE")}
+                onClick={() => {
+                  playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
+                  onComplete(mission.id, habit, "ELITE");
+                }}
                 className="border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-white flex flex-col items-center py-2.5 h-auto"
               >
                 <span className="text-xs font-bold text-amber-300">ELITE (170%)</span>

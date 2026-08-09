@@ -1,6 +1,7 @@
 import React from 'react';
 import { SkillDefinition, PlayerSkill } from '../types';
 import { SkillIcon } from './SkillIcon';
+import { playUISound } from '@/utils/audio';
 
 interface SkillDetailModalProps {
   skill: SkillDefinition;
@@ -116,7 +117,10 @@ export const SkillDetailModal: React.FC<SkillDetailModalProps> = ({
         {/* Footer */}
         <div className="p-4 bg-slate-900 border-t border-slate-700 flex justify-end">
           <button
-            onClick={onUnlock}
+            onClick={() => {
+              playUISound("/sounds/General/8_Buffs_Heals_SFX/16_Atk_buff_04.wav");
+              onUnlock();
+            }}
             disabled={(!available && !playerSkill) || isMaxLevel || loading}
             className={`
               px-6 py-2 rounded-md font-bold tracking-widest text-sm uppercase transition-all
