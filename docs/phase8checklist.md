@@ -544,7 +544,7 @@ This is something I'd add because it ties workouts directly to your RPG system.
 Workout TypePrimary StatSecondary StatStrength TrainingStrengthDisciplineHypertrophyStrengthRecoveryCardioEnduranceRecoveryHIITEnduranceDisciplineMobility / StretchingRecoveryFocusYogaRecoveryFocusSportsEnduranceConsistency
 This makes every type of exercise valuable instead of pushing users toward only heavy lifting.
 Definition of Done
-FeatureStatusExercise database✅Workout plan builder✅Workout session flow✅Exercise logging✅Rest timer✅Progressive overload engine✅Personal Record tracking✅Workout history✅Workout reward calculation✅Character stat integration✅Voice logging (basic)✅Fitness APIs✅Unit tests for overload & PR detection✅A feature I'd add that fits your vision: Workout Bosses
+FeatureStatusExercise database✅Workout plan builder✅Workout session flow✅Workout boss feature✅Exercise logging✅Rest timer✅Progressive overload engine✅Personal Record tracking✅Workout history✅Workout reward calculation✅Character stat integration✅Voice logging (basic)✅Fitness APIs✅Unit tests for overload & PR detection✅A feature I'd add that fits your vision: Workout Bosses
 Instead of every workout being a normal session, let users mark one workout each week as a Boss Workout.
 For example:
 

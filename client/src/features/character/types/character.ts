@@ -31,6 +31,8 @@ export interface Character {
   power: number;
   rank: string;
   gold: number;
+  gems?: number;
+  towerTokens?: number;
   availableSP: number;
   createdAt: string | Date;
   stats?: CharacterStats | null;

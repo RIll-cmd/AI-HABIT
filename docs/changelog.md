@@ -2,9 +2,33 @@
 
 All notable changes and architectural implementations for **Ascend OS (AI-Powered Life RPG Platform)** are documented in this file.
 
-## [Phase 7 Completion - The Skill System & Expanded Inventory System] - 2026-08-08
+## [Phase 9 Completion - The Workout System & Boss Engine] - 2026-08-09
 
-### 1. Database Architecture & Seeding (`server/prisma/schema.prisma`)
+### 1. Database Architecture & Seed (`server/prisma/schema.prisma`)
+- **`ExerciseDefinition` & `ExerciseStandard`**: Master models for exercises and rank standards (E through SSS thresholds based on bodyweight/sex).
+- **`WorkoutSession` & `WorkoutSet`**: Real-time tracked workout instances storing exact weight, reps, RPE, and PR boolean flags.
+- **Python Seed Script**: `seed_workouts.py` seeding 25 MVP exercises and strength level standards for 70kg male.
+
+### 2. Math Engine & API Logic (`server/services/workout_engine.py` & `server/routers/workouts.py`)
+- **Epley 1RM Formula**: Accurately calculates estimated 1RM for each set `(Weight * (1 + Reps / 30))`.
+- **Boss Damage Injection**: Directly hooked `deal_boss_damage(..., "WORKOUT", exerciseId)` into every logged set, chunks Boss HP dynamically.
+- **Dynamic Rank Thresholds**: Engine assigns current Rank based on calculated e1RM and `ExerciseStandard`.
+- **REST Endpoints**: `/api/workouts/log` processing PRs, boss damage, granting EXP, Gold, and Stats, and `/api/workouts/ranks/{char_id}` calculating progress bars.
+
+### 3. Active Workout UI & Tracking (`client/src/features/workouts/`)
+- **Zustand Workout Store**: Managed active timer, queued exercises, uncommitted sets, and rest timers.
+- **Main Dashboard**: High-fidelity UI (`app/(dashboard)/workouts/page.tsx`) with Fitness Power, recent PRs, and "Start Workout" entry.
+- **Active Session Overlay**: Mobile-friendly, modal overlay allowing fast data entry for weight/reps/rpe, and marking sets complete in real-time.
+- **Floating Rest Timer**: Automatic popup timer with `+30s`, `+60s`, and `Skip` logic.
+- **Exercise Rank Cards**: UI components visualizing current e1RM, Rank, and animated progress bars to the next threshold.
+
+### 4. Ciel Analytics Integration (`server/services/aira_service.py`)
+- **`analyze_workout_performance`**: AI function evaluating pushing vs pulling imbalances and providing tactical gym recommendations.
+- **Frontend Integration**: Added "Ciel Analysis" button to Workout Dashboard firing markdown-styled analysis toasts.
+
+---
+
+## [Phase 7 Completion - The Skill System & Expanded Inventory System] - 2026-08-08
 - **`ItemDefinition` / `PlayerItem` / `InventoryTransaction`**: Replaced legacy item models with a scalable 400-item global template database (`ItemDefinition`), player instance database (`PlayerItem`), and audit log (`InventoryTransaction`).
 - **`SkillDefinition`**: Master skill template database storing skill metadata (`id`, `name`, `description`, `elementPath`, `tier`, `maxLevel`, `skillType`, `baseCostSP`, `statRequirements`, `prerequisiteSkillId`, `icon`).
 - **`PlayerSkill`**: Character skill ownership model tracking unlocked skills and current levels (`id`, `characterId`, `skillDefinitionId`, `currentLevel`).

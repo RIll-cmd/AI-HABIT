@@ -7,7 +7,8 @@ from services.aira_service import (
     analyze_tower_combat,
     generate_daily_report,
     analyze_boss_trajectory,
-    analyze_workout_performance
+    analyze_workout_performance,
+    analyze_shop_efficiency
 )
 
 router = APIRouter(prefix="/api/aira", tags=["aira"])
@@ -144,3 +145,43 @@ async def analyze_workout(payload: AIRAChatSchema):
     )
     
     return {"analysis": analysis_text}
+
+@router.get("/shop-analysis/{character_id}")
+async def get_shop_analysis(character_id: str):
+    """
+    GET /api/aira/shop-analysis/{character_id}
+    Retrieves Shop items, character's equipped inventory, and generates Ciel's tactical coaching on optimal purchases.
+    """
+    context_dict = await get_character_context_dict(character_id)
+    
+    # Fetch shop items
+    shop_items = await db.shopitem.find_many(include={"item": True})
+    shop_items_dict = []
+    for si in shop_items:
+        s_dict = si.model_dump() if hasattr(si, "model_dump") else dict(si)
+        if si.item:
+            i_dict = si.item.model_dump() if hasattr(si.item, "model_dump") else dict(si.item)
+            s_dict.update(i_dict)
+            s_dict['name'] = si.item.name
+            s_dict['type'] = si.item.type
+            s_dict['rarity'] = si.item.rarity
+        shop_items_dict.append(s_dict)
+        
+    # Fetch equipped inventory
+    inventory = await db.playeritem.find_many(
+        where={"characterId": character_id, "isEquipped": True},
+        include={"itemDefinition": True}
+    )
+    inv_dict = []
+    for inv in inventory:
+        i_dict = inv.itemDefinition.model_dump() if hasattr(inv.itemDefinition, "model_dump") else dict(inv.itemDefinition)
+        inv_dict.append(i_dict)
+        
+    analysis_text = await analyze_shop_efficiency(
+        character_context=context_dict,
+        shop_items=shop_items_dict,
+        inventory=inv_dict
+    )
+
+    return {"analysis": analysis_text}
+

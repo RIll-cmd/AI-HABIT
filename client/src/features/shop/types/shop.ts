@@ -1,0 +1,21 @@
+export interface ShopItem {
+  id: string;
+  itemId: string;
+  currencyType: "GOLD" | "GEMS" | "TOWER_TOKENS";
+  price: number;
+  stock: number | null;
+  requiredLevel: number | null;
+  requiredPower: number | null;
+  
+  // Joined fields
+  name: string;
+  description: string | null;
+  type: string;
+  rarity: string;
+  icon: string;
+  
+  // Computed fields
+  canAfford: boolean;
+  meetsRequirements: boolean;
+  inStock: boolean;
+}

@@ -306,3 +306,40 @@ async def analyze_workout_performance(character_context: Dict[str, Any], workout
         f"I recommend maintaining consistency across all muscle groups to prevent imbalances and optimize overall Fitness Power."
     )
 
+async def analyze_shop_efficiency(character_context: Dict[str, Any], shop_items: List[Dict[str, Any]], inventory: List[Dict[str, Any]]) -> str:
+    """
+    Evaluates the player's current equipped gear vs the shop's available offerings, combined with their current Gold/Gem balances.
+    Generates tactical advice on the best purchases.
+    """
+    context_str = format_character_context(character_context)
+    
+    shop_str = ""
+    for item in shop_items:
+        shop_str += f"- {item['name']} ({item['rarity']} {item['type']}): {item['price']} {item['currencyType']} (Requires Level {item['requiredLevel']})\n"
+        
+    inv_str = ""
+    for inv in inventory:
+        inv_str += f"- [Equipped] {inv['name']} ({inv['rarity']} {inv['type']}): Stats [{inv.get('stats', 'N/A')}]\n"
+        
+    prompt = (
+        f"[Task: Shop Efficiency Analysis]\n"
+        f"Context:\n{context_str}\n\n"
+        f"Currently Equipped Gear:\n{inv_str}\n\n"
+        f"Available Shop Items:\n{shop_str}\n\n"
+        f"Act as Ciel (AIRA). Evaluate Master's current equipment against the Shop Items. "
+        f"Consider Master's current Gold and Gems. Point out if a shop item is significantly stronger than an equipped item of the same type "
+        f"and if Master can afford it. Suggest the most mathematically optimal purchase to increase Power Score. "
+        f"If Master is poor, politely suggest returning to Skill Acquisition routines to earn more Gold."
+    )
+
+    client = get_gemini_client()
+    if client:
+        result_text = call_gemini_generate(client, prompt)
+        if result_text:
+            return result_text
+
+    return (
+        f"<< Notice. >> I have analyzed the current market offerings against your {character_context.get('gold', 0)} Gold balance. "
+        f"I recommend comparing your lowest-tier equipment against the shop's stock to maximize Power efficiency per Gold spent."
+    )
+

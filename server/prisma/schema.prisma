@@ -36,6 +36,8 @@ model Character {
   power     Int      @default(0)
   rank      String   @default("F")
   gold      Int      @default(0)
+  gems      Int      @default(0)
+  towerTokens Int    @default(0)
   availableSP Int    @default(0)
   highestTowerFloor Int @default(0)
   createdAt DateTime @default(now())
@@ -280,6 +282,7 @@ model ItemDefinition {
 
   playerItems PlayerItem[]
   towerFloors TowerFloor[]
+  shopItems   ShopItem[]
 }
 
 model PlayerItem {
@@ -504,4 +507,17 @@ model BossDamageLog {
   activity   BossActivity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
   damage     Int
   createdAt  DateTime @default(now())
+}
+
+model ShopItem {
+  id            String         @id @default(uuid())
+  itemId        String
+  item          ItemDefinition @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  currencyType  String         // 'GOLD', 'GEMS', 'TOWER_TOKENS'
+  price         Int
+  stock         Int?
+  requiredLevel Int?
+  requiredPower Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
