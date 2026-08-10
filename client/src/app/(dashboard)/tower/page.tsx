@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BattleModal } from "@/features/tower/components/BattleModal";
+import { getEnemySpritePath, CHARACTER_AVATAR_PREVIEW } from "@/utils/sprites";
+import { playBattleSFX, playUIMenuSFX } from "@/utils/audio";
 
 export default function TowerPage() {
   const { character } = useCharacterStore();
@@ -80,8 +82,12 @@ export default function TowerPage() {
                     ${isSelected ? 'border-primary ring-2 ring-primary/20 bg-accent' : 'border-transparent bg-card/80 backdrop-blur-sm'}
                   `}
                 >
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${statusColor} ${statusGlow} transition-all`}>
-                    <StatusIcon className="w-8 h-8" />
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center border-2 ${statusColor} ${statusGlow} transition-all overflow-hidden p-1 shrink-0 bg-slate-950/60`}>
+                    <img
+                      src={getEnemySpritePath(floor.enemy.name, floor.floorNumber, floor.isBoss)}
+                      alt={floor.enemy.name}
+                      className={`w-full h-full object-contain ${floor.status === "LOCKED" ? "opacity-40 grayscale" : "drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]"}`}
+                    />
                   </div>
                   
                   <div className="flex-1">
@@ -108,7 +114,7 @@ export default function TowerPage() {
       <div className="w-1/2 flex flex-col gap-6">
         {selectedFloor ? (
           <div className="bg-card rounded-xl border p-6 shadow-sm flex flex-col h-full">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b">
               <div>
                 <h2 className="text-2xl font-bold flex items-center gap-2">
                   Floor {selectedFloor.floorNumber}
@@ -122,73 +128,120 @@ export default function TowerPage() {
               </div>
             </div>
 
+            {/* Tower Battle View (Player Left vs Enemy Right Face-Off) */}
+            <div className="relative p-5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-[#151C33] to-red-950/60 border border-indigo-500/30 overflow-hidden mb-6 flex items-center justify-between shadow-inner">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
+
+              {/* Player Side (Left) */}
+              <div className="flex flex-col items-center gap-1 relative z-10">
+                <div className="w-24 h-24 rounded-2xl bg-indigo-950/60 border border-cyan-500/40 p-2 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                  <img
+                    src={CHARACTER_AVATAR_PREVIEW}
+                    alt={character?.name || "Player"}
+                    className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(6,182,212,0.6)]"
+                  />
+                </div>
+                <span className="text-xs font-bold text-cyan-300 font-mono mt-1">{character?.name || "Player"}</span>
+                <span className="text-[10px] text-slate-400 font-mono">Pwr: <span className="text-amber-400 font-bold">{character?.power || 0}</span></span>
+              </div>
+
+              {/* VS Center Badge */}
+              <div className="flex flex-col items-center justify-center relative z-10">
+                <div className="w-10 h-10 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 font-black font-mono text-sm tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse">
+                  VS
+                </div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mt-1">FACE OFF</span>
+              </div>
+
+              {/* Enemy Side (Right) */}
+              <div className="flex flex-col items-center gap-1 relative z-10">
+                <div className="w-24 h-24 rounded-2xl bg-red-950/60 border border-red-500/40 p-2 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                  <img
+                    src={getEnemySpritePath(selectedFloor.enemy.name, selectedFloor.floorNumber, selectedFloor.isBoss)}
+                    alt={selectedFloor.enemy.name}
+                    className="w-full h-full object-contain transform -scale-x-100 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]"
+                  />
+                </div>
+                <span className="text-xs font-bold text-red-400 font-mono mt-1 text-center truncate max-w-[100px]">{selectedFloor.enemy.name}</span>
+                <span className="text-[10px] text-slate-400 font-mono">Lv. <span className="text-red-300 font-bold">{selectedFloor.enemy.level}</span></span>
+              </div>
+            </div>
+
             <div className="space-y-6 flex-1">
-              <div>
-                <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                  <ShieldAlert className="w-5 h-5 text-indigo-400" />
-                  Stat Requirements
+              {/* Enemy Weaknesses & Telemetry */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-cyan-400" />
+                  Enemy Tactical Vulnerabilities
                 </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <RequirementRow 
-                    label="Power" 
-                    required={selectedFloor.requiredPower} 
-                    current={character?.power || 0} 
-                  />
-                  <RequirementRow 
-                    label="Strength" 
-                    required={selectedFloor.requiredStrength} 
-                    current={character?.stats?.strength || 1} 
-                  />
-                  <RequirementRow 
-                    label="Endurance" 
-                    required={selectedFloor.requiredEndurance} 
-                    current={character?.stats?.endurance || 1} 
-                  />
-                  <RequirementRow 
-                    label="Knowledge" 
-                    required={selectedFloor.requiredKnowledge} 
-                    current={character?.stats?.knowledge || 1} 
-                  />
-                  <RequirementRow 
-                    label="Recovery" 
-                    required={selectedFloor.requiredRecovery} 
-                    current={character?.stats?.recovery || 1} 
-                  />
-                  <RequirementRow 
-                    label="Focus" 
-                    required={selectedFloor.requiredFocus} 
-                    current={character?.stats?.focus || 1} 
-                  />
-                  <RequirementRow 
-                    label="Discipline" 
-                    required={selectedFloor.requiredDiscipline} 
-                    current={character?.stats?.discipline || 1} 
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Attribute Weakness */}
+                  <div className="bg-[#0B1020] border border-indigo-500/30 rounded-lg p-3 flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Attribute Weakness</span>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 font-mono font-bold text-xs uppercase px-2.5 py-1">
+                        🎯 {selectedFloor.enemy.weaknessStat || "Knowledge"}
+                      </Badge>
+                    </div>
+                    <span className="text-[9px] text-slate-500 font-mono mt-1">+25% damage bonus when stat matches</span>
+                  </div>
+
+                  {/* Elemental Weakness */}
+                  <div className="bg-[#0B1020] border border-amber-500/30 rounded-lg p-3 flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Elemental Vulnerability</span>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/50 font-mono font-bold text-xs uppercase px-2.5 py-1">
+                        ⚡ {selectedFloor.enemy.resistanceStat || "Flame"}
+                      </Badge>
+                    </div>
+                    <span className="text-[9px] text-slate-500 font-mono mt-1">+25% damage bonus on element exploit</span>
+                  </div>
+                </div>
+
+                {/* Scaled Enemy Combat Telemetry */}
+                <div className="bg-[#0B1020]/80 rounded-lg p-3 border border-slate-800 grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <span className="block text-[9px] text-slate-400 uppercase font-mono">HP</span>
+                    <span className="text-xs font-bold text-red-400 font-mono">{selectedFloor.enemy.hp.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-slate-400 uppercase font-mono">ATTACK</span>
+                    <span className="text-xs font-bold text-amber-400 font-mono">{selectedFloor.enemy.attack.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-slate-400 uppercase font-mono">DEFENSE</span>
+                    <span className="text-xs font-bold text-blue-400 font-mono">{selectedFloor.enemy.defense.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-slate-400 uppercase font-mono">SPEED</span>
+                    <span className="text-xs font-bold text-emerald-400 font-mono">{selectedFloor.enemy.speed.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Floor Rewards & Stats */}
               <div>
-                <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                  <Activity className="w-5 h-5 text-amber-500" />
-                  Floor Data
+                <h3 className="font-semibold text-sm flex items-center gap-2 mb-3 text-slate-300 uppercase tracking-wider">
+                  <Activity className="w-4 h-4 text-amber-500" />
+                  Floor Rewards & Progress
                 </h3>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2 text-xs font-mono">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Attempts</span>
-                    <span className="font-mono">{selectedFloor.attempts}</span>
+                    <span className="text-slate-400">Total Attempts</span>
+                    <span className="font-bold text-slate-200">{selectedFloor.attempts}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Best Time</span>
-                    <span className="font-mono">
+                    <span className="text-slate-400">Best Clear Time</span>
+                    <span className="font-bold text-slate-200">
                       {selectedFloor.bestClearTimeSeconds ? `${selectedFloor.bestClearTimeSeconds}s` : "--"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Rewards</span>
-                    <span>
-                      <span className="text-yellow-500 mr-2">{selectedFloor.goldReward}g</span>
-                      <span className="text-blue-400">{selectedFloor.expReward} EXP</span>
+                  <div className="flex justify-between border-t border-slate-800 pt-2 mt-2">
+                    <span className="text-slate-400">Floor Completion Bounty</span>
+                    <span className="font-bold">
+                      <span className="text-yellow-400 mr-3">+{selectedFloor.goldReward} Gold</span>
+                      <span className="text-cyan-400">+{selectedFloor.expReward} EXP</span>
                     </span>
                   </div>
                 </div>
@@ -199,7 +252,12 @@ export default function TowerPage() {
               className="w-full h-14 text-lg font-bold mt-4" 
               size="lg"
               disabled={selectedFloor.status === "LOCKED" || isSimulating || !character}
-              onClick={() => character && challengeFloor(character.id, selectedFloor.floorNumber)}
+              onClick={() => {
+                if (character) {
+                  playBattleSFX("encounter");
+                  challengeFloor(character.id, selectedFloor.floorNumber);
+                }
+              }}
             >
               {isSimulating ? (
                 <span className="flex items-center gap-2 animate-pulse">

@@ -23,6 +23,7 @@ import {
   Activity,
   Layers,
   Coins,
+  Settings,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ const SCHEDULE_TYPES: { id: ScheduleType; label: string; desc: string; icon: any
   { id: "DAILY", label: "Daily", desc: "Repeats every single day", icon: Calendar },
   { id: "X_TIMES_WEEK", label: "Weekly", desc: "Repeats once per week", icon: Clock },
   { id: "MONTHLY", label: "Monthly", desc: "Repeats once per month", icon: Layers },
+  { id: "CUSTOM", label: "Custom (RRule)", desc: "Advanced flexible scheduling", icon: Settings },
 ];
 
 export interface MissionWizardProps {
@@ -80,6 +82,7 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
   const [primaryStat, setPrimaryStat] = useState<PrimaryStat>("discipline");
   const [difficulty, setDifficulty] = useState<HabitDifficulty>("MEDIUM");
   const [scheduleType, setScheduleType] = useState<ScheduleType>("DAILY");
+  const [rruleString, setRruleString] = useState<string>("FREQ=WEEKLY;BYDAY=MO,WE,FR");
 
   const totalSteps = 6;
 
@@ -110,6 +113,7 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
         difficulty,
         primaryStat,
         scheduleType,
+        rrule: scheduleType === "CUSTOM" ? rruleString : null,
         tiers: [
           { tier: "MINI", targetValue: 1, targetUnit: "Rep", baseExp: Math.round(base.exp * 0.4), baseGold: Math.round(base.gold * 0.4), statReward: Math.round(base.stat * 0.4) },
           { tier: "NORMAL", targetValue: 2, targetUnit: "Reps", baseExp: base.exp, baseGold: base.gold, statReward: base.stat },
@@ -401,6 +405,28 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
                   );
                 })}
               </div>
+
+              {scheduleType === "CUSTOM" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-4 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10"
+                >
+                  <label className="text-sm font-medium text-blue-200 block mb-2">
+                    Custom Recurrence Rule (RFC 5545)
+                  </label>
+                  <Input
+                    value={rruleString}
+                    onChange={(e) => setRruleString(e.target.value)}
+                    placeholder="e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
+                    className="bg-[#0B1020] border-blue-500/30 text-white focus:border-blue-500 h-10 font-mono text-sm"
+                  />
+                  <p className="text-xs text-blue-300/70 mt-2">
+                    Example: FREQ=WEEKLY;INTERVAL=2 (Every 2 weeks)
+                  </p>
+                </motion.div>
+              )}
             </motion.div>
           )}
 

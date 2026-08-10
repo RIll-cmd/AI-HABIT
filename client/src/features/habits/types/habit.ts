@@ -65,6 +65,7 @@ export interface Habit {
   primaryStat: PrimaryStat | string;
   status: HabitStatus;
   scheduleType: ScheduleType;
+  rrule?: string | null;
   preferredTime?: string | null;
   startDate: string | Date;
   endDate?: string | Date | null;

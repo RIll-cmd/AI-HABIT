@@ -106,12 +106,22 @@ async def simulate_combat(character_id: str, floor_number: int) -> CombatLog:
             damage_multiplier = 1.3
             used_heavy_strike = True
 
-        # Calculate player damage
+        # Calculate Stat & Elemental Weakness multipliers
+        stat_weakness_hit = False
+        element_weakness_hit = False
+
         if enemy.weaknessStat:
-            if enemy.weaknessStat == "Knowledge" and base_knowledge > 20:
-                damage_multiplier *= 1.2
-            elif enemy.weaknessStat == "Strength" and base_strength > 20:
-                damage_multiplier *= 1.2
+            ws = enemy.weaknessStat.lower()
+            stat_val = getattr(stats, ws, 10) if stats else 10
+            if stat_val >= 10:
+                damage_multiplier *= 1.25
+                stat_weakness_hit = True
+
+        if enemy.resistanceStat: # Stores Elemental Weakness (Flame, Tempest, Tide, Earth, Ascension)
+            we = enemy.resistanceStat.lower()
+            if any(we in s.lower() for s in skills) or skill_activated or (base_knowledge >= 15):
+                damage_multiplier *= 1.25
+                element_weakness_hit = True
 
         raw_damage = player_attack * damage_multiplier - enemy_defense
         damage = int(max(1, raw_damage))
@@ -128,6 +138,8 @@ async def simulate_combat(character_id: str, floor_number: int) -> CombatLog:
         action_desc = "attacks"
         if skill_activated:
             action_desc = f"uses {skill_activated}"
+        if stat_weakness_hit or element_weakness_hit:
+            action_desc += " [WEAKNESS EXPLOITED]"
         if is_crit:
             action_desc += " (CRITICAL HIT)"
             

@@ -51,6 +51,7 @@ class HabitCreateSchema(BaseModel):
     difficulty: Difficulty = Field(Difficulty.EASY)
     primaryStat: str = Field("discipline", max_length=50)
     scheduleType: ScheduleType = Field(ScheduleType.DAILY)
+    rrule: Optional[str] = None
     preferredTime: Optional[str] = None
     
     schedule: Optional[HabitScheduleCreateSchema] = None
@@ -73,6 +74,7 @@ class HabitUpdateSchema(BaseModel):
     difficulty: Optional[Difficulty] = None
     primaryStat: Optional[str] = None
     scheduleType: Optional[ScheduleType] = None
+    rrule: Optional[str] = None
     preferredTime: Optional[str] = None
     schedule: Optional[HabitScheduleCreateSchema] = None
     tiers: Optional[List[HabitTierCreateSchema]] = None

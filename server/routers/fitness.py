@@ -160,6 +160,17 @@ async def create_exercise_log_from_text(session_id: str, payload: TextLogSchema)
     existing_sets = [log for log in (session.exerciseLogs or []) if log.exerciseId == exercise_id]
     set_num = len(existing_sets) + 1
 
+    if parsed.get("isSameWeight") and weight == -1.0:
+        if existing_sets:
+            weight = float(existing_sets[-1].weight)
+        else:
+            # Fallback to history
+            last_log = await db.exerciselog.find_first(
+                where={"exerciseId": exercise_id, "session": {"characterId": session.characterId}},
+                order={"createdAt": "desc"}
+            )
+            weight = float(last_log.weight) if last_log else 20.0
+
     try:
         log_entry = await db.exerciselog.create(
             data={
@@ -354,6 +365,29 @@ async def get_overload_recommendation(character_id: str, exercise_id: str):
     return recommendation
 
 
+@router.get("/overload-batch/{character_id}")
+async def get_overload_batch(character_id: str):
+    """
+    Generates progressive overload recommendations for all exercises in recent sessions,
+    avoiding N+1 fetches from the frontend.
+    """
+    await ensure_character_exists(character_id)
+    # We could fetch all distinct exercises for the character here, or just let frontend pass a list.
+    # But since frontend will just query all exercises in the current session, let's just make it a POST taking a list of exercise IDs.
+    pass
+
+@router.post("/overload-batch/{character_id}")
+async def post_overload_batch(character_id: str, exercise_ids: list[str]):
+    """
+    Batch overload recommendation for a list of exercises.
+    """
+    await ensure_character_exists(character_id)
+    results = {}
+    for ex_id in exercise_ids:
+        results[ex_id] = await generate_overload_suggestion(character_id, ex_id)
+    return results
+
+
 @router.get("/boss/{character_id}")
 async def get_weekly_boss_endpoint(character_id: str):
     """
@@ -362,3 +396,42 @@ async def get_weekly_boss_endpoint(character_id: str):
     await ensure_character_exists(character_id)
     boss = await generate_weekly_boss(character_id)
     return boss
+
+
+@router.get("/boss/{character_id}/damage-preview")
+async def get_boss_damage_preview(character_id: str, session_id: str):
+    """
+    Returns the accumulated damage from the active session without finalizing it.
+    """
+    await ensure_character_exists(character_id)
+    
+    now = datetime.now(timezone.utc)
+    active_boss = await db.weeklyboss.find_first(
+        where={
+            "characterId": character_id,
+            "isDefeated": False,
+            "expiresAt": {"gt": now},
+        }
+    )
+    if not active_boss:
+        return {"damage": 0.0}
+        
+    session = await db.workoutsession.find_unique(
+        where={"id": session_id},
+        include={"exerciseLogs": {"include": {"exercise": True}}}
+    )
+    if not session or not session.exerciseLogs:
+        return {"damage": active_boss.currentDamage}
+
+    from services.fitness_engine import calculate_boss_damage
+
+    total_damage = active_boss.currentDamage
+    for log in session.exerciseLogs:
+        if not log.exercise: continue
+        ex_name = log.exercise.name.lower()
+        target_ex = active_boss.targetExercise.lower()
+        if target_ex in ex_name or ex_name in target_ex:
+            damage = calculate_boss_damage(float(log.weight), log.reps, float(active_boss.targetWeight), active_boss.targetReps)
+            total_damage += damage
+
+    return {"damage": min(1.0, total_damage)}

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
+from dateutil.rrule import rrulestr
 from db import db
 
 async def generate_daily_missions(character_id: str, target_date: datetime):
@@ -56,9 +57,21 @@ async def generate_daily_missions(character_id: str, target_date: datetime):
                     should_generate = True
             except json.JSONDecodeError:
                 should_generate = False
+        elif schedule_type == "CUSTOM" and habit.rrule:
+            try:
+                # dtstart must be set to correctly anchor the rrule evaluation
+                habit_start = habit.startDate.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc) if habit.startDate else date_start
+                rule = rrulestr(habit.rrule, dtstart=habit_start)
+                
+                # Check if the rule generates any instances overlapping today
+                occurrences = rule.between(date_start - timedelta(minutes=1), date_end, inc=True)
+                if len(occurrences) > 0:
+                    should_generate = True
+            except Exception as e:
+                print(f"Error parsing rrule for habit {habit.id}: {e}")
+                should_generate = False
         else:
-            # For X_TIMES_WEEK, MONTHLY, CUSTOM, just default to generating a daily pending mission for MVP
-            # A more sophisticated scheduler would check weekly limits
+            # For X_TIMES_WEEK, MONTHLY, just default to generating a daily pending mission for MVP
             should_generate = True
 
         if should_generate:

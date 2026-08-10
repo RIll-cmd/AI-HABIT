@@ -78,3 +78,40 @@ async def complete_mission(mission_id: str, payload: MissionCompleteSchema):
         )
 
     return updated_mission
+
+@router.get("/heatmap/{character_id}")
+async def get_heatmap(character_id: str):
+    """
+    Returns calendar heatmap data for the past 365 days.
+    """
+    await ensure_character_exists(character_id)
+    
+    now = datetime.now(timezone.utc)
+    start_date = now - timedelta(days=365)
+    
+    missions = await db.mission.find_many(
+        where={
+            "characterId": character_id,
+            "status": "COMPLETED",
+            "date": {"gte": start_date}
+        }
+    )
+    
+    heatmap_data = {}
+    for m in missions:
+        d_str = m.date.strftime("%Y-%m-%d") if hasattr(m.date, 'strftime') else str(m.date)[:10]
+        if d_str not in heatmap_data:
+            heatmap_data[d_str] = 0
+        heatmap_data[d_str] += 1
+        
+    result = []
+    for date_str, count in heatmap_data.items():
+        # Level determines the color intensity, max 4
+        level = min(4, count)
+        result.append({
+            "date": date_str,
+            "count": count,
+            "level": level
+        })
+        
+    return result

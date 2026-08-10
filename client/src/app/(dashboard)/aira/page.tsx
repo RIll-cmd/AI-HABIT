@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Bot,
   Send,
   Sparkles,
   Zap,
@@ -20,16 +19,60 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAiraStore } from "@/features/aira/store";
+import { AiraAvatar, AiraMood } from "@/components/ui/AiraAvatar";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { playNoticeSound } from "@/features/audio/useSystemAudio";
 import { fetchSystemStatus } from "@/features/aira/services/aira.service";
 import { AIRASystemStatusResponse } from "@/features/aira/types";
-import { playVoiceLine } from "@/utils/audio";
+import { playVoiceLine, playBattleSFX } from "@/utils/audio";
+
+const QUICK_PROMPTS = [
+  {
+    id: "tower",
+    title: "Tower Analysis",
+    icon: "⚔️",
+    promptText: "Can I beat Floor 1 of the Tower?",
+  },
+  {
+    id: "equipment",
+    title: "Equipment Advice",
+    icon: "🎒",
+    promptText: "Analyze my gear and recommend upgrades",
+  },
+  {
+    id: "goal",
+    title: "Goal Routine",
+    icon: "🎯",
+    promptText: "I want to get better at programming",
+  },
+  {
+    id: "workout",
+    title: "Workout Today",
+    icon: "🏋️",
+    promptText: "What should I train today?",
+  },
+  {
+    id: "status",
+    title: "System Status",
+    icon: "📊",
+    promptText: "Analyze my progress over the last week",
+  },
+];
 
 export default function AiraTerminalPage() {
   const { character } = useCharacterStore();
-  const { messages, dailyReport, isLoading, loadDailyReport, sendPrompt, confirmAction, cancelAction } =
-    useAiraStore();
+  const {
+    messages,
+    dailyReport,
+    isLoading,
+    loadDailyReport,
+    sendPrompt,
+    confirmAction,
+    cancelAction,
+    autoBriefingsEnabled,
+    toggleAutoBriefings,
+    currentMood
+  } = useAiraStore();
 
   const [inputPrompt, setInputPrompt] = useState("");
   const [systemStatus, setSystemStatus] = useState<AIRASystemStatusResponse | null>(null);
@@ -81,7 +124,7 @@ export default function AiraTerminalPage() {
         <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-center gap-2 mb-4 relative z-10">
-          <Bot className="w-8 h-8 text-cyan-400 animate-pulse" />
+          <AiraAvatar mood={currentMood as AiraMood} className="w-12 h-12 animate-pulse" />
           <h1 className="text-2xl font-black font-heading text-slate-100 tracking-wide uppercase">
             AI System <span className="text-emerald-400 text-sm ml-2">● ONLINE</span>
           </h1>
@@ -169,7 +212,19 @@ export default function AiraTerminalPage() {
             <span>aira@ascend-os:~/command-center</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={toggleAutoBriefings}
+              className="h-6 text-[10px] px-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/40 font-mono uppercase tracking-wider gap-1"
+            >
+              <AiraAvatar mood={currentMood as AiraMood} className="w-4 h-4" />
+              <span>Auto-Briefings:</span>
+              <span className={autoBriefingsEnabled ? "text-emerald-400 font-bold" : "text-slate-400 font-bold"}>
+                {autoBriefingsEnabled ? "ON" : "OFF"}
+              </span>
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -200,7 +255,7 @@ export default function AiraTerminalPage() {
               >
                 {msg.sender === "aira" && (
                   <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
-                    <Bot className="w-4 h-4" />
+                    <AiraAvatar mood={(msg.mood || "NEUTRAL") as AiraMood} className="w-6 h-6" />
                   </div>
                 )}
 
@@ -275,10 +330,11 @@ export default function AiraTerminalPage() {
                       <div className="flex gap-2 pt-1">
                         <Button
                           onClick={() => {
+                            playBattleSFX("impact");
                             if (msg.pendingAction?.action_type === 'generate_progression_plan') {
                               playVoiceLine("/sounds/AIRA Persona/AI-SUCCESSFUL.mp3");
                             } else {
-                              playVoiceLine("/sounds/AIRA Persona/AI-CONFRIMED.mp3"); // The typo exists in the filesystem (AI-CONFRIMED)
+                              playVoiceLine("/sounds/AIRA Persona/AI-CONFRIMED.mp3");
                             }
                             confirmAction(msg.id, characterId);
                           }}
@@ -309,7 +365,7 @@ export default function AiraTerminalPage() {
               animate={{ opacity: 1 }}
               className="flex items-center gap-3 text-cyan-400 text-xs font-mono py-2"
             >
-              <Bot className="w-5 h-5 animate-spin" />
+              <AiraAvatar mood="ANALYZING" className="w-6 h-6 animate-pulse" />
               <span>AIRA calculating optimal response... [100% accuracy sync]</span>
             </motion.div>
           )}
@@ -319,6 +375,23 @@ export default function AiraTerminalPage() {
 
         {/* Terminal Command Input */}
         <div className="p-3 bg-[#151C33] border-t border-slate-800 space-y-2">
+          {/* Quick Prompt Action Chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent">
+            {QUICK_PROMPTS.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => handleQuickPrompt(chip.promptText)}
+                disabled={isLoading}
+                title={chip.promptText}
+                className="bg-slate-900/60 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-950/40 text-xs text-cyan-300 font-mono transition-all duration-150 rounded-lg px-3 py-1.5 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+              >
+                <span className="text-sm">{chip.icon}</span>
+                <span>{chip.promptText}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2">
             <Input
               type="text"

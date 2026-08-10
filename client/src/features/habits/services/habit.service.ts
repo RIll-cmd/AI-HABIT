@@ -29,6 +29,7 @@ export interface HabitCreatePayload {
   difficulty: HabitDifficulty;
   primaryStat: string;
   scheduleType: ScheduleType;
+  rrule?: string | null;
   preferredTime?: string | null;
   schedule?: HabitScheduleCreatePayload | null;
   tiers: HabitTierCreatePayload[];

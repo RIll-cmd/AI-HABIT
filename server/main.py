@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from prisma.errors import RecordNotFoundError
 from db import db
-from routers import character, habits, missions, progression, achievements, analytics, tower, inventory, aira, fitness, skills, bosses, workouts, shop
+from routers import auth, character, habits, missions, progression, achievements, analytics, tower, inventory, aira, fitness, skills, bosses, workouts, shop, season_pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,20 +20,36 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://ai-habit-omega.vercel.app",
+    "https://*.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+@app.exception_handler(RecordNotFoundError)
+async def prisma_record_not_found_handler(request: Request, exc: RecordNotFoundError):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "The requested resource was not found in the database."}
+    )
+
 # Register Domain Routers
+app.include_router(auth.router)
 app.include_router(character.router)
 app.include_router(habits.router)
 app.include_router(missions.router)
 app.include_router(progression.router)
 app.include_router(achievements.router)
+app.include_router(season_pass.router)
 app.include_router(analytics.router)
 app.include_router(tower.router)
 app.include_router(inventory.router)

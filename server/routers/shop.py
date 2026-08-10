@@ -4,6 +4,7 @@ from db import db
 from schemas.shop import ShopItemBuyRequest, ShopItemDetailSchema
 from routers.inventory import grant_item
 from typing import List
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -120,8 +121,37 @@ async def buy_item(character_id: str, request: ShopItemBuyRequest):
     # Deliver item
     granted = await grant_item(character_id, shop_item.itemId, quantity=1, source="SHOP_PURCHASE")
     
+    # Auto-activate specific Shop Consumables / Cosmetics
+    if shop_item.item:
+        if shop_item.item.type == "CONSUMABLE":
+            if "Double-EXP" in shop_item.item.name:
+                await db.activebuff.create(data={
+                    "characterId": character_id,
+                    "buffType": "DOUBLE_EXP",
+                    "multiplier": 2.0,
+                    "expiresAt": datetime.now() + timedelta(hours=1),
+                    "chargesRemaining": 10
+                })
+            elif "Double-Gold" in shop_item.item.name:
+                await db.activebuff.create(data={
+                    "characterId": character_id,
+                    "buffType": "DOUBLE_GOLD",
+                    "multiplier": 2.0,
+                    "expiresAt": datetime.now() + timedelta(hours=1),
+                    "chargesRemaining": 10
+                })
+        elif shop_item.item.type == "COSMETIC":
+            if "Title Scroll" in shop_item.item.name:
+                title_name = shop_item.item.name.replace("Title Scroll: ", "")
+                title = await db.title.find_first(where={"name": title_name})
+                if not title:
+                    title = await db.title.create(data={"name": title_name, "category": "Special"})
+                existing_title = await db.charactertitle.find_first(where={"characterId": character_id, "titleId": title.id})
+                if not existing_title:
+                    await db.charactertitle.create(data={"characterId": character_id, "titleId": title.id})
+
     # Decrement stock
-    if shop_item.stock is not None:
+    if shop_item.stock is not None and shop_item.stock > 0:
         await db.shopitem.update(
             where={"id": shop_item.id},
             data={"stock": {"decrement": 1}}

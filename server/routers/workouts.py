@@ -92,7 +92,26 @@ async def log_workout(data: WorkoutLogInput):
             "bossDamage": boss_damage_results
         })
         
-    # Grant EXP, Gold, and Stats for completing the workout session
+    # Calculate Stat Rewards based on Muscle Groups logged
+    strength_inc = 0
+    endurance_inc = 0
+    consistency_inc = 0
+    discipline_inc = 2  # Session Finish reward
+    recovery_inc = 2    # Session Finish reward
+
+    for s in data.sets:
+        ex_def = await db.exercisedefinition.find_unique(where={"id": s.exerciseId})
+        muscle = (ex_def.primaryMuscle.lower() if ex_def else "chest")
+        
+        if muscle in ["chest", "back", "legs", "shoulders", "arms", "biceps", "triceps"]:
+            strength_inc += 1
+            endurance_inc += 1
+        elif muscle in ["core", "abs", "cardio"]:
+            endurance_inc += 2
+            consistency_inc += 1
+        else:
+            strength_inc += 1
+
     exp_reward = len(data.sets) * 50
     gold_reward = len(data.sets) * 10
     
@@ -103,8 +122,11 @@ async def log_workout(data: WorkoutLogInput):
             "gold": {"increment": gold_reward},
             "stats": {
                 "update": {
-                    "strength": {"increment": 1},
-                    "discipline": {"increment": 1}
+                    "strength": {"increment": max(1, strength_inc)},
+                    "endurance": {"increment": max(1, endurance_inc)},
+                    "discipline": {"increment": discipline_inc},
+                    "recovery": {"increment": recovery_inc},
+                    "consistency": {"increment": max(1, consistency_inc)},
                 }
             }
         }
@@ -112,9 +134,14 @@ async def log_workout(data: WorkoutLogInput):
         
     return {
         "sessionId": session.id,
-        "message": "Workout successfully logged, ranks calculated, and boss damage applied.",
+        "message": "Workout successfully logged, character attributes enhanced, and boss damage applied.",
         "results": results
     }
+
+@router.post("/finish")
+async def finish_workout(data: WorkoutLogInput):
+    """Alias endpoint for finishing workout sessions."""
+    return await log_workout(data)
 
 @router.get("/ranks/{character_id}")
 async def get_workout_ranks(character_id: str):
@@ -193,3 +220,13 @@ async def get_workout_ranks(character_id: str):
         })
         
     return {"ranks": results}
+
+@router.get("/exercises")
+async def get_exercises():
+    """
+    Returns all cataloged exercises across Chest, Back, Legs, Shoulders, Arms, and Core.
+    """
+    exercises = await db.exercisedefinition.find_many(
+        order={"name": "asc"}
+    )
+    return exercises

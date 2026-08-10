@@ -80,6 +80,7 @@ async def generate_overload_suggestion(character_id: str, exercise_id: str) -> D
     """
     Analyzes historical performance for an exercise and generates a progressive
     overload recommendation (e.g. +2.5kg increase if reps > 8 cleanly hit).
+    Hybrid approach: flat +2.5kg for compounds, +5% for isolations. Rep increase for high RPE.
     """
     recent_logs = await db.exerciselog.find_many(
         where={
@@ -101,14 +102,38 @@ async def generate_overload_suggestion(character_id: str, exercise_id: str) -> D
             "recommendedWeight": 20.0,
             "suggestedReps": "8-10",
             "message": "First time performing this exercise! Start with a comfortable baseline weight.",
+            "shouldIncrease": False,
+            "overloadType": "MAINTAIN"
         }
 
     max_weight_log = max(recent_logs, key=lambda l: l.weight)
     curr_weight = float(max_weight_log.weight)
     curr_reps = int(max_weight_log.reps)
+    exercise_cat = max_weight_log.exercise.category if hasattr(max_weight_log.exercise, 'category') else "Compound"
+
+    # Analyze RPE across recent top sets
+    top_sets = [l for l in recent_logs if float(l.weight) >= curr_weight * 0.95]
+    avg_rpe = sum(l.rpe for l in top_sets if l.rpe) / len([l for l in top_sets if l.rpe]) if any(l.rpe for l in top_sets) else 8.0
 
     if curr_reps >= 8:
-        recommended_weight = curr_weight + 2.5
+        if avg_rpe >= 9.0:
+            return {
+                "exerciseId": exercise_id,
+                "currentWeight": curr_weight,
+                "recommendedWeight": curr_weight,
+                "suggestedReps": f"{curr_reps + 1}-{curr_reps + 2}",
+                "message": f"High RPE ({round(avg_rpe, 1)}) detected. Push for {curr_reps + 1}-{curr_reps + 2} reps before adding weight.",
+                "shouldIncrease": True,
+                "overloadType": "REP_UP"
+            }
+        
+        # Hybrid scaling
+        if exercise_cat == "Isolation" or (hasattr(max_weight_log.exercise, 'primaryMuscle') and max_weight_log.exercise.primaryMuscle in ["Arms", "Biceps", "Triceps", "Shoulders"]):
+            recommended_weight = round(curr_weight * 1.05 * 2) / 2 # +5%, rounded to nearest 0.5kg
+            if recommended_weight == curr_weight: recommended_weight += 1.0
+        else:
+            recommended_weight = curr_weight + 2.5
+            
         return {
             "exerciseId": exercise_id,
             "currentWeight": curr_weight,
@@ -116,6 +141,7 @@ async def generate_overload_suggestion(character_id: str, exercise_id: str) -> D
             "suggestedReps": "6-8",
             "message": f"Overload Ready! Last session you hit {curr_weight}kg x {curr_reps} reps cleanly. Recommend increasing weight to {recommended_weight}kg next session.",
             "shouldIncrease": True,
+            "overloadType": "WEIGHT_UP"
         }
     else:
         return {
@@ -125,6 +151,7 @@ async def generate_overload_suggestion(character_id: str, exercise_id: str) -> D
             "suggestedReps": f"{curr_reps + 1}-10",
             "message": f"Maintain {curr_weight}kg and aim to increase reps from {curr_reps} to 8 before advancing weight.",
             "shouldIncrease": False,
+            "overloadType": "MAINTAIN"
         }
 
 
@@ -287,6 +314,15 @@ async def generate_weekly_boss(character_id: str) -> Any:
     ]
     boss_name = boss_names[hash(character_id) % len(boss_names)]
 
+    sprites = [
+        "bat_cropped.gif", "bringer_of_death_cropped.png", "crab_cropped.gif",
+        "golem_cropped.png", "gollux_cropped.png", "mushroom_cropped.png",
+        "necromancer_cropped.png", "necromancer_sheet_cropped.png", "nightborne_cropped.png",
+        "pebble_cropped.png", "rat_cropped.gif", "skull_cropped.png",
+        "slime_cropped.gif", "wizard_cropped.png"
+    ]
+    boss_sprite = sprites[hash(character_id) % len(sprites)]
+
     rewards_obj = {
         "exp": 500,
         "gold": 100,
@@ -300,6 +336,7 @@ async def generate_weekly_boss(character_id: str) -> Any:
         data={
             "characterId": character_id,
             "name": boss_name,
+            "bossSprite": boss_sprite,
             "targetExercise": target_exercise,
             "targetWeight": target_weight,
             "targetReps": target_reps,
@@ -385,5 +422,56 @@ async def check_boss_defeat(session_id: str, character_id: str) -> tuple[bool, O
                 )
 
         return True, rewards_dict
+        
+    # Check for partial damage if not defeated
+    total_damage = 0.0
+    for log in session.exerciseLogs:
+        if not log.exercise: continue
+        ex_name = log.exercise.name.lower()
+        target_ex = active_boss.targetExercise.lower()
+        if target_ex in ex_name or ex_name in target_ex:
+            damage = calculate_boss_damage(float(log.weight), log.reps, float(active_boss.targetWeight), active_boss.targetReps)
+            total_damage += damage
+
+    if total_damage > 0.0:
+        new_damage = min(1.0, active_boss.currentDamage + total_damage)
+        await db.weeklyboss.update(
+            where={"id": active_boss.id},
+            data={"currentDamage": new_damage}
+        )
+        if new_damage >= 1.0:
+            await db.weeklyboss.update(
+                where={"id": active_boss.id},
+                data={"isDefeated": True}
+            )
+            rewards_dict = json.loads(active_boss.rewards)
+            # Grant Boss Rewards
+            character = await db.character.find_unique(where={"id": character_id}, include={"stats": True})
+            if character:
+                await db.character.update(
+                    where={"id": character_id},
+                    data={
+                        "exp": (character.exp or 0) + rewards_dict.get("exp", 500),
+                        "gold": (character.gold or 0) + rewards_dict.get("gold", 100),
+                    }
+                )
+                if character.stats:
+                    await db.characterstats.update(
+                        where={"characterId": character_id},
+                        data={"strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 1)}
+                    )
+            return True, rewards_dict
 
     return False, None
+
+
+def calculate_boss_damage(log_weight: float, log_reps: int, target_weight: float, target_reps: int) -> float:
+    """
+    Returns percentage damage dealt by a set, scaled proportionally.
+    Damage caps at 1.0 (100%) per set if perfectly matched.
+    """
+    if target_weight <= 0 or target_reps <= 0: return 0.0
+    weight_ratio = min(1.0, log_weight / target_weight)
+    reps_ratio = min(1.0, log_reps / target_reps)
+    # Give weight ratio a slightly higher exponent so light weight high reps isn't overly rewarded
+    return (weight_ratio ** 1.5) * reps_ratio

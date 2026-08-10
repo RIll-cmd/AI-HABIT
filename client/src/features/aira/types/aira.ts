@@ -12,6 +12,7 @@ export interface AIRAMessage {
   text: string;
   timestamp: Date;
   type?: AIRAMessageType;
+  mood?: string;
   pendingAction?: AIRAPendingAction;
 }
 

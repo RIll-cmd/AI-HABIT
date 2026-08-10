@@ -4,14 +4,25 @@ export interface DamageResult {
   armorPenetrated: boolean;
 }
 
+export interface CombatEntity {
+  power?: number;
+  attack?: number;
+  baseAttack?: number;
+  defense?: number;
+  baseDefense?: number;
+  forceCritical?: boolean;
+  stats?: Record<string, number>;
+  [key: string]: any; // fallback for loose stat properties (e.g. attacker.knowledge)
+}
+
 /**
  * Calculates turn-based combat damage between attacker and defender using Knowledge, Focus, and Discipline effects.
  */
 export function calculateTurnDamage(
-  attacker: any,
-  defender: any
+  attacker: CombatEntity,
+  defender: CombatEntity
 ): DamageResult {
-  const getStat = (obj: any, key: string, fallback = 1): number => {
+  const getStat = (obj: CombatEntity, key: string, fallback = 1): number => {
     if (!obj) return fallback;
     if (typeof obj[key] === "number" && !isNaN(obj[key])) return obj[key];
     const stats = obj.stats || {};

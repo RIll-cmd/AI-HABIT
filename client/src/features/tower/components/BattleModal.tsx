@@ -6,9 +6,10 @@ import { useCharacterStore } from "@/store/useCharacterStore";
 import { CheckCircle2, ShieldAlert, Sparkles, BrainCircuit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { playUISound } from "@/utils/audio";
+import { getEnemySpritePath, CHARACTER_AVATAR_PREVIEW } from "@/utils/sprites";
 
 export function BattleModal() {
-  const { combatLog, clearCombatLog, cielAnalysis, isAnalyzing } = useTowerStore();
+  const { combatLog, clearCombatLog, cielAnalysis, isAnalyzing, selectedFloor } = useTowerStore();
   const { character } = useCharacterStore();
   
   const [displayedEvents, setDisplayedEvents] = useState<any[]>([]);
@@ -86,7 +87,42 @@ export function BattleModal() {
         </DialogHeader>
         
         {combatLog && (
-          <div className="space-y-6 mt-2 flex-1 overflow-hidden flex flex-col">
+          <div className="space-y-4 mt-2 flex-1 overflow-hidden flex flex-col">
+            {/* Animated Face-Off Stage */}
+            <div className="relative p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-[#151C33] to-red-950/40 border border-slate-800 flex items-center justify-around overflow-hidden shadow-md shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl bg-indigo-950/60 border border-cyan-500/40 p-1 flex items-center justify-center">
+                  <img
+                    src={CHARACTER_AVATAR_PREVIEW}
+                    alt={character?.name || "Player"}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="font-mono text-xs">
+                  <p className="font-bold text-cyan-300">{character?.name || "Player"}</p>
+                  <p className="text-[10px] text-slate-400">Lv. {character?.level || 1}</p>
+                </div>
+              </div>
+
+              <div className="font-mono font-black text-red-500 text-xs tracking-widest px-2.5 py-1 rounded bg-red-950/40 border border-red-500/30 animate-pulse">
+                VS
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="font-mono text-xs text-right">
+                  <p className="font-bold text-red-400">{selectedFloor?.enemy?.name || "Guardian"}</p>
+                  <p className="text-[10px] text-slate-400">Lv. {selectedFloor?.enemy?.level || 1}</p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-red-950/60 border border-red-500/40 p-1 flex items-center justify-center">
+                  <img
+                    src={getEnemySpritePath(selectedFloor?.enemy?.name || "", selectedFloor?.floorNumber || 1, selectedFloor?.isBoss)}
+                    alt={selectedFloor?.enemy?.name || "Enemy"}
+                    className="w-full h-full object-contain transform -scale-x-100"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-xl border border-border/50 shrink-0">
               <div className="flex flex-col items-center">
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Turns</p>

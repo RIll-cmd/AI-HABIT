@@ -1,11 +1,18 @@
+"use client";
+
 import React from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { useAiraNotification } from "@/features/aira/useAiraNotification";
+import { AiraPeriodicToast } from "@/features/aira/components/AiraPeriodicToast";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Initialize global AIRA 60-second periodic briefing hook
+  useAiraNotification();
+
   return (
-    <div className="flex h-screen w-full bg-[#0B1020] text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#0B1020] text-slate-100 overflow-hidden font-sans relative">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Topbar />
@@ -14,6 +21,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <MobileBottomNav />
+      <AiraPeriodicToast />
     </div>
   );
 }

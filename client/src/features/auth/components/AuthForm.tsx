@@ -9,8 +9,7 @@ import {
   UserCheck,
   Check,
   X,
-  Mail,
-  Lock,
+  User,
   Sparkles,
   UserPlus,
 } from "lucide-react";
@@ -25,6 +24,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface AuthFormProps {
   mode: "login" | "register" | "guest";
@@ -34,28 +34,75 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
 
   // Form State
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Password Validation Checklist Rules
-  const hasMinLength = password.length >= 8;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  const passwordsMatch = password.length > 0 && password === confirmPassword;
+  // Username Validation Rules
+  const hasMinLength = username.length >= 3;
+  const hasMaxLength = username.length <= 20;
+  const isAlphanumeric = /^[a-zA-Z0-9_]+$/.test(username);
+  const isValidUsername = hasMinLength && hasMaxLength && isAlphanumeric;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(`Submitted ${mode} form:`, { email, mode });
-    // Push user to onboarding screen as requested
-    router.push("/onboarding");
+    if (mode === "register" && !isValidUsername) return;
+    
+    setErrorMsg(null);
+    setIsLoading(true);
+
+    try {
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setErrorMsg(data.detail || "Authentication failed.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Success
+      await useAuthStore.getState().checkAuth();
+      
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Network error. Please ensure backend is running.");
+      setIsLoading(false);
+    }
   };
 
-  const handleGuestGenerate = () => {
-    const randomGuestId = `Guest-${Math.floor(1000 + Math.random() * 9000)}`;
-    console.log("Generated Guest Identity:", randomGuestId);
-    router.push("/onboarding");
+  const handleGuestGenerate = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/auth/guest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setErrorMsg(data.detail || "Guest login failed.");
+        setIsLoading(false);
+        return;
+      }
+
+      await useAuthStore.getState().checkAuth();
+      
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Network error.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -125,35 +172,23 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-sans">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ascendant@ascend.os"
-                  className="pl-9 bg-[#0B1020] border-white/10"
-                  required
-                />
+            {errorMsg && (
+              <div className="p-3 bg-red-950/40 border border-red-500/30 text-red-400 text-xs rounded-lg font-sans">
+                {errorMsg}
               </div>
-            </div>
-
+            )}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-sans">
-                Password
+                Username
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="pl-9 bg-[#0B1020] border-white/10"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.trim())}
+                  placeholder="SAIKOU01"
+                  className="pl-9 bg-[#0B1020] border-white/10 text-white"
                   required
                 />
               </div>
@@ -161,72 +196,33 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             {mode === "register" && (
               <>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-sans">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="pl-9 bg-[#0B1020] border-white/10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* PASSWORD VALIDATION CHECKLIST */}
+                {/* USERNAME VALIDATION CHECKLIST */}
                 <div className="p-3.5 rounded-[14px] bg-[#0B1020] border border-white/10 space-y-2 mt-2">
                   <div className="text-[11px] font-semibold text-slate-400 font-sans mb-1">
-                    Password Requirements:
+                    Username Requirements:
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-sans">
+                  <div className="grid grid-cols-1 gap-2 text-[11px] font-sans">
                     <div
-                      className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-400" : "text-slate-500"}`}
+                      className={`flex items-center gap-1.5 ${hasMinLength && hasMaxLength ? "text-emerald-400" : "text-slate-500"}`}
                     >
-                      {hasMinLength ? (
+                      {hasMinLength && hasMaxLength ? (
                         <Check className="w-3.5 h-3.5 shrink-0" />
                       ) : (
                         <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
                       )}
-                      <span>Min. 8 Characters</span>
+                      <span>3-20 Characters</span>
                     </div>
 
                     <div
-                      className={`flex items-center gap-1.5 ${hasUppercase ? "text-emerald-400" : "text-slate-500"}`}
+                      className={`flex items-center gap-1.5 ${isAlphanumeric && username.length > 0 ? "text-emerald-400" : "text-slate-500"}`}
                     >
-                      {hasUppercase ? (
+                      {isAlphanumeric && username.length > 0 ? (
                         <Check className="w-3.5 h-3.5 shrink-0" />
                       ) : (
                         <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
                       )}
-                      <span>Uppercase Letter</span>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-400" : "text-slate-500"}`}
-                    >
-                      {hasNumber ? (
-                        <Check className="w-3.5 h-3.5 shrink-0" />
-                      ) : (
-                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
-                      )}
-                      <span>Number (0-9)</span>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-1.5 ${hasSpecialChar ? "text-emerald-400" : "text-slate-500"}`}
-                    >
-                      {hasSpecialChar ? (
-                        <Check className="w-3.5 h-3.5 shrink-0" />
-                      ) : (
-                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
-                      )}
-                      <span>Special Character</span>
+                      <span>Letters, Numbers, Underscores Only</span>
                     </div>
                   </div>
                 </div>
@@ -237,9 +233,10 @@ export function AuthForm({ mode }: AuthFormProps) {
               type="submit"
               variant="default"
               size="lg"
-              className="w-full h-11 text-xs font-bold mt-4 shadow-lg shadow-blue-600/25"
+              disabled={isLoading || (mode === "register" && !isValidUsername)}
+              className="w-full h-11 text-xs font-bold mt-4 shadow-lg shadow-blue-600/25 disabled:opacity-50"
             >
-              <span>{mode === "login" ? "Sign In" : "Create Account"}</span>
+              <span>{isLoading ? "Authenticating..." : mode === "login" ? "Sign In" : "Create Account"}</span>
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </form>

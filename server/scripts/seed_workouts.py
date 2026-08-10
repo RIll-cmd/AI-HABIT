@@ -2,180 +2,198 @@ import asyncio
 from prisma import Prisma
 
 EXERCISES = [
+    # CHEST
     {
         "name": "Barbell Bench Press",
         "primaryMuscle": "Chest",
         "equipment": "Barbell",
         "trackingMetrics": "Weight, Reps",
-        "standards": [30, 47, 64, 85, 110, 136, 150, 165]
-    },
-    {
-        "name": "Squat",
-        "primaryMuscle": "Legs",
-        "equipment": "Barbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [40, 60, 85, 115, 145, 175, 195, 215]
-    },
-    {
-        "name": "Deadlift",
-        "primaryMuscle": "Back",
-        "equipment": "Barbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [50, 75, 105, 140, 180, 215, 240, 265]
-    },
-    {
-        "name": "Overhead Press",
-        "primaryMuscle": "Shoulders",
-        "equipment": "Barbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [20, 30, 42, 57, 75, 92, 105, 115]
-    },
-    {
-        "name": "Barbell Row",
-        "primaryMuscle": "Back",
-        "equipment": "Barbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [30, 45, 65, 87, 112, 137, 150, 165]
-    },
-    {
-        "name": "Pull-Up",
-        "primaryMuscle": "Back",
-        "equipment": "Bodyweight",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [0, 5, 15, 30, 45, 65, 80, 100] # Added weight
-    },
-    {
-        "name": "Dumbbell Curl",
-        "primaryMuscle": "Biceps",
-        "equipment": "Dumbbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [5, 7, 13, 21, 31, 42, 50, 60]
-    },
-    {
-        "name": "Tricep Pushdown",
-        "primaryMuscle": "Triceps",
-        "equipment": "Cable",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [10, 18, 28, 42, 58, 76, 85, 95]
-    },
-    {
-        "name": "Leg Press",
-        "primaryMuscle": "Legs",
-        "equipment": "Machine",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [50, 90, 145, 215, 295, 385, 430, 480]
-    },
-    {
-        "name": "Leg Curl",
-        "primaryMuscle": "Legs",
-        "equipment": "Machine",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [15, 25, 40, 60, 85, 110, 125, 140]
-    },
-    {
-        "name": "Leg Extension",
-        "primaryMuscle": "Legs",
-        "equipment": "Machine",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [20, 35, 55, 80, 110, 145, 165, 185]
-    },
-    {
-        "name": "Calf Raise",
-        "primaryMuscle": "Legs",
-        "equipment": "Machine",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [20, 40, 65, 95, 130, 170, 190, 210]
-    },
-    {
-        "name": "Lateral Raise",
-        "primaryMuscle": "Shoulders",
-        "equipment": "Dumbbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [2, 5, 9, 14, 20, 27, 32, 38]
-    },
-    {
-        "name": "Front Raise",
-        "primaryMuscle": "Shoulders",
-        "equipment": "Dumbbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [2, 6, 11, 17, 24, 32, 38, 45]
-    },
-    {
-        "name": "Dumbbell Bench Press",
-        "primaryMuscle": "Chest",
-        "equipment": "Dumbbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [8, 14, 22, 32, 44, 58, 68, 78]
+        "standards": [30, 50, 70, 95, 120, 145, 165, 185]
     },
     {
         "name": "Incline Dumbbell Press",
         "primaryMuscle": "Chest",
         "equipment": "Dumbbell",
         "trackingMetrics": "Weight, Reps",
-        "standards": [6, 12, 19, 28, 40, 52, 62, 72]
+        "standards": [10, 18, 26, 36, 48, 60, 72, 85]
+    },
+    {
+        "name": "Chest Flyes",
+        "primaryMuscle": "Chest",
+        "equipment": "Dumbbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [6, 12, 18, 25, 34, 44, 54, 65]
     },
     {
         "name": "Dips",
         "primaryMuscle": "Chest",
         "equipment": "Bodyweight",
         "trackingMetrics": "Weight, Reps",
-        "standards": [0, 5, 15, 30, 50, 75, 90, 110] # Added weight
+        "standards": [0, 10, 20, 35, 55, 75, 95, 115]
+    },
+    {
+        "name": "Push-ups",
+        "primaryMuscle": "Chest",
+        "equipment": "Bodyweight",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [0, 5, 15, 30, 45, 65, 85, 105]
+    },
+
+    # BACK
+    {
+        "name": "Barbell Deadlift",
+        "primaryMuscle": "Back",
+        "equipment": "Barbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [40, 75, 110, 150, 190, 230, 260, 290]
     },
     {
         "name": "Lat Pulldown",
         "primaryMuscle": "Back",
         "equipment": "Cable",
         "trackingMetrics": "Weight, Reps",
-        "standards": [25, 40, 55, 75, 95, 120, 135, 155]
+        "standards": [25, 45, 65, 85, 105, 130, 150, 170]
     },
     {
-        "name": "Cable Row",
+        "name": "Bent-over Barbell Row",
+        "primaryMuscle": "Back",
+        "equipment": "Barbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [25, 45, 65, 88, 115, 140, 160, 180]
+    },
+    {
+        "name": "Seated Cable Row",
         "primaryMuscle": "Back",
         "equipment": "Cable",
         "trackingMetrics": "Weight, Reps",
-        "standards": [25, 40, 60, 80, 105, 135, 150, 170]
+        "standards": [25, 45, 65, 88, 115, 140, 160, 180]
     },
     {
-        "name": "Shrugs",
+        "name": "Pull-ups",
         "primaryMuscle": "Back",
-        "equipment": "Dumbbell",
+        "equipment": "Bodyweight",
         "trackingMetrics": "Weight, Reps",
-        "standards": [15, 25, 35, 48, 62, 78, 90, 105]
+        "standards": [0, 5, 15, 30, 50, 70, 90, 110]
     },
+
+    # LEGS
     {
-        "name": "Face Pulls",
-        "primaryMuscle": "Shoulders",
-        "equipment": "Cable",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [10, 15, 22, 32, 42, 55, 65, 75]
-    },
-    {
-        "name": "Skull Crusher",
-        "primaryMuscle": "Triceps",
+        "name": "Barbell Back Squat",
+        "primaryMuscle": "Legs",
         "equipment": "Barbell",
         "trackingMetrics": "Weight, Reps",
-        "standards": [10, 15, 25, 35, 50, 65, 75, 85]
-    },
-    {
-        "name": "Hammer Curl",
-        "primaryMuscle": "Biceps",
-        "equipment": "Dumbbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [5, 8, 14, 22, 32, 44, 52, 62]
-    },
-    {
-        "name": "Barbell Curl",
-        "primaryMuscle": "Biceps",
-        "equipment": "Barbell",
-        "trackingMetrics": "Weight, Reps",
-        "standards": [15, 22, 32, 45, 60, 78, 90, 105]
+        "standards": [35, 65, 95, 130, 165, 200, 230, 260]
     },
     {
         "name": "Romanian Deadlift",
         "primaryMuscle": "Legs",
         "equipment": "Barbell",
         "trackingMetrics": "Weight, Reps",
-        "standards": [40, 60, 85, 115, 150, 185, 210, 235]
+        "standards": [35, 60, 90, 125, 160, 195, 220, 250]
+    },
+    {
+        "name": "Leg Press",
+        "primaryMuscle": "Legs",
+        "equipment": "Machine",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [60, 110, 170, 240, 320, 410, 470, 530]
+    },
+    {
+        "name": "Lying Leg Curl",
+        "primaryMuscle": "Legs",
+        "equipment": "Machine",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [15, 30, 45, 65, 90, 115, 135, 155]
+    },
+    {
+        "name": "Calf Raises",
+        "primaryMuscle": "Legs",
+        "equipment": "Machine",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [20, 45, 75, 110, 150, 190, 220, 250]
+    },
+
+    # SHOULDERS
+    {
+        "name": "Overhead Barbell Press",
+        "primaryMuscle": "Shoulders",
+        "equipment": "Barbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [20, 35, 50, 68, 88, 108, 125, 140]
+    },
+    {
+        "name": "Dumbbell Lateral Raise",
+        "primaryMuscle": "Shoulders",
+        "equipment": "Dumbbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [4, 8, 14, 20, 28, 36, 44, 52]
+    },
+    {
+        "name": "Face Pulls",
+        "primaryMuscle": "Shoulders",
+        "equipment": "Cable",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [10, 18, 28, 40, 55, 70, 85, 100]
+    },
+    {
+        "name": "Arnold Press",
+        "primaryMuscle": "Shoulders",
+        "equipment": "Dumbbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [8, 14, 22, 32, 44, 56, 68, 80]
+    },
+
+    # ARMS
+    {
+        "name": "Dumbbell Bicep Curl",
+        "primaryMuscle": "Arms",
+        "equipment": "Dumbbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [5, 10, 15, 20, 25, 30, 38, 45]
+    },
+    {
+        "name": "Barbell Preacher Curl",
+        "primaryMuscle": "Arms",
+        "equipment": "Barbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [12, 20, 30, 42, 56, 72, 85, 100]
+    },
+    {
+        "name": "Tricep Rope Pushdown",
+        "primaryMuscle": "Arms",
+        "equipment": "Cable",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [10, 20, 32, 46, 62, 80, 95, 110]
+    },
+    {
+        "name": "Skullcrushers",
+        "primaryMuscle": "Arms",
+        "equipment": "Barbell",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [12, 20, 30, 42, 56, 72, 85, 100]
+    },
+
+    # CORE/ABS
+    {
+        "name": "Cable Woodchoppers",
+        "primaryMuscle": "Core",
+        "equipment": "Cable",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [10, 18, 28, 40, 54, 70, 85, 100]
+    },
+    {
+        "name": "Hanging Leg Raises",
+        "primaryMuscle": "Core",
+        "equipment": "Bodyweight",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [0, 5, 12, 22, 35, 50, 65, 80]
+    },
+    {
+        "name": "Planks",
+        "primaryMuscle": "Core",
+        "equipment": "Bodyweight",
+        "trackingMetrics": "Weight, Reps",
+        "standards": [0, 10, 25, 45, 70, 100, 130, 160]
     }
 ]
 
@@ -219,7 +237,7 @@ async def main():
         )
         inserted += 1
 
-    print(f"Successfully seeded {inserted} exercises into ExerciseDefinition.")
+    print(f"Successfully seeded {inserted} exercises across Chest, Back, Legs, Shoulders, Arms, and Core.")
     await db.disconnect()
 
 if __name__ == "__main__":

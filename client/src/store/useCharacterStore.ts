@@ -19,8 +19,11 @@ import {
 
 export interface CharacterStore {
   character: Character | null;
-  setCharacter: (character: Character) => void;
+  setCharacter: (character: Character | null) => void;
   loadCharacter: (characterId?: string) => Promise<void>;
+  fetchCharacter: (characterId?: string) => Promise<void>;
+  refetch: () => Promise<void>;
+  updateCharacter: (data: Partial<Character>) => void;
   updateCharacterName: (name: string) => void;
   updateCharacterTitle: (title: string) => void;
   updateIdentity: (data: Partial<Character>) => void;
@@ -29,7 +32,13 @@ export interface CharacterStore {
   addStat: (statName: string, amount: number) => void;
 }
 
-const MOCK_CHARACTER_ID = "char-id-123";
+// We no longer use a mock character ID. It's retrieved from localStorage.
+const getStoredCharacterId = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("ascend_character_id");
+  }
+  return null;
+};
 
 const defaultStats: CharacterStats = {
   id: "stats-1",
@@ -47,15 +56,17 @@ const defaultCharacter: Character = {
   id: "char-1",
   userId: "user-1",
   name: "Shadow Monarch",
-  avatar: "/avatars/shadow-monarch.png",
+  avatar: "/Character_sprite_placeholder/walk_down.gif",
   theme: "dark-rpg",
-  title: "Shadow Seeker",
+  title: "Hydration Monarch",
   level: 1,
   exp: 0,
   power: 97,
   rank: "F",
-  gold: 0,
-  availableSP: 0,
+  gold: 500,
+  gems: 50,
+  towerTokens: 0,
+  availableSP: 5,
   createdAt: new Date().toISOString(),
   stats: defaultStats,
   history: [],
@@ -67,10 +78,17 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   setCharacter: (character) => set({ character }),
 
   loadCharacter: async (characterId?: string) => {
-    const targetId = characterId || get().character?.id || MOCK_CHARACTER_ID;
+    const targetId = characterId || getStoredCharacterId();
+    
+    if (!targetId) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      return;
+    }
+
     const profile = await fetchCharacterProfile(targetId);
     if (profile) {
-      // Recalculate power and rank dynamically using single source of truth
       const statsObj = (profile.stats || defaultStats) as unknown as Record<string, number>;
       const power = calculateDynamicPower(profile.level, statsObj);
       const rank = determineRank(power);
@@ -82,6 +100,25 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         },
       });
     }
+  },
+
+  fetchCharacter: async (characterId?: string) => {
+    return get().loadCharacter(characterId);
+  },
+
+  refetch: async () => {
+    return get().loadCharacter();
+  },
+
+  updateCharacter: (data) => {
+    const { character } = get();
+    if (!character) return;
+    set({
+      character: {
+        ...character,
+        ...data,
+      },
+    });
   },
 
   updateCharacterName: (name) => {
@@ -106,7 +143,8 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     set({ character: updatedCharacter });
     toast.success("Identity updated successfully.");
 
-    const targetId = character.id || MOCK_CHARACTER_ID;
+    const targetId = character.id || getStoredCharacterId();
+    if (!targetId) return;
     patchCharacterIdentity(targetId, data).catch((err) => {
       console.error(
         "[useCharacterStore] Background identity patch failed:",
@@ -185,12 +223,6 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const { character } = get();
     if (!character) return;
 
-    // Apply Limitless Growth EXP bonus if present
-    const expBonusStr = localStorage.getItem('asc_exp_bonus'); // Alternatively, calculate it dynamically here. Wait, we can just grab useCombatStats... No, we are in a zustand store. We can call calculateTotalCombatStats if we import useSkillStore.
-    
-    // Instead of local storage, let's just do it directly. We'll import useSkillStore dynamically.
-
-    // Get player skills directly
     let expMultiplier = 1;
     try {
       const { useSkillStore } = require('@/features/skills/store/useSkillStore');
@@ -199,7 +231,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         expMultiplier = 1.10;
       }
     } catch (e) {
-      // Ignored if skill store not initialized
+      // Ignored
     }
 
     const finalAmount = Math.floor(amount * expMultiplier);
@@ -216,13 +248,50 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const isRankUp = newRank !== previousRank;
 
     if (isLevelUp) {
-      toast.success(`LEVEL UP! You reached Level ${levelData.currentLevel}!`, {
+      const spGained = (levelData.currentLevel - previousLevel) * 5;
+      toast.success(`LEVEL UP! You reached Level ${levelData.currentLevel}! (+${spGained} Stat Points)`, {
         description: `Your power score and combat potential have increased!`,
       });
       eventBus.publish("LEVEL_UP", { newLevel: levelData.currentLevel });
+
+      set({
+        character: {
+          ...character,
+          level: levelData.currentLevel,
+          exp: newTotalExp,
+          availableSP: (character.availableSP || 0) + spGained,
+          power: newPower,
+          rank: newRank,
+          history: [...(character.history || []), {
+            id: `hist-${Date.now()}`,
+            characterId: character.id,
+            type: "LEVEL_UP",
+            amount: finalAmount,
+            description: `Leveled up to Level ${levelData.currentLevel}! (+${spGained} SP Gained)`,
+            createdAt: new Date().toISOString(),
+          }],
+        },
+      });
     } else {
       toast.info(`+${amount} EXP Gained`, {
         description: reason,
+      });
+
+      set({
+        character: {
+          ...character,
+          exp: newTotalExp,
+          power: newPower,
+          rank: newRank,
+          history: [...(character.history || []), {
+            id: `hist-${Date.now()}`,
+            characterId: character.id,
+            type: "EXP_GAIN",
+            amount: finalAmount,
+            description: `Gained +${finalAmount} EXP: ${reason}`,
+            createdAt: new Date().toISOString(),
+          }],
+        },
       });
     }
 
@@ -230,33 +299,8 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       eventBus.publish("RANK_ASCENDED", { newRank });
     }
 
-    const historyEntry: ProgressHistory = {
-      id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      characterId: character.id,
-      type: isLevelUp ? "LEVEL_UP" : "EXP_GAIN",
-      amount: finalAmount,
-      description: isLevelUp
-        ? `Leveled up to Level ${levelData.currentLevel}! (${reason})`
-        : `Gained +${finalAmount} EXP: ${reason}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedHistory = [...(character.history || []), historyEntry];
-
-    // Optimistic UI state update
-    set({
-      character: {
-        ...character,
-        level: levelData.currentLevel,
-        exp: newTotalExp,
-        power: newPower,
-        rank: newRank,
-        history: updatedHistory,
-      },
-    });
-
-    // Asynchronous background progression sync
-    const targetId = character.id || MOCK_CHARACTER_ID;
+    const targetId = character?.id || getStoredCharacterId();
+    if (!targetId) return;
     const syncPayload = {
       total_exp: newTotalExp,
       level: levelData.currentLevel,
@@ -264,8 +308,8 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       rank: newRank,
       history_entry: {
         amount: finalAmount,
-        type: historyEntry.type,
-        description: historyEntry.description,
+        type: isLevelUp ? "LEVEL_UP" : "EXP_GAIN",
+        description: isLevelUp ? `Leveled up to Level ${levelData.currentLevel}!` : `Gained +${finalAmount} EXP`,
       },
     };
 

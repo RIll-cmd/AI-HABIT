@@ -48,6 +48,7 @@ async def create_habit(character_id: str, payload: HabitCreateSchema):
             "difficulty": payload.difficulty.value,
             "primaryStat": payload.primaryStat,
             "scheduleType": payload.scheduleType.value,
+            "rrule": payload.rrule,
             "preferredTime": payload.preferredTime,
             "icon": payload.icon,
             "color": payload.color,
@@ -213,4 +214,96 @@ async def trigger_mission_generation(character_id: str):
     now = datetime.now(timezone.utc)
     missions_created = await generate_daily_missions(character_id, now)
     return {"status": "success", "missions_created": missions_created}
+
+
+@router.post("/{character_id}/decay/simulate")
+async def trigger_decay_simulation(character_id: str):
+    """
+    Manually triggers midnight decay simulation for dev/testing.
+    Evaluates uncompleted habits, applies adaptive decay, checks streak shields, and logs heatmap snapshots.
+    """
+    from services.decay_service import process_midnight_decay
+    await ensure_character_exists(character_id)
+    result = await process_midnight_decay(db, character_id, is_simulation=True)
+    return result
+
+
+@router.get("/{character_id}/calendar-snapshots")
+async def get_calendar_snapshots(character_id: str):
+    """
+    Returns 365-day historical DailyCompletionSnapshot records for calendar heatmap visualization.
+    """
+    await ensure_character_exists(character_id)
+    
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    start_date = now - timedelta(days=365)
+    
+    missions = await db.mission.find_many(
+        where={
+            "characterId": character_id,
+            "date": {"gte": start_date}
+        }
+    )
+    
+    heatmap_data = {}
+    for m in missions:
+        d_str = m.date.strftime("%Y-%m-%d") if hasattr(m.date, 'strftime') else str(m.date)[:10]
+        if d_str not in heatmap_data:
+            heatmap_data[d_str] = {"totalCount": 0, "completedCount": 0}
+        
+        heatmap_data[d_str]["totalCount"] += 1
+        if m.status == "COMPLETED":
+            heatmap_data[d_str]["completedCount"] += 1
+            
+    snapshots = []
+    for date_str, stats in heatmap_data.items():
+        total = stats["totalCount"]
+        completed = stats["completedCount"]
+        rate = (completed / total * 100) if total > 0 else 0
+        snapshots.append({
+            "id": f"snap-{date_str}",
+            "date": date_str,
+            "totalCount": total,
+            "completedCount": completed,
+            "completionRate": rate
+        })
+        
+    return {"snapshots": snapshots}
+
+
+@router.post("/{character_id}/buy-streak-freeze")
+async def buy_streak_freeze(character_id: str):
+    """
+    Purchases 1 Streak Freeze Shield for 300 Gold or 15 Gems (up to max 3 shields).
+    """
+    char = await ensure_character_exists(character_id)
+    if char.streakFreezes >= 3:
+        raise HTTPException(status_code=400, detail="Maximum Streak Freeze Shields (3) already in inventory.")
+
+    if char.gold < 300:
+        raise HTTPException(status_code=400, detail="Insufficient Gold. Streak Freeze costs 300 Gold.")
+
+    updated = await db.character.update(
+        where={"id": character_id},
+        data={
+            "gold": char.gold - 300,
+            "streakFreezes": char.streakFreezes + 1
+        }
+    )
+
+    await db.progresshistory.create(
+        data={
+            "characterId": character_id,
+            "type": "ITEM_PURCHASE",
+            "amount": -300,
+            "description": f"Purchased 1 Streak Freeze Shield 🛡️. Total active shields: {updated.streakFreezes}"
+        }
+    )
+
+    return {
+        "message": f"Successfully purchased Streak Freeze Shield 🛡️! Total active shields: {updated.streakFreezes}",
+        "streakFreezes": updated.streakFreezes,
+        "gold": updated.gold
+    }
 

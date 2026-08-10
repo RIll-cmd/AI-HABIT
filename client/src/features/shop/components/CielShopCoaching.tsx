@@ -6,9 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bot, Loader2, Sparkles, LineChart } from "lucide-react";
 import { playVoiceLine, playUISound } from "@/utils/audio";
+import { useAiraStore } from "@/features/aira/store";
+import { AiraAvatar, AiraMood } from "@/components/ui/AiraAvatar";
 
 export function CielShopCoaching() {
   const { character } = useCharacterStore();
+  const { currentMood } = useAiraStore();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,7 +20,7 @@ export function CielShopCoaching() {
     setIsLoading(true);
     playUISound("/sounds/General/10_UI_Menu_SFX/001_Hover_01.wav");
     try {
-      const res = await fetch(`http://localhost:8000/api/aira/shop-analysis/${character.id}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/aira/shop-analysis/${character.id}`);
       if (res.ok) {
         const data = await res.json();
         setAnalysis(data.analysis);
@@ -41,7 +44,7 @@ export function CielShopCoaching() {
           {/* Ciel Avatar / Icon */}
           <div className="flex-shrink-0 relative">
             <div className="w-16 h-16 rounded-2xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-              <Bot className="w-8 h-8 text-indigo-400" />
+              <AiraAvatar mood={currentMood as AiraMood} className="w-14 h-14" />
             </div>
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center border-2 border-black animate-pulse">
               <Sparkles className="w-3 h-3 text-white" />

@@ -50,28 +50,16 @@ async def get_tower_floors(character_id: str):
     for floor in floors:
         prog = progress_map.get(floor.floorNumber)
         
-        is_eligible = (
-            c_power >= floor.requiredPower and
-            c_strength >= floor.requiredStrength and
-            c_endurance >= floor.requiredEndurance and
-            c_knowledge >= floor.requiredKnowledge and
-            c_recovery >= floor.requiredRecovery and
-            c_focus >= floor.requiredFocus and
-            c_discipline >= floor.requiredDiscipline
-        )
-        
+        is_eligible = True
         is_unlocked = floor.floorNumber == 1 or floor.floorNumber <= (highest_cleared + 1)
         
         floor_status = "LOCKED"
         if prog and prog.isCleared:
             floor_status = "CLEARED"
         elif is_unlocked:
-            if is_eligible:
-                floor_status = "AVAILABLE"
-            else:
-                floor_status = "LOCKED"
+            floor_status = "AVAILABLE"
         
-        if prog and not prog.isCleared and floor_status == "AVAILABLE":
+        if prog and not prog.isCleared and floor_status == "AVAILABLE" and prog.attempts > 0:
             floor_status = "ATTEMPTED"
 
         floor_dict = floor.model_dump() if hasattr(floor, "model_dump") else dict(floor)
@@ -113,16 +101,13 @@ async def challenge_floor(character_id: str, request: ChallengeRequest):
     if not stats:
         raise HTTPException(status_code=400, detail="Character has no stats")
 
-    if (
-        character.power < floor.requiredPower or
-        stats.strength < floor.requiredStrength or
-        stats.endurance < floor.requiredEndurance or
-        stats.knowledge < floor.requiredKnowledge or
-        stats.recovery < floor.requiredRecovery or
-        stats.focus < floor.requiredFocus or
-        stats.discipline < floor.requiredDiscipline
-    ):
-        raise HTTPException(status_code=400, detail="Character does not meet the requirements for this floor")
+    # Check floor progression (floor 1 is unlocked, or previous floor must be cleared)
+    if floor_num > 1:
+        prev_progress = await db.towerprogress.find_first(
+            where={"characterId": character_id, "floorNumber": floor_num - 1}
+        )
+        if not prev_progress or not prev_progress.isCleared:
+            raise HTTPException(status_code=400, detail="Previous floor must be cleared before challenging this floor.")
         
     progress = await db.towerprogress.find_first(
         where={"characterId": character_id, "floorNumber": floor_num}

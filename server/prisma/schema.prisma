@@ -15,8 +15,9 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
+  username  String   @unique
+  email     String?  @unique
+  password  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -40,6 +41,12 @@ model Character {
   towerTokens Int    @default(0)
   availableSP Int    @default(0)
   highestTowerFloor Int @default(0)
+  activeTitleId String?
+  specializationId String?
+  specialization ClassSpecialization? @relation(fields: [specializationId], references: [id], onDelete: SetNull)
+  streakFreezes Int    @default(0)
+  timezone      String? @default("UTC")
+  lastDecayCheck DateTime?
   createdAt DateTime @default(now())
 
   stats         CharacterStats?
@@ -53,10 +60,14 @@ model Character {
   playerItems           PlayerItem[]
   inventoryTransactions InventoryTransaction[]
   playerSkills          PlayerSkill[]
+  characterTitles       CharacterTitle[]
+  dailySnapshots        DailyCompletionSnapshot[]
 
   workoutSessions WorkoutSession[]
   weeklyBosses    WeeklyBoss[]
   bosses          Boss[]
+  activeBuffs     ActiveBuff[]
+  seasonProgresses CharacterSeasonProgress[]
 }
 
 model CharacterStats {
@@ -97,6 +108,9 @@ model Habit {
   primaryStat   String
   status        String    @default("ACTIVE") // 'ACTIVE', 'PAUSED', 'ARCHIVED', 'DELETED'
   scheduleType  String    @default("DAILY") // 'DAILY', 'SPECIFIC_DAYS', 'X_TIMES_WEEK', 'MONTHLY', 'CUSTOM'
+  rrule         String?
+  streak        Int       @default(0)
+  bestStreak    Int       @default(0)
   preferredTime String?
   startDate     DateTime  @default(now())
   endDate       DateTime?
@@ -109,6 +123,19 @@ model Habit {
   metrics  HabitMetrics?
   tiers    HabitTier[]
   missions Mission[]
+}
+
+model DailyCompletionSnapshot {
+  id             String    @id @default(uuid())
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  date           DateTime
+  completedCount Int       @default(0)
+  totalCount     Int       @default(0)
+  completionRate Float     @default(0.0)
+  createdAt      DateTime  @default(now())
+
+  @@unique([characterId, date])
 }
 
 model HabitSchedule {
@@ -165,27 +192,30 @@ model Mission {
 }
 
 model Achievement {
-  id           String   @id @default(uuid())
-  name         String
-  description  String
-  icon         String?
-  rewardType   String // 'GOLD', 'EXP', 'TITLE'
-  rewardAmount Int
-  condition    String // event triggers like 'MISSIONS_100'
-  category     String // 'Habits', 'Workout', 'Social', etc.
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  category      String   // 'HABITS', 'WORKOUT', 'TOWER', 'SOCIAL'
+  icon          String   // e.g. '/icons/Icon12.png'
+  targetValue   Int      @default(1)
+  rewardGold    Int      @default(0)
+  rewardGems    Int      @default(0)
+  rewardTitleId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   characterAchievements CharacterAchievement[]
 }
 
 model CharacterAchievement {
-  id            String      @id @default(uuid())
-  characterId   String
-  character     Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  achievementId String
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-  unlockedAt    DateTime    @default(now())
+  id              String      @id @default(uuid())
+  characterId     String
+  character       Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  achievementId   String
+  achievement     Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  currentProgress Int         @default(0)
+  isClaimed       Boolean     @default(false)
+  unlockedAt      DateTime?
 
   @@unique([characterId, achievementId])
 }
@@ -299,6 +329,8 @@ model PlayerItem {
   
   acquiredAt       DateTime       @default(now())
   acquiredFrom     String?
+
+  @@index([characterId, isEquipped])
 }
 
 model InventoryTransaction {
@@ -363,6 +395,8 @@ model WorkoutSet {
   rpe             Float?
   isPr            Boolean            @default(false)
   createdAt       DateTime           @default(now())
+
+  @@index([sessionId])
 }
 
 model WeeklyBoss {
@@ -370,13 +404,55 @@ model WeeklyBoss {
   characterId    String
   character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   name           String
+  bossSprite     String?
   targetExercise String
   targetWeight   Float
   targetReps     Int
+  currentDamage  Float     @default(0.0)
   rewards        String    // JSON-serialized rewards
   isDefeated     Boolean   @default(false)
   expiresAt      DateTime
   createdAt      DateTime  @default(now())
+}
+
+model Title {
+  id               String   @id @default(uuid())
+  name             String   @unique
+  description      String?
+  icon             String?
+  category         String   @default("Milestone") // 'Milestone', 'Tower', 'Habits', 'Special'
+  statBonus        String?  // JSON e.g. '{"strength": 2, "recovery": 2}'
+  powerMultiplier  Float    @default(1.0)
+  requirementType  String?
+  requirementValue Int?
+  createdAt        DateTime @default(now())
+
+  characterTitles  CharacterTitle[]
+}
+
+model CharacterTitle {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  titleId     String
+  title       Title     @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime  @default(now())
+  isEquipped  Boolean   @default(false)
+
+  @@unique([characterId, titleId])
+}
+
+model ClassSpecialization {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  baseClass     String   // 'Warrior', 'Mage', 'Rogue'
+  tier          Int      @default(1) // 1 or 2
+  requiredLevel Int      @default(10)
+  description   String?
+  icon          String?
+
+  characters    Character[]
+  skills        SkillDefinition[]
 }
 
 model SkillDefinition {
@@ -390,6 +466,8 @@ model SkillDefinition {
   baseCostSP          Int      @default(1)
   statRequirements    String   // JSON string storing stats + prerequisite skills
   icon                String?
+  specializationId    String?
+  specialization      ClassSpecialization? @relation(fields: [specializationId], references: [id], onDelete: SetNull)
   
   playerSkills        PlayerSkill[]
 }
@@ -521,3 +599,54 @@ model ShopItem {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
+
+model ActiveBuff {
+  id               String    @id @default(uuid())
+  characterId      String
+  character        Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  buffType         String    // 'DOUBLE_EXP', 'DOUBLE_GOLD'
+  multiplier       Float     @default(2.0)
+  expiresAt        DateTime
+  chargesRemaining Int?      @default(10)
+  createdAt        DateTime  @default(now())
+}
+
+model SeasonPass {
+  id           String      @id @default(uuid())
+  seasonNumber Int         @default(1)
+  title        String
+  startDate    DateTime    @default(now())
+  endDate      DateTime
+
+  tiers        SeasonTier[]
+  progresses   CharacterSeasonProgress[]
+}
+
+model SeasonTier {
+  id            String     @id @default(uuid())
+  seasonId      String
+  season        SeasonPass @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  tierNumber    Int
+  requiredXp    Int
+  freeReward    String     // JSON string
+  premiumReward String     // JSON string
+  freeIcon      String     // e.g. '/icons/Icon1.png'
+  premiumIcon   String     // e.g. '/icons/Icon15.png'
+
+  @@unique([seasonId, tierNumber])
+}
+
+model CharacterSeasonProgress {
+  id                  String     @id @default(uuid())
+  characterId         String
+  character           Character  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  seasonId            String
+  season              SeasonPass @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  passXp              Int        @default(0)
+  claimedFreeTiers    String     @default("[]") // JSON string array
+  claimedPremiumTiers String     @default("[]") // JSON string array
+  isPremium           Boolean    @default(false)
+
+  @@unique([characterId, seasonId])
+}
+

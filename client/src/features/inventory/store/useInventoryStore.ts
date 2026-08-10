@@ -23,7 +23,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   fetchInventory: async (characterId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetch(`http://localhost:8000/api/inventory/${characterId}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/inventory/${characterId}`);
       if (!res.ok) throw new Error("Failed to fetch inventory");
       const data: PlayerItem[] = await res.json();
       set({ items: data, isLoading: false });
@@ -35,7 +35,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   equipItem: async (playerItemId: string) => {
     // Optimistic Update (we can apply it after the response to ensure proper auto-unequip)
     try {
-      const res = await fetch(`http://localhost:8000/api/inventory/${playerItemId}/equip`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/inventory/${playerItemId}/equip`, {
         method: "PATCH",
       });
       if (!res.ok) throw new Error("Failed to equip item");
@@ -98,7 +98,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     });
     
     try {
-      const res = await fetch(`http://localhost:8000/api/inventory/${playerItemId}/toggle-lock`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/inventory/${playerItemId}/toggle-lock`, {
         method: "PATCH",
       });
       if (!res.ok) throw new Error("Failed to toggle lock");
@@ -119,7 +119,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     });
     
     try {
-      const res = await fetch(`http://localhost:8000/api/inventory/${playerItemId}/toggle-favorite`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/inventory/${playerItemId}/toggle-favorite`, {
         method: "PATCH",
       });
       if (!res.ok) throw new Error("Failed to toggle favorite");

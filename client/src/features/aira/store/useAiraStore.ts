@@ -1,13 +1,26 @@
 import { create } from "zustand";
+import { toast } from "sonner";
 import { AIRAMessage, AIRAPendingAction } from "../types";
 import { sendAiraChat, diagnoseTowerDefeat, fetchDailyReport, executeAiraAction } from "../services";
 import { playNoticeSound, playUnderstoodSound, playSuccessfulSound } from "@/features/audio/useSystemAudio";
 
+export interface PeriodicToast {
+  id: string;
+  text: string;
+  category: string;
+}
+
 export interface AiraStore {
   messages: AIRAMessage[];
+  currentMood: string;
   dailyReport: string | null;
   isLoading: boolean;
   activeInsight: string | null;
+  autoBriefingsEnabled: boolean;
+  activePeriodicToast: PeriodicToast | null;
+  toggleAutoBriefings: () => void;
+  showPeriodicToast: (text: string, category: string) => void;
+  dismissPeriodicToast: () => void;
   loadDailyReport: (characterId?: string) => Promise<void>;
   sendPrompt: (prompt: string, characterId?: string) => Promise<void>;
   diagnoseDefeat: (
@@ -32,9 +45,34 @@ const INITIAL_WELCOME_MESSAGE: AIRAMessage = {
 
 export const useAiraStore = create<AiraStore>((set, get) => ({
   messages: [INITIAL_WELCOME_MESSAGE],
+  currentMood: "NEUTRAL",
   dailyReport: null,
   isLoading: false,
   activeInsight: null,
+  autoBriefingsEnabled: true,
+  activePeriodicToast: null,
+
+  toggleAutoBriefings: () => {
+    set((state) => {
+      const next = !state.autoBriefingsEnabled;
+      toast.info(`AIRA Auto-Briefings ${next ? "ACTIVE" : "PAUSED"}`);
+      return { autoBriefingsEnabled: next, activePeriodicToast: null };
+    });
+  },
+
+  showPeriodicToast: (text: string, category: string) => {
+    set({
+      activePeriodicToast: {
+        id: `toast-${Date.now()}`,
+        text,
+        category,
+      },
+    });
+  },
+
+  dismissPeriodicToast: () => {
+    set({ activePeriodicToast: null });
+  },
 
   loadDailyReport: async (characterId?: string) => {
     const targetId = characterId || DEFAULT_CHARACTER_ID;
@@ -92,11 +130,13 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
           : airaText.includes("<< Notice. >>")
           ? "notice"
           : "answer",
+        mood: res?.pending_action ? "ANALYZING" : "NEUTRAL",
         pendingAction: res?.pending_action,
       };
 
       set((state) => ({
         messages: [...state.messages, airaMsg],
+        currentMood: res?.pending_action ? "ANALYZING" : "NEUTRAL",
         activeInsight: airaText,
         isLoading: false,
       }));
@@ -128,10 +168,12 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
         text: diagnosisText,
         timestamp: new Date(),
         type: "report",
+        mood: "WARNING",
       };
 
       set((state) => ({
         messages: [...state.messages, airaMsg],
+        currentMood: "WARNING",
         activeInsight: diagnosisText,
         isLoading: false,
       }));
@@ -169,13 +211,15 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
           sender: "aira",
           text: `<< Notice. >> Execution successful. ${result.message}`,
           timestamp: new Date(),
-          type: "notice"
+          type: "notice",
+          mood: "SUCCESS"
         };
         
         newMessages.push(successMsg);
         
         set({
           messages: newMessages,
+          currentMood: "SUCCESS",
           isLoading: false
         });
         
@@ -200,10 +244,10 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
     const newMessages = [...state.messages];
     newMessages[msgIndex] = updatedMsg;
     
-    set({ messages: newMessages });
+    set({ messages: newMessages, currentMood: "DISAPPOINTED" });
   },
 
   clearMessages: () => {
-    set({ messages: [INITIAL_WELCOME_MESSAGE] });
+    set({ messages: [INITIAL_WELCOME_MESSAGE], currentMood: "NEUTRAL" });
   },
 }));

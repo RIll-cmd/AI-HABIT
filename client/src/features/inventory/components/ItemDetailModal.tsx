@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { PlayerItem } from '../types/inventory';
 import Image from 'next/image';
 import { X, Lock, Star, Shield, Sword } from 'lucide-react';
-import { playUISound } from '@/utils/audio';
+import { playUISound, playBuffSFX, playUIMenuSFX } from '@/utils/audio';
 import { getItemIconPath } from '@/utils/itemIcons';
 
 interface ItemDetailModalProps {
@@ -115,16 +115,17 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <button 
               onClick={() => {
                 if (item.isEquipped) {
-                  playUISound("/sounds/General/10_UI_Menu_SFX/071_Unequip_01.wav");
+                  playUIMenuSFX("confirm");
                 } else {
-                  playUISound("/sounds/General/10_UI_Menu_SFX/070_Equip_10.wav");
+                  playBuffSFX("buff");
+                  playUIMenuSFX("equip");
                 }
                 onEquip(item.id);
               }}
-              className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider transition-all text-xs flex items-center justify-center gap-2 ${
+              className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-colors flex items-center justify-center gap-2 ${
                 item.isEquipped 
-                  ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50" 
-                  : "bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] border border-purple-400/50"
+                  ? "bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30" 
+                  : "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30"
               }`}
             >
               <Sword className="w-4 h-4" />

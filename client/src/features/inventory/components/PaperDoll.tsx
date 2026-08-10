@@ -11,9 +11,9 @@ import {
   Gem, 
   Target, 
   Axe, 
-  Hexagon, 
-  User 
+  Hexagon,
 } from 'lucide-react';
+import { CHARACTER_AVATAR_PREVIEW } from '@/utils/sprites';
 
 interface PaperDollProps {
   equippedItems: PlayerItem[];
@@ -87,7 +87,12 @@ export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
       {/* Center Portrait */}
       <div className="w-[190px] h-[310px] bg-gradient-to-t from-[#151C33] to-[#0B1020] border-2 border-purple-900/50 rounded-[30px] flex items-center justify-center shadow-[0_0_40px_rgba(168,85,247,0.15)] relative overflow-hidden z-0">
         <div className="absolute inset-0 bg-blue-500/5 mix-blend-overlay" />
-        <User className="w-28 h-28 text-slate-600/40" />
+        <img
+          src={CHARACTER_AVATAR_PREVIEW}
+          alt="Character Avatar"
+          className="w-44 h-44 object-contain drop-shadow-[0_0_25px_rgba(168,85,247,0.4)] z-10"
+          style={{ imageRendering: "pixelated" }}
+        />
         
         {/* Ground Magic Circle effect */}
         <div className="absolute -bottom-8 w-56 h-20 border-2 border-purple-500/20 rounded-[100%] transform rotate-x-60 animate-pulse pointer-events-none shadow-[0_0_30px_rgba(168,85,247,0.3)]" />

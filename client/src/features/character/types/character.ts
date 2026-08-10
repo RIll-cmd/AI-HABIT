@@ -19,6 +19,16 @@ export interface ProgressHistory {
   createdAt: string | Date;
 }
 
+export interface ClassSpecialization {
+  id: string;
+  name: string;
+  baseClass: string;
+  tier: number;
+  requiredLevel: number;
+  description?: string | null;
+  icon?: string | null;
+}
+
 export interface Character {
   id: string;
   userId: string;
@@ -34,7 +44,18 @@ export interface Character {
   gems?: number;
   towerTokens?: number;
   availableSP: number;
+  streakFreezes?: number;
+  activeTitleId?: string | null;
+  specializationId?: string | null;
+  specialization?: ClassSpecialization | null;
   createdAt: string | Date;
   stats?: CharacterStats | null;
   history?: ProgressHistory[];
+  activeBuffs?: {
+    id: string;
+    buffType: string;
+    multiplier: number;
+    expiresAt: string;
+    chargesRemaining?: number;
+  }[];
 }

@@ -15,10 +15,15 @@ import {
   ShoppingBag,
   Bot,
   Sparkles,
-  MessageSquare
+  MessageSquare,
+  Trophy,
+  Crown,
+  Swords,
+  Calendar
 } from "lucide-react";
 
 import { playSystemOpen } from "@/features/audio/useSystemAudio";
+import { playMovementSFX } from "@/utils/audio";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -27,12 +32,16 @@ export function Sidebar() {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Missions", href: "/missions", icon: Target },
     { name: "Habits", href: "/habits", icon: CheckCircle2 },
+    { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Workouts", href: "/workouts", icon: Dumbbell },
+    { name: "Boss PR", href: "/workouts/boss-pr", icon: Swords },
     { name: "Tower", href: "/tower", icon: Flame },
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Skills", href: "/skills", icon: Zap },
     { name: "Bosses", href: "/bosses", icon: Skull },
     { name: "Shop", href: "/shop", icon: ShoppingBag },
+    { name: "Achievements", href: "/achievements", icon: Trophy },
+    { name: "Season Pass", href: "/season-pass", icon: Crown },
     { name: "AI System", href: "/aira", icon: Bot },
   ];
 
@@ -66,7 +75,10 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              onClick={() => playSystemOpen()}
+              onClick={() => {
+                playSystemOpen();
+                playMovementSFX("teleport");
+              }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
                 isActive
                   ? "bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm"

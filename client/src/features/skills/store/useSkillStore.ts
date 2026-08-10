@@ -17,7 +17,7 @@ interface SkillState {
   unlockSkill: (characterId: string, skillDefinitionId: string) => Promise<void>;
 }
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api`;
 
 export const useSkillStore = create<SkillState>((set, get) => ({
   definitions: [],

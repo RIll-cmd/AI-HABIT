@@ -290,11 +290,83 @@ Accepts turn battle logs and character data, processes a tactical defeat diagnos
 ### `GET /api/aira/daily-report/{character_id}`
 Aggregates character consistency, pending habits, and power score to generate AIRA's signature morning briefing (`<< Report. >>`).
 
-**Response**:
 ```json
 {
   "report": "<< Report. >> Good morning, Shadow Monarch. System diagnostic complete with 100% accuracy..."
 }
 ```
 
+## Fitness & Workout Domain Routes
 
+### `POST /api/fitness/sessions/start`
+Starts a new workout session for a character.
+
+**Request Body**:
+```json
+{
+  "characterId": "char-123"
+}
+```
+
+### `POST /api/fitness/sessions/{session_id}/log`
+Logs a set for an active workout session, calculates e1RM, and applies damage to the active boss.
+
+**Request Body**:
+```json
+{
+  "exerciseId": "ex-123",
+  "weight": 100.5,
+  "reps": 8,
+  "rpe": 8.5
+}
+```
+
+### `POST /api/fitness/sessions/{session_id}/log-text`
+Parses natural language (voice or text shorthand) into a workout set and logs it. Handles shorthand like "same weight".
+
+**Request Body**:
+```json
+{
+  "text": "Barbell Bench Press 60 for 8"
+}
+```
+
+### `POST /api/fitness/sessions/{session_id}/finish`
+Completes the workout session, aggregates all logged sets, finalizes PRs, grants EXP/Gold/Stats, and verifies Boss defeat condition.
+
+### `POST /api/fitness/overload-batch/{character_id}`
+Returns hybrid progressive overload recommendations (+2.5kg or +5%) for a list of exercise IDs.
+
+### `GET /api/fitness/boss/{character_id}`
+Returns the active Weekly Boss for a character, or generates one if it's expired/missing based on 90% of their highest 1RM.
+
+## Skills Domain Routes
+
+### `GET /api/skills/{character_id}`
+Returns the player's available SP, unlocked skills, and the full catalog of master skill definitions.
+
+### `POST /api/skills/{character_id}/unlock`
+Consumes Skill Points (SP) to unlock or upgrade a skill. Enforces prerequisite skill trees, max levels, and stat requirements.
+
+**Request Body**:
+```json
+{
+  "skillDefinitionId": "skill-456"
+}
+```
+
+## Inventory & Economy Domain Routes
+
+### `GET /api/inventory/{character_id}`
+Returns the character's items from `PlayerItem` with associated `ItemDefinition` details.
+
+### `POST /api/inventory/{character_id}/equip`
+Toggles the equipped state of an item. Automatically unequips any item currently occupying the same equipment slot (Weapon, Armor, Relic, Accessory).
+
+**Request Body**:
+```json
+{
+  "playerItemId": "item-789",
+  "equip": true
+}
+```

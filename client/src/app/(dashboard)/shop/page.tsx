@@ -9,6 +9,7 @@ import { Coins, Diamond, Shield, Store, Loader2, RotateCw } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { playUIMenuSFX } from "@/utils/audio";
 
 export default function ShopPage() {
   const { items, isLoading, isRefreshing, error, fetchShopItems, refreshShopItems } = useShopStore();
@@ -101,7 +102,14 @@ export default function ShopPage() {
 
       {/* Main Storefront Area */}
       <div className="space-y-6">
-        <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          defaultValue="all"
+          onValueChange={(val) => {
+            setActiveTab(val);
+            playUIMenuSFX("confirm");
+          }}
+          className="w-full"
+        >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <TabsList className="bg-muted/50 border border-border">
               <TabsTrigger value="all" className="px-6">All Items</TabsTrigger>

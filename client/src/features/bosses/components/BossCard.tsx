@@ -3,6 +3,7 @@ import { Boss, useBossStore } from "../store/useBossStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { formatDistanceToNow, isPast } from "date-fns";
 import { CalendarClock, ShieldAlert, CheckCircle2, TrendingUp, Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { getEnemySpritePath } from "@/utils/sprites";
 
 interface BossCardProps {
   boss: Boss;
@@ -64,8 +65,8 @@ export function BossCard({ boss }: BossCardProps) {
         />
       )}
       
-      <div className="flex justify-between items-start mb-4">
-        <div>
+      <div className="flex justify-between items-start mb-4 gap-4">
+        <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {boss.category} • {boss.difficulty}
@@ -84,6 +85,15 @@ export function BossCard({ boss }: BossCardProps) {
           {boss.description && (
             <p className="text-sm text-muted-foreground mt-1">{boss.description}</p>
           )}
+        </div>
+
+        {/* Boss Sprite Artwork */}
+        <div className="w-20 h-20 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+          <img
+            src={getEnemySpritePath(boss.name, 1, true)}
+            alt={boss.name}
+            className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+          />
         </div>
       </div>
 

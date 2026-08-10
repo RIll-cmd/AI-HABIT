@@ -1,25 +1,29 @@
 from db import db
 
 
-async def ensure_character_exists(character_id: str):
+async def ensure_character_exists(character_id: str, user_id: str = None, username: str = None):
     """
     Ensures that a Character record with the given character_id exists in SQLite.
-    If missing (e.g. dev mock session 'char-id-123'), creates a default User and Character.
+    If missing, creates a default User and Character.
     """
     character = await db.character.find_unique(where={"id": character_id})
     if character:
         return character
 
-    user_id = f"user-{character_id}"
+    if not user_id:
+        user_id = f"user-{character_id}"
+    
+    if not username:
+        username = f"mock_{character_id}"
+
     user = await db.user.find_unique(where={"id": user_id})
     if not user:
-        email = f"mock_{character_id}@ascend.os"
-        user = await db.user.find_unique(where={"email": email})
+        user = await db.user.find_unique(where={"username": username})
         if not user:
             user = await db.user.create(
                 data={
                     "id": user_id,
-                    "email": email,
+                    "username": username,
                     "password": "mock_password_hash_dev",
                 }
             )
@@ -28,7 +32,7 @@ async def ensure_character_exists(character_id: str):
         data={
             "id": character_id,
             "userId": user.id,
-            "name": "Shadow Monarch",
+            "name": username if username and username.startswith("Guest") == False else "Shadow Monarch",
             "title": "Shadow Seeker",
             "avatar": "/avatars/shadow-monarch.png",
             "theme": "dark-rpg",

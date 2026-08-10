@@ -65,15 +65,33 @@ async def parse_workout_text(input_text: str) -> Dict[str, Any]:
         # Remove RPE substring for cleaner number parsing
         clean_text = re.sub(r'\brpe\s*[0-9]+(?:\.[0-9]+)?\b', '', clean_text, flags=re.IGNORECASE).strip()
 
+    # Determine if units are explicitly lbs
+    is_lbs = bool(re.search(r'\blbs?\b|pounds?', clean_text, re.IGNORECASE))
+
+    # Handle shorthand "same weight" or "last set"
+    is_same_weight = bool(re.search(r'\b(same weight|last set|same as last)\b', clean_text, re.IGNORECASE))
+    
     # Extract numbers for weight and reps
     # Patterns like: "60 for 8", "60kg 8 reps", "60 8", "60x8", "60 * 8"
-    pattern = r'(\d+(?:\.\d+)?)\s*(?:kg|lbs)?\s*(?:for|x|\*|\s+)\s*(\d+)\s*(?:reps)?'
+    pattern = r'(\d+(?:\.\d+)?)\s*(?:kg|lbs|pounds)?\s*(?:for|x|\*|\s+)\s*(\d+)\s*(?:reps)?'
     match = re.search(pattern, clean_text, re.IGNORECASE)
 
     weight = 0.0
     reps = 0
+    name_part = ""
 
-    if match:
+    if is_same_weight:
+        # User said "same weight, 8 reps"
+        # We need to extract just reps.
+        reps_match = re.search(r'(\d+)\s*(?:reps)?', clean_text, re.IGNORECASE)
+        if reps_match:
+            reps = int(reps_match.group(1))
+        else:
+            return {"error": "Could not identify reps for 'same weight' shorthand"}
+        weight = -1.0 # Sentinel value indicating we need to fetch the last set's weight
+        name_part = re.sub(r'\b(same weight|last set|same as last)\b', '', clean_text, flags=re.IGNORECASE).strip()
+        name_part = re.sub(r'\b\d+\s*(?:reps)?\b', '', name_part, flags=re.IGNORECASE).strip()
+    elif match:
         weight = float(match.group(1))
         reps = int(match.group(2))
         # Exercise name is everything before the match
@@ -95,9 +113,26 @@ async def parse_workout_text(input_text: str) -> Dict[str, Any]:
         else:
             return {"error": "Could not identify weight and reps in input text"}
 
+    # Handle LBS to KG conversion
+    if is_lbs and weight > 0:
+        weight = round(weight * 0.453592, 1)
+
     # Fetch exercises to perform fuzzy match
     all_exercises = await db.exercise.find_many()
-    matched_exercise = fuzzy_match_exercise_name(name_part, all_exercises)
+    
+    # Simple alias map for common abbreviations
+    alias_map = {
+        "db": "dumbbell",
+        "bb": "barbell",
+        "ohp": "overhead press",
+        "rld": "romanian deadlift",
+    }
+    
+    resolved_name_part = name_part.lower()
+    for alias, full in alias_map.items():
+        resolved_name_part = re.sub(r'\b' + alias + r'\b', full, resolved_name_part)
+        
+    matched_exercise = fuzzy_match_exercise_name(resolved_name_part, all_exercises)
 
     if not matched_exercise:
         # Fallback: if no match found, pick first exercise or bench press
@@ -113,4 +148,5 @@ async def parse_workout_text(input_text: str) -> Dict[str, Any]:
         "reps": reps,
         "rpe": rpe_val,
         "parsedText": input_text,
+        "isSameWeight": weight == -1.0
     }

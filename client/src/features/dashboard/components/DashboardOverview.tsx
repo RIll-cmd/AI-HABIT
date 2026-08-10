@@ -44,6 +44,8 @@ import { PaperDoll } from "@/features/inventory/components";
 import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
 import { useCombatStats } from "@/features/inventory/hooks/useCombatStats";
 import { useTowerStore } from "@/features/tower/store/useTowerStore";
+import { useBossStore } from "@/features/bosses/store/useBossStore";
+import { getEnemySpritePath } from "@/utils/sprites";
 
 export function DashboardOverview() {
   const router = useRouter();
@@ -55,13 +57,15 @@ export function DashboardOverview() {
     useHabitStore();
 
   const { floors, fetchFloors, selectFloor } = useTowerStore();
+  const { bosses, fetchBosses, isLoading: isBossesLoading } = useBossStore();
 
   useEffect(() => {
     loadCharacter("char-id-123");
     loadTodayMissions("char-id-123");
     fetchInventory("char-id-123");
     fetchFloors("char-id-123");
-  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors]);
+    fetchBosses("char-id-123");
+  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors, fetchBosses]);
 
   const totalMissionsCount = todayMissions.length;
   const completedMissionsCount = todayMissions.filter(
@@ -206,33 +210,78 @@ export function DashboardOverview() {
           <div className="rounded-[24px] bg-[#0B1020] border border-white/10 overflow-hidden shadow-2xl p-5">
             <h2 className="text-sm font-bold text-slate-300 font-heading tracking-wider mb-4 uppercase">Current Boss</h2>
             
-            <div className="flex gap-4">
-               {/* Boss Image Placeholder */}
-               <div className="w-28 h-28 rounded-xl bg-purple-950/40 border border-purple-500/20 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.1)] relative overflow-hidden">
-                  <Skull className="w-12 h-12 text-purple-500/50" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-purple-900/60 to-transparent" />
-               </div>
+            {(() => {
+              const activeBoss = bosses.find((b) => b.status === "ACTIVE") || bosses[0];
+              if (isBossesLoading && bosses.length === 0) {
+                return (
+                  <div className="py-8 text-center text-xs font-mono text-slate-400">
+                    Scanning active boss threats...
+                  </div>
+                );
+              }
 
-               {/* Boss Info */}
-               <div className="flex flex-col justify-center flex-1">
-                 <h3 className="text-sm font-bold text-white font-heading">Procrastination King</h3>
-                 <p className="text-[10px] text-slate-400 font-mono">Lv. 25 Boss</p>
-                 
-                 <div className="mt-3">
-                   <div className="flex justify-between text-[10px] font-mono text-purple-300 mb-1">
-                     <span>7,420 / 10,000 HP</span>
-                   </div>
-                   <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden mb-1">
-                     <div className="h-full bg-purple-600 w-[74.2%]" />
-                   </div>
-                   <div className="text-[9px] text-emerald-400 font-mono">YOUR CONTRIBUTION 26.0%</div>
-                 </div>
+              if (!activeBoss) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-3">
+                    <Skull className="w-10 h-10 text-slate-600 opacity-40" />
+                    <p className="text-xs text-slate-400 font-mono">No active boss threat targeted.</p>
+                    <Button
+                      onClick={() => router.push("/bosses")}
+                      className="bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-300 text-xs h-8 px-4"
+                    >
+                      Summon Boss
+                    </Button>
+                  </div>
+                );
+              }
 
-                 <Button className="mt-3 w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-300 text-xs h-7">
-                   View Boss Details
-                 </Button>
-               </div>
-            </div>
+              const hpPercent = Math.max(0, Math.min(100, (activeBoss.currentHp / activeBoss.maxHp) * 100));
+              const damageDealt = activeBoss.maxHp - activeBoss.currentHp;
+              const contributionPct = activeBoss.maxHp > 0 ? ((damageDealt / activeBoss.maxHp) * 100).toFixed(1) : "0.0";
+
+              return (
+                <div className="flex gap-4">
+                   {/* Boss Image */}
+                   <div className="w-28 h-28 rounded-xl bg-purple-950/40 border border-purple-500/20 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.1)] relative overflow-hidden p-2">
+                      <img
+                        src={getEnemySpritePath(activeBoss.name, 1, true)}
+                        alt={activeBoss.name}
+                        className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-purple-900/60 to-transparent pointer-events-none" />
+                   </div>
+
+                   {/* Boss Info */}
+                   <div className="flex flex-col justify-center flex-1">
+                     <h3 className="text-sm font-bold text-white font-heading">{activeBoss.name}</h3>
+                     <p className="text-[10px] text-slate-400 font-mono">
+                       {activeBoss.difficulty} Boss • {activeBoss.category}
+                     </p>
+                     
+                     <div className="mt-3">
+                       <div className="flex justify-between text-[10px] font-mono text-purple-300 mb-1">
+                         <span>{activeBoss.currentHp.toLocaleString()} / {activeBoss.maxHp.toLocaleString()} HP</span>
+                         <span>{hpPercent.toFixed(1)}%</span>
+                       </div>
+                       <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden mb-1">
+                         <div
+                           className="h-full bg-purple-600 transition-all duration-500"
+                           style={{ width: `${hpPercent}%` }}
+                         />
+                       </div>
+                       <div className="text-[9px] text-emerald-400 font-mono">YOUR CONTRIBUTION {contributionPct}%</div>
+                     </div>
+
+                     <Button
+                       onClick={() => router.push("/bosses")}
+                       className="mt-3 w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-300 text-xs h-7"
+                     >
+                       View Boss Details
+                     </Button>
+                   </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Quick Actions */}
@@ -311,12 +360,16 @@ export function DashboardOverview() {
 
                     {/* Active Floor (Current Challengeable Floor) */}
                     <div className="p-4 rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-900/20 to-blue-900/20 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-4 relative overflow-hidden group">
-                      <div className="w-16 h-16 rounded-xl bg-purple-950/60 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
-                        <Skull className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
+                      <div className="w-16 h-16 rounded-xl bg-purple-950/60 border border-purple-500/30 flex items-center justify-center flex-shrink-0 p-1">
+                        <img
+                          src={getEnemySpritePath(activeFloor.enemy?.name || "", activeFloor.floorNumber, activeFloor.isBoss)}
+                          alt={activeFloor.enemy?.name || "Enemy"}
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+                        />
                       </div>
                       <div className="flex-1">
                         <div className="text-sm font-bold text-white font-heading">Floor {activeFloor.floorNumber}</div>
-                        <div className="text-[10px] text-purple-300 font-mono mb-2">{activeFloor.enemy?.name || `Floor ${activeFloor.floorNumber} Guardian`}</div>
+                        <div className="text-[10px] text-purple-300 font-mono mb-2">{activeFloor.enemy?.name || (activeFloor.isBoss ? "Tower Boss" : "Spiked Slime")}</div>
                         <div className="text-[9px] text-slate-400 font-mono">
                           Req. Power <span className="text-amber-400 ml-1 font-bold">{activeFloor.requiredPower.toLocaleString()}</span>
                         </div>

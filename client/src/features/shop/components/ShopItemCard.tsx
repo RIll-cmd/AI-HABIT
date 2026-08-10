@@ -62,7 +62,7 @@ export function ShopItemCard({ item }: ShopItemCardProps) {
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 rounded-lg bg-muted/50 border flex-shrink-0 p-1 flex items-center justify-center" style={{ borderColor: `${rarityColor}40` }}>
               <Image 
-                src={getItemIconPath(item.name)} 
+                src={item.icon || getItemIconPath(item.name)} 
                 alt={item.name} 
                 fill 
                 className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] p-1.5" 
