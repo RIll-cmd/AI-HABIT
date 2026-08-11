@@ -21,6 +21,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+import { API_BASE_URL } from "@/constants";
+
 interface Snapshot {
   id: string;
   date: string;
@@ -38,9 +40,13 @@ export default function CalendarPage() {
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
   const fetchSnapshots = async () => {
+    if (!character?.id) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/habits/${character?.id || "char-id-123"}/calendar-snapshots`
+        `${API_BASE_URL}/api/habits/${character.id}/calendar-snapshots`
       );
       if (res.ok) {
         const data = await res.json();
@@ -63,10 +69,11 @@ export default function CalendarPage() {
   }, [character?.id]);
 
   const handleSimulateDecay = async () => {
+    if (!character?.id) return;
     setIsSimulating(true);
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/habits/${character?.id || "char-id-123"}/decay/simulate`,
+        `${API_BASE_URL}/api/habits/${character.id}/decay/simulate`,
         { method: "POST" }
       );
       if (res.ok) {
@@ -90,6 +97,7 @@ export default function CalendarPage() {
   };
 
   const handleBuyShield = async () => {
+    if (!character?.id) return;
     if ((character?.gold || 0) < 300) {
       toast.error("Insufficient Gold. Streak Freeze Shield costs 300 Gold.");
       return;
@@ -98,7 +106,7 @@ export default function CalendarPage() {
     setIsBuyingShield(true);
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/habits/${character?.id || "char-id-123"}/buy-streak-freeze`,
+        `${API_BASE_URL}/api/habits/${character.id}/buy-streak-freeze`,
         { method: "POST" }
       );
       if (res.ok) {
@@ -131,9 +139,55 @@ export default function CalendarPage() {
     });
   }
 
-  // Calculate summary metrics
-  const activeDaysCount = Object.keys(snapshots).length;
+  // Calculate summary metrics strictly from actual snapshots
+  const activeDaysCount = Object.values(snapshots).filter(s => (s.completedCount || 0) > 0).length;
   const streakFreezes = character?.streakFreezes || 0;
+
+  // Calculate current & best streak dynamically
+  let currentStreak = 0;
+  let bestStreak = 0;
+
+  const completedDates = Object.keys(snapshots)
+    .filter((d) => (snapshots[d]?.completedCount || 0) > 0)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  if (completedDates.length > 0) {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    const lastDate = completedDates[completedDates.length - 1];
+    if (lastDate === todayStr || lastDate === yesterdayStr) {
+      currentStreak = 1;
+      for (let i = completedDates.length - 1; i > 0; i--) {
+        const curr = new Date(completedDates[i]);
+        const prev = new Date(completedDates[i - 1]);
+        const diffDays = Math.round((curr.getTime() - prev.getTime()) / (1000 * 3600 * 24));
+        if (diffDays === 1) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    let tempStreak = 1;
+    bestStreak = 1;
+    for (let i = 1; i < completedDates.length; i++) {
+      const prev = new Date(completedDates[i - 1]);
+      const curr = new Date(completedDates[i]);
+      const diffDays = Math.round((curr.getTime() - prev.getTime()) / (1000 * 3600 * 24));
+      if (diffDays === 1) {
+        tempStreak++;
+      } else {
+        tempStreak = 1;
+      }
+      if (tempStreak > bestStreak) {
+        bestStreak = tempStreak;
+      }
+    }
+  }
 
   const getCellColor = (rate?: number) => {
     if (rate === undefined || rate === null) return "bg-slate-900/40 border-slate-800/40";
@@ -215,7 +269,7 @@ export default function CalendarPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-amber-400">🔥 7 Days</div>
+            <div className="text-2xl font-bold font-mono text-amber-400">🔥 {currentStreak} Days</div>
           </CardContent>
         </Card>
 
@@ -226,7 +280,7 @@ export default function CalendarPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-purple-300">⚡ 14 Days</div>
+            <div className="text-2xl font-bold font-mono text-purple-300">⚡ {bestStreak} Days</div>
           </CardContent>
         </Card>
 

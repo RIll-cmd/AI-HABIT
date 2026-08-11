@@ -53,10 +53,12 @@ export default function RootLayout({
         suppressHydrationWarning
         className="h-full bg-[#0B1020] text-slate-100 antialiased selection:bg-blue-500 selection:text-white flex flex-col font-sans"
       >
-        <UserProvider>
-          {children}
-          <Toaster />
-        </UserProvider>
+        <div suppressHydrationWarning className="flex flex-col h-full w-full">
+          <UserProvider>
+            {children}
+            <Toaster />
+          </UserProvider>
+        </div>
       </body>
     </html>
   );

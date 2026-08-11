@@ -8,7 +8,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0B1020] text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+    <div suppressHydrationWarning className="min-h-screen bg-[#0B1020] text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
       {/* MINIMAL TOP NAV BAR */}
       <header className="w-full h-20 px-8 border-b border-white/10 bg-[#0B1020]/90 backdrop-blur-md flex items-center justify-between sticky top-0 z-50">
         <Link href="/landing" className="flex items-center gap-3 group">

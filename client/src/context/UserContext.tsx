@@ -57,8 +57,31 @@ const UserContext = createContext<UserContextType>({
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+const DEFAULT_USER: UserData = {
+  id: "char-1",
+  username: "Shadow Monarch",
+  level: 1,
+  exp: 0,
+  gold: 500,
+  crystals: 50,
+  power: 97,
+  rank: "F",
+  title: "Hydration Monarch",
+  guild: "Lone Ascendants",
+  stats: {
+    strength: 1,
+    endurance: 1,
+    discipline: 1,
+    knowledge: 1,
+    recovery: 1,
+    focus: 1,
+    consistency: 1,
+  },
+  missions: [],
+};
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<UserData | null>(DEFAULT_USER);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,12 +98,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const data: UserData = await res.json();
       setUser(data);
     } catch (err: unknown) {
-      console.error("Error fetching user data from backend:", err);
+      console.warn("Could not fetch user data from FastAPI backend, using fallback user profile:", err);
       const message =
         err instanceof Error
           ? err.message
           : "Failed to connect to FastAPI backend server";
       setError(message);
+      setUser((prev) => prev || DEFAULT_USER);
     } finally {
       setLoading(false);
     }

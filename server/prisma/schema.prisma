@@ -410,6 +410,7 @@ model WeeklyBoss {
   targetReps     Int
   currentDamage  Float     @default(0.0)
   rewards        String    // JSON-serialized rewards
+  damageLogs     String?   @default("[]") // JSON-serialized combat damage logs
   isDefeated     Boolean   @default(false)
   expiresAt      DateTime
   createdAt      DateTime  @default(now())

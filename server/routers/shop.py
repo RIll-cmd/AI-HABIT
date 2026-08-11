@@ -8,13 +8,59 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
+async def seed_shop_items_auto():
+    defs = await db.itemdefinition.find_many()
+    if not defs:
+        default_items = [
+            {"name": "Shadow Blade", "type": "WEAPON", "rarity": "COMMON", "icon": "/icons/Icon20.png", "sellValue": 100, "attack": 15},
+            {"name": "Dragon Slayer", "type": "WEAPON", "rarity": "EPIC", "icon": "/icons/Icon5.png", "sellValue": 1000, "attack": 50},
+            {"name": "Health Potion", "type": "CONSUMABLE", "rarity": "COMMON", "icon": "/icons/Icon304.png", "sellValue": 50},
+            {"name": "EXP Elixir", "type": "CONSUMABLE", "rarity": "RARE", "icon": "/icons/Icon309.png", "sellValue": 250},
+            {"name": "Guardian Cuirass", "type": "ARMOR", "rarity": "RARE", "icon": "/icons/Icon185.png", "sellValue": 400, "defense": 25},
+            {"name": "Ring of Dominion", "type": "RING", "rarity": "EPIC", "icon": "/icons/Icon244.png", "sellValue": 1200, "strength": 10, "knowledge": 10},
+        ]
+        for item in default_items:
+            await db.itemdefinition.create(
+                data={
+                    "name": item["name"],
+                    "description": f"A standard {item['rarity'].lower()} {item['name']}.",
+                    "type": item["type"],
+                    "rarity": item["rarity"],
+                    "icon": item.get("icon", "/icons/default.png"),
+                    "sellValue": item.get("sellValue", 50),
+                    "attack": item.get("attack", 0),
+                    "defense": item.get("defense", 0),
+                    "strength": item.get("strength", 0),
+                    "knowledge": item.get("knowledge", 0),
+                }
+            )
+        defs = await db.itemdefinition.find_many()
+
+    prices = [250, 4500, 500, 1200, 800, 3000]
+    currencies = ["GOLD", "GOLD", "GOLD", "GEMS", "TOWER_TOKENS", "GOLD"]
+
+    for idx, d in enumerate(defs[:6]):
+        await db.shopitem.create(
+            data={
+                "itemId": d.id,
+                "currencyType": currencies[idx % len(currencies)],
+                "price": prices[idx % len(prices)],
+                "stock": 10,
+                "requiredLevel": 1
+            }
+        )
+
 @router.get("/{character_id}", response_model=List[ShopItemDetailSchema])
 async def get_shop_items(character_id: str):
     character = await db.character.find_unique(where={"id": character_id})
     if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+        from db_utils import ensure_character_exists
+        character = await ensure_character_exists(character_id)
         
     shop_items = await db.shopitem.find_many(include={"item": True})
+    if not shop_items:
+        await seed_shop_items_auto()
+        shop_items = await db.shopitem.find_many(include={"item": True})
     
     result = []
     for si in shop_items:

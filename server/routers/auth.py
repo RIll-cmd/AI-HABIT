@@ -1,51 +1,65 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Response, Depends
 from pydantic import BaseModel
 import re
 import uuid
 from db import db
 from db_utils import ensure_character_exists
-from auth_utils import create_access_token, get_current_user
+from auth_utils import create_access_token, get_current_user, hash_password, verify_password
 from services.decay_service import process_midnight_decay
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 class AuthInput(BaseModel):
     username: str
+    password: Optional[str] = ""
 
 @router.post("/register")
 async def register(data: AuthInput, response: Response):
     username = data.username.strip()
+    password = data.password.strip() if data.password else ""
     
     if not re.match(r"^[a-zA-Z0-9_]+$", username) or len(username) < 3 or len(username) > 20:
         raise HTTPException(status_code=400, detail="Invalid username format. Must be 3-20 alphanumeric characters or underscores.")
     
+    if not password or len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password is required and must be at least 6 characters.")
+
     all_users = await db.user.find_many()
     for u in all_users:
         if u.username.lower() == username.lower():
             raise HTTPException(status_code=400, detail=f"Username '{username}' is already taken. Please choose another username.")
     
     new_user_id = f"user-{str(uuid.uuid4())[:8]}"
-    user = await db.user.create(data={"id": new_user_id, "username": username, "password": ""})
+    hashed_pwd = hash_password(password)
+    user = await db.user.create(data={"id": new_user_id, "username": username, "password": hashed_pwd})
     
     character_id = f"char-{user.id}"
     character = await ensure_character_exists(character_id, user.id, username)
     
     token = create_access_token(data={"sub": user.id, "username": user.username})
-    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 7)
+    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
     
-    return {"message": "Registration successful", "username": username, "characterId": character.id}
+    return {"message": "Registration successful", "username": username, "characterId": character.id, "token": token, "user": {"id": user.id, "username": username}}
 
 
 @router.post("/login")
 async def login(data: AuthInput, response: Response):
     username = data.username.strip()
-    
+    password = data.password.strip() if data.password else ""
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+        
     all_users = await db.user.find_many()
     user = next((u for u in all_users if u.username.lower() == username.lower()), None)
     
     if not user:
         raise HTTPException(status_code=404, detail=f"Account '{username}' not found. Please check your username or create an account.")
-    
+
+    if user.password and not verify_password(password, user.password):
+        raise HTTPException(status_code=400, detail="Incorrect password. Please check your credentials and try again.")
+
     character = await db.character.find_first(where={"userId": user.id})
     character_id = character.id if character else f"char-{user.id}"
     
@@ -53,9 +67,9 @@ async def login(data: AuthInput, response: Response):
         await ensure_character_exists(character_id, user.id, user.username)
         
     token = create_access_token(data={"sub": user.id, "username": user.username})
-    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 7)
+    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
     
-    return {"message": "Login successful", "username": user.username, "characterId": character_id}
+    return {"message": "Login successful", "username": user.username, "characterId": character_id, "token": token, "user": {"id": user.id, "username": user.username}}
 
 
 @router.post("/guest")
@@ -69,9 +83,9 @@ async def guest_login(response: Response):
     character = await ensure_character_exists(character_id, user.id, guest_id)
     
     token = create_access_token(data={"sub": user.id, "username": user.username})
-    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 7)
+    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
     
-    return {"message": "Guest login successful", "username": guest_id, "characterId": character.id}
+    return {"message": "Guest login successful", "username": guest_id, "characterId": character.id, "token": token, "user": {"id": user.id, "username": guest_id}}
 
 class AccountDeleteInput(BaseModel):
     username: str
@@ -98,7 +112,7 @@ async def logout(response: Response):
 async def get_me(current_user: dict = Depends(get_current_user)):
     user = await db.user.find_unique(where={"id": current_user["id"]}, include={"character": True})
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return {"user": None, "character": None}
     
     # Prisma Python returns a list for one-to-one sometimes depending on config, but usually an object.
     # We handle both just in case.

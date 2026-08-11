@@ -92,7 +92,9 @@ export function BossCard({ boss }: BossCardProps) {
           <img
             src={getEnemySpritePath(boss.name, 1, true)}
             alt={boss.name}
+            onError={(e) => { e.currentTarget.src = "/BossesAndEnemies_sprite/cropped/gollux_cropped.png"; }}
             className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+            style={{ imageRendering: "pixelated" }}
           />
         </div>
       </div>

@@ -73,13 +73,13 @@ export function DashboardOverview() {
   ).length;
 
   const radarData = [
-    { name: "Strength", value: finalStats.strength },
-    { name: "Endurance", value: finalStats.endurance },
-    { name: "Discipline", value: finalStats.discipline },
-    { name: "Knowledge", value: finalStats.knowledge },
-    { name: "Recovery", value: finalStats.recovery },
-    { name: "Focus", value: finalStats.focus },
-    { name: "Consistency", value: finalStats.consistency },
+    { name: "Strength", value: Number(finalStats?.strength) || 1 },
+    { name: "Endurance", value: Number(finalStats?.endurance) || 1 },
+    { name: "Discipline", value: Number(finalStats?.discipline) || 1 },
+    { name: "Knowledge", value: Number(finalStats?.knowledge) || 1 },
+    { name: "Recovery", value: Number(finalStats?.recovery) || 1 },
+    { name: "Focus", value: Number(finalStats?.focus) || 1 },
+    { name: "Consistency", value: Number(finalStats?.consistency) || 1 },
   ];
 
   return (

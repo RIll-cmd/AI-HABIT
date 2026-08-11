@@ -221,11 +221,41 @@ async def get_workout_ranks(character_id: str):
         
     return {"ranks": results}
 
+DEFAULT_EXERCISES = [
+    {"id": "ex1", "name": "Barbell Bench Press", "primaryMuscle": "Chest", "equipment": "Barbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex2", "name": "Barbell Back Squat", "primaryMuscle": "Legs", "equipment": "Barbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex3", "name": "Barbell Deadlift", "primaryMuscle": "Back", "equipment": "Barbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex4", "name": "Overhead Barbell Press", "primaryMuscle": "Shoulders", "equipment": "Barbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex5", "name": "Dumbbell Bicep Curl", "primaryMuscle": "Arms", "equipment": "Dumbbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex6", "name": "Barbell Row", "primaryMuscle": "Back", "equipment": "Barbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex7", "name": "Incline Dumbbell Press", "primaryMuscle": "Chest", "equipment": "Dumbbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex8", "name": "Pull Up", "primaryMuscle": "Back", "equipment": "Bodyweight", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex9", "name": "Tricep Rope Pushdown", "primaryMuscle": "Arms", "equipment": "Cable", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex10", "name": "Dumbbell Lateral Raise", "primaryMuscle": "Shoulders", "equipment": "Dumbbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex11", "name": "Dips", "primaryMuscle": "Chest", "equipment": "Bodyweight", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex12", "name": "Lat Pulldown", "primaryMuscle": "Back", "equipment": "Cable", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex13", "name": "Romanian Deadlift", "primaryMuscle": "Legs", "equipment": "Barbell", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex14", "name": "Leg Press", "primaryMuscle": "Legs", "equipment": "Machine", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex15", "name": "Lying Leg Curl", "primaryMuscle": "Legs", "equipment": "Machine", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex16", "name": "Calf Raises", "primaryMuscle": "Legs", "equipment": "Machine", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex17", "name": "Cable Woodchoppers", "primaryMuscle": "Core", "equipment": "Cable", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex18", "name": "Hanging Leg Raises", "primaryMuscle": "Core", "equipment": "Bodyweight", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex19", "name": "Planks", "primaryMuscle": "Core", "equipment": "Bodyweight", "trackingMetrics": "Weight, Reps"},
+    {"id": "ex20", "name": "Push-ups", "primaryMuscle": "Chest", "equipment": "Bodyweight", "trackingMetrics": "Weight, Reps"},
+]
+
+async def seed_exercises_auto():
+    count = await db.exercisedefinition.count()
+    if count == 0:
+        for ex in DEFAULT_EXERCISES:
+            await db.exercisedefinition.create(data=ex)
+
 @router.get("/exercises")
 async def get_exercises():
     """
     Returns all cataloged exercises across Chest, Back, Legs, Shoulders, Arms, and Core.
     """
+    await seed_exercises_auto()
     exercises = await db.exercisedefinition.find_many(
         order={"name": "asc"}
     )

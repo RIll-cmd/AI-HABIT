@@ -5,7 +5,7 @@ import { useTowerStore } from "@/features/tower/store/useTowerStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { CheckCircle2, ShieldAlert, Sparkles, BrainCircuit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { playUISound } from "@/utils/audio";
+import { playUISound, playAIRASound } from "@/utils/audio";
 import { getEnemySpritePath, CHARACTER_AVATAR_PREVIEW } from "@/utils/sprites";
 
 export function BattleModal() {
@@ -29,8 +29,10 @@ export function BattleModal() {
     // Play initial victory or defeat sound
     if (combatLog.isVictory) {
       playUISound("/sounds/General/8_Buffs_Heals_SFX/30_Revive_03.wav");
+      playAIRASound("SUCCESSFUL");
     } else {
       playUISound("/sounds/General/12_Player_Movement_SFX/61_Hit_03.wav");
+      playAIRASound("FAILED");
     }
 
     const interval = setInterval(() => {
@@ -59,11 +61,23 @@ export function BattleModal() {
         i++;
       } else {
         setIsAnimationComplete(true);
+        playAIRASound("NOTICE");
         clearInterval(interval);
       }
     }, 400); // Increased interval slightly to let sounds breathe
     
     return () => clearInterval(interval);
+  }, [combatLog]);
+
+  useEffect(() => {
+    if (combatLog) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [combatLog]);
 
   useEffect(() => {
@@ -75,8 +89,8 @@ export function BattleModal() {
 
   return (
     <Dialog open={!!combatLog} onOpenChange={(open) => !open && clearCombatLog()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6 overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-2xl flex items-center gap-2 font-bold tracking-tight">
             {combatLog?.isVictory ? (
               <span className="text-green-500 flex items-center gap-2"><CheckCircle2 className="w-7 h-7"/> TOWER CLEARED</span>
@@ -87,7 +101,7 @@ export function BattleModal() {
         </DialogHeader>
         
         {combatLog && (
-          <div className="space-y-4 mt-2 flex-1 overflow-hidden flex flex-col">
+          <div className="space-y-4 mt-2 flex-1 overflow-y-auto pr-1.5 custom-scrollbar flex flex-col min-h-0">
             {/* Animated Face-Off Stage */}
             <div className="relative p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-[#151C33] to-red-950/40 border border-slate-800 flex items-center justify-around overflow-hidden shadow-md shrink-0">
               <div className="flex items-center gap-3">
@@ -171,11 +185,11 @@ export function BattleModal() {
               </div>
             )}
 
-            <div className="flex-1 flex flex-col min-h-0 border rounded-xl overflow-hidden bg-card shadow-sm">
+            <div className="min-h-[160px] border rounded-xl overflow-hidden bg-card shadow-sm flex flex-col shrink-0">
               <div className="bg-muted px-4 py-2 border-b">
                 <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Combat Log</h4>
               </div>
-              <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-3 font-mono text-sm scroll-smooth">
+              <div ref={scrollRef} className="max-h-48 p-4 overflow-y-auto space-y-3 font-mono text-sm scroll-smooth custom-scrollbar">
                 {displayedEvents.map((ev, idx) => {
                   const isPlayer = ev.actor === character?.name;
                   const isCrit = ev.message && ev.message.toLowerCase().includes("critical");
@@ -196,10 +210,10 @@ export function BattleModal() {
             
             {isAnimationComplete && (
               <div className="mt-2 shrink-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="bg-[#0c1a24] border border-cyan-900/50 p-5 rounded-xl relative overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                <div className="bg-[#0c1a24] border border-cyan-900/50 p-4 rounded-xl relative overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.1)]">
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
                   
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <BrainCircuit className="w-5 h-5 text-cyan-400" />
                     <h4 className="font-bold text-cyan-400 uppercase tracking-widest text-xs">A.I.R.A Tactical Analysis</h4>
                   </div>
@@ -210,10 +224,21 @@ export function BattleModal() {
                       <span className="animate-pulse font-mono text-sm tracking-wide">Processing battle telemetry...</span>
                     </div>
                   ) : (
-                    <p className="text-sm font-mono text-cyan-100/90 whitespace-pre-wrap leading-relaxed">
-                      {cielAnalysis || "<< Report. >> Error communicating with AIRA core."}
-                    </p>
+                    <div className="max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                      <p className="text-sm font-mono text-cyan-100/90 whitespace-pre-wrap leading-relaxed">
+                        {cielAnalysis || "<< Report. >> Error communicating with AIRA core."}
+                      </p>
+                    </div>
                   )}
+                </div>
+
+                <div className="pt-3 flex justify-end gap-3 shrink-0 border-t border-slate-800/80">
+                  <button
+                    onClick={() => clearCombatLog()}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold font-mono text-xs uppercase tracking-wider shadow-md"
+                  >
+                    Acknowledge Telemetry
+                  </button>
                 </div>
               </div>
             )}

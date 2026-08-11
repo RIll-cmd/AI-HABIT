@@ -11,6 +11,8 @@ import { Loader2, Swords, Crown, Play, Trophy, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { useWorkoutStore } from "@/features/workouts/store/useWorkoutStore";
 
+import { API_BASE_URL } from "@/constants";
+
 export default function BossPRPage() {
   const { user } = useUser();
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function BossPRPage() {
     
     const fetchBoss = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/fitness/boss/${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/fitness/boss/${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setBoss(data);
@@ -41,7 +43,7 @@ export default function BossPRPage() {
   const handleStartChallenge = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/fitness/sessions/start", {
+      const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ characterId: user.id })
@@ -82,6 +84,7 @@ export default function BossPRPage() {
 
   const hpPercent = boss.isDefeated ? 0 : Math.max(0, 100 - (boss.currentDamage * 100));
   const rewards = JSON.parse(boss.rewards);
+  const damageLogs = boss.damageLogs ? JSON.parse(boss.damageLogs) : [];
 
   return (
     <div className="flex flex-col h-full gap-6 p-6 max-w-4xl mx-auto overflow-y-auto">
@@ -196,6 +199,49 @@ export default function BossPRPage() {
           </Button>
         </div>
       </div>
+
+      {/* Combat Damage Log Feed */}
+      <Card className="bg-card/50 border border-slate-800">
+        <CardHeader className="pb-3 border-b border-slate-800">
+          <CardTitle className="text-lg flex items-center gap-2 font-mono uppercase tracking-wider text-red-400">
+            <Swords className="w-5 h-5 text-red-500" />
+            Combat Damage Log Feed
+          </CardTitle>
+          <CardDescription className="text-xs font-mono text-slate-400">
+            Real-time record of all successful strikes dealt to {boss.name}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {damageLogs.length === 0 ? (
+            <div className="p-6 text-center text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-xl">
+              No strike telemetry recorded yet. Log sets of {boss.targetExercise} to deal direct HP damage.
+            </div>
+          ) : (
+            <div className="space-y-3 font-mono text-xs max-h-72 overflow-y-auto custom-scrollbar pr-1">
+              {damageLogs.map((log: any, idx: number) => (
+                <div key={log.id || idx} className="p-3 bg-slate-950/60 border border-red-950/40 rounded-xl flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="px-2 py-1 bg-red-950/80 border border-red-500/30 text-red-400 font-bold rounded text-[10px] uppercase">
+                      ⚔️ STRIKE
+                    </span>
+                    <div>
+                      <p className="font-bold text-slate-100">
+                        Dealt <span className="text-red-400">{(log.damageDealt || 2000).toLocaleString()} DMG</span> with {log.exerciseName} ({log.weight} KG × {log.reps} Reps)
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Remaining Boss HP: <span className="text-amber-400 font-bold">{log.hpPercentAfter}%</span>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -12,97 +12,7 @@ export const RANK_REWARDS: Record<QuestRank, { exp: number; gold: number; stat: 
   S: { exp: 500, gold: 150, stat: "strength", statAmount: 2 },
 };
 
-const INITIAL_QUESTS: KanbanQuest[] = [
-  {
-    id: "quest-1",
-    characterId: "char-id-123",
-    title: "Daily Gym Overload — Bench Press 80kg x 8",
-    description: "Execute progressive overload training session. Ensure strictly logged weight and reps.",
-    status: "In Progress",
-    rank: "B",
-    category: "Fitness",
-    tags: ["#workout", "#daily", "#overload"],
-    subtasks: [
-      { id: "sub-1", title: "Warmup sets (50kg x 10)", isCompleted: true },
-      { id: "sub-2", title: "Working sets (80kg x 8)", isCompleted: true },
-      { id: "sub-3", title: "Log session in Fitness Engine", isCompleted: false },
-    ],
-    dueDate: new Date(Date.now() + 86400000).toISOString(),
-    expReward: 250,
-    goldReward: 65,
-    statReward: { stat: "strength", amount: 1 },
-    activityLogs: [
-      {
-        id: "log-1",
-        action: "CREATED",
-        details: "Quest initialized in In Progress column.",
-        timestamp: new Date().toISOString(),
-      },
-    ],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "quest-2",
-    characterId: "char-id-123",
-    title: "Complete Algorithmic System Architecture",
-    description: "Deep work session focused on data structure optimizations and telemetry pipelines.",
-    status: "To Do",
-    rank: "A",
-    category: "Code",
-    tags: ["#study", "#algorithms", "#deepwork"],
-    subtasks: [
-      { id: "sub-4", title: "Refactor graph traversal algorithms", isCompleted: false },
-      { id: "sub-5", title: "Optimize memory complexity to O(1)", isCompleted: false },
-    ],
-    dueDate: new Date(Date.now() + 172800000).toISOString(),
-    expReward: 350,
-    goldReward: 90,
-    statReward: { stat: "knowledge", amount: 1 },
-    activityLogs: [],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "quest-3",
-    characterId: "char-id-123",
-    title: "S-Rank Gate Bounty — Defeat Iron Golem",
-    description: "Clear the weekly physical boss encounter in the fitness engine.",
-    status: "Review",
-    rank: "S",
-    category: "Main Quest",
-    tags: ["#boss", "#s-rank", "#bounty"],
-    subtasks: [
-      { id: "sub-6", title: "Summon Weekly Boss encounter", isCompleted: true },
-      { id: "sub-7", title: "Hit 90% 1RM target weight", isCompleted: true },
-      { id: "sub-8", title: "Verify Slay Completion in UI", isCompleted: false },
-    ],
-    dueDate: new Date(Date.now() + 259200000).toISOString(),
-    expReward: 500,
-    goldReward: 150,
-    statReward: { stat: "strength", amount: 2 },
-    activityLogs: [],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "quest-4",
-    characterId: "char-id-123",
-    title: "Hydration & Recovery Protocol",
-    description: "Maintain 3.5L hydration target and 8 hours of restorative sleep.",
-    status: "Completed",
-    rank: "F",
-    category: "Health",
-    tags: ["#daily", "#recovery"],
-    subtasks: [
-      { id: "sub-9", title: "Drink 3.5L water", isCompleted: true },
-      { id: "sub-10", title: "8 hours sleep", isCompleted: true },
-    ],
-    completedDate: new Date().toISOString(),
-    expReward: 50,
-    goldReward: 15,
-    statReward: { stat: "discipline", amount: 1 },
-    activityLogs: [],
-    createdAt: new Date().toISOString(),
-  },
-];
+const INITIAL_QUESTS: KanbanQuest[] = [];
 
 export interface KanbanMissionStore {
   quests: KanbanQuest[];
@@ -122,7 +32,7 @@ export interface KanbanMissionStore {
 }
 
 export const useKanbanMissionStore = create<KanbanMissionStore>((set, get) => ({
-  quests: INITIAL_QUESTS,
+  quests: [],
   searchQuery: "",
   selectedTag: null,
   selectedRank: null,

@@ -56,7 +56,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
   ];
 
   return (
-    <div className="space-y-8 pb-12 font-sans animate-in fade-in duration-300">
+    <div suppressHydrationWarning className="space-y-8 pb-12 font-sans animate-in fade-in duration-300">
       {/* HERO & CORE IDENTITY HUD HEADER */}
       <div className="relative rounded-[24px] bg-[#151C33] border border-white/10 p-6 md:p-8 shadow-2xl overflow-hidden">
         {/* Ambient Glow Effects */}

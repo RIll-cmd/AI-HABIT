@@ -49,7 +49,29 @@ export function playVoiceLine(filename: string, volume: number = 0.8) {
     console.debug("[AudioUtil] Voice line playback error:", error);
   }
 }
+/** Dedicated AIRA Persona Audio Mapping */
+export const AIRA_AUDIO = {
+  FAILED: "/sounds/AIRA Persona/AI-FAILED.mp3",
+  SUCCESSFUL: "/sounds/AIRA Persona/AI-SUCCESSFUL.mp3",
+  CONFIRMED: "/sounds/AIRA Persona/AI-CONFRIMED.mp3",
+  UNDERSTOOD: "/sounds/AIRA Persona/AI-UNDERSTOOD.mp3",
+  NOTICE: "/sounds/AIRA Persona/AI-NOTICE.mp3",
+  ABILITIES_IMPROVED: "/sounds/AIRA Persona/AI-ALL PHYSICAL ABILITIES HAVE BEEN IMPROVED.mp3",
+  NEW_SKILL: "/sounds/AIRA Persona/AI-NEW intrinsic SKILL.mp3",
+  NEW_RESISTANCE: "/sounds/AIRA Persona/AI-NEW RESISTANCE.mp3",
+  EVOLUTION: "/sounds/AIRA Persona/AI-THIS COMPLETES THE EVOLUTION.mp3",
+  REPEATING: "/sounds/AIRA Persona/AI-REPEATING THE ATTEMPT.mp3",
+} as const;
 
+export function playAIRASound(
+  key: keyof typeof AIRA_AUDIO,
+  volume: number = 0.85
+) {
+  const path = AIRA_AUDIO[key];
+  if (path) {
+    playVoiceLine(path, volume);
+  }
+}
 /** Dedicated trigger functions for General sound folders */
 
 /**

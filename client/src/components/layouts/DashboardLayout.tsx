@@ -12,11 +12,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   useAiraNotification();
 
   return (
-    <div className="flex h-screen w-full bg-[#0B1020] text-slate-100 overflow-hidden font-sans relative">
+    <div suppressHydrationWarning className="flex h-screen w-full bg-[#0B1020] text-slate-100 overflow-hidden font-sans relative">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div suppressHydrationWarning className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6">
+        <main suppressHydrationWarning className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>

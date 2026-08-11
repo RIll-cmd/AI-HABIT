@@ -2,14 +2,17 @@ import React, { useEffect } from "react";
 import { Skull, Target, Zap, Coins, Shield, CheckCircle2, Flame, Award } from "lucide-react";
 import { useFitnessStore } from "../store/useFitnessStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
+import { useUser } from "@/context/UserContext";
 
 export const WorkoutBossCard: React.FC = () => {
   const { activeBoss, isLoadingBoss, loadWeeklyBoss } = useFitnessStore();
   const { character } = useCharacterStore();
+  const { user } = useUser();
 
   useEffect(() => {
-    loadWeeklyBoss();
-  }, [loadWeeklyBoss]);
+    const targetId = character?.id || user?.id;
+    loadWeeklyBoss(targetId);
+  }, [loadWeeklyBoss, character?.id, user?.id]);
 
   if (isLoadingBoss) {
     return (

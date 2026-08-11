@@ -14,6 +14,9 @@ import { toast } from "sonner";
 import { calculateE1RM, evaluateRank } from "../utils/rankEngine";
 import confetti from "canvas-confetti";
 
+import { API_BASE_URL } from "@/constants";
+import { playAIRASound } from "@/utils/audio";
+
 export function ActiveWorkout() {
   const { isWorkoutActive, sessionId, startTime, endWorkout, exercises, addExercise, sets, logSet, startRestTimer } = useWorkoutStore();
   const { user, refetch } = useUser();
@@ -21,6 +24,7 @@ export function ActiveWorkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableExercises, setAvailableExercises] = useState<ExerciseDefinition[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [activeBoss, setActiveBoss] = useState<any>(null);
   
   // Local state for the current inputs of each exercise
   const [inputs, setInputs] = useState<Record<string, { weight: string, reps: string, rpe: string }>>({});
@@ -31,7 +35,7 @@ export function ActiveWorkout() {
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/workouts/exercises");
+        const res = await fetch(`${API_BASE_URL}/api/workouts/exercises`);
         if (res.ok) {
           const data = await res.json();
           setAvailableExercises(data);
@@ -47,6 +51,23 @@ export function ActiveWorkout() {
     fetchCatalog();
   }, []);
 
+  // Fetch active boss data
+  useEffect(() => {
+    if (!user?.id || !isWorkoutActive) return;
+    const fetchBoss = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/fitness/boss/${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && !data.isDefeated) {
+            setActiveBoss(data);
+          }
+        }
+      } catch (e) {}
+    };
+    fetchBoss();
+  }, [user?.id, isWorkoutActive]);
+
   // Fetch Overload Data when exercises change
   useEffect(() => {
     if (!isWorkoutActive || exercises.length === 0 || !user?.id) return;
@@ -54,7 +75,7 @@ export function ActiveWorkout() {
     const fetchOverloads = async () => {
       try {
         const exIds = exercises.map(e => e.id);
-        const res = await fetch(`http://127.0.0.1:8000/api/fitness/overload-batch/${user.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/fitness/overload-batch/${user.id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(exIds)
@@ -87,10 +108,26 @@ export function ActiveWorkout() {
       return;
     }
     
-    // Log immediately to backend for Boss HP calculations and voice memory
-    if (sessionId) {
+    // Ensure active session on backend
+    let currentSessionId = sessionId;
+    if (!currentSessionId && user?.id) {
       try {
-        await fetch(`http://127.0.0.1:8000/api/fitness/sessions/${sessionId}/log`, {
+        const startRes = await fetch(`${API_BASE_URL}/api/fitness/sessions/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ characterId: user.id })
+        });
+        if (startRes.ok) {
+          const sess = await startRes.json();
+          currentSessionId = sess.id;
+        }
+      } catch (e) {}
+    }
+    
+    // Log immediately to backend for Boss HP calculations and voice memory
+    if (currentSessionId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/${currentSessionId}/log`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -101,6 +138,27 @@ export function ActiveWorkout() {
             rpe: rpe
           })
         });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.bossDamage?.matched) {
+            if (activeBoss) {
+              const newDamageRatio = Math.min(1, (100 - data.bossDamage.hpPercent) / 100);
+              setActiveBoss({
+                ...activeBoss,
+                currentDamage: newDamageRatio,
+                isDefeated: data.bossDamage.isDefeated
+              });
+            }
+
+            if (data.bossDamage.isDefeated) {
+              toast.success(`🏆 WEEKLY BOSS DEFEATED! ${data.bossDamage.bossName} slain! Rewards: +500 EXP, +100 Gold, +1 STR`);
+              confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            } else {
+              toast.info(`💥 BOSS STRUCK! Dealt -${data.bossDamage.damageDealt}% damage to ${data.bossDamage.bossName}! (Boss HP: ${data.bossDamage.hpPercent}%)`);
+            }
+          }
+        }
       } catch (e) {
         toast.error("Warning: Failed to sync set to server.");
       }
@@ -112,6 +170,8 @@ export function ActiveWorkout() {
       reps: r,
       rpe: rpe
     });
+
+    playAIRASound("CONFIRMED");
 
     const e1rm = calculateE1RM(w, r);
     const rankInfo = evaluateRank(e1rm, exercise.name);
@@ -139,7 +199,7 @@ export function ActiveWorkout() {
     if (!sessionId) return;
     setIsVoiceProcessing(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/fitness/sessions/${sessionId}/log-text`, {
+      const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/${sessionId}/log-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text })
@@ -191,7 +251,7 @@ export function ActiveWorkout() {
     
     setIsSubmitting(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/fitness/sessions/${sessionId}/finish`, {
+      const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/${sessionId}/finish`, {
         method: "POST"
       });
       
@@ -250,6 +310,35 @@ export function ActiveWorkout() {
             Finish Workout
           </Button>
         </div>
+
+        {/* Active Boss PR Objective Banner */}
+        {activeBoss && (
+          <div className="bg-gradient-to-r from-red-950/80 via-[#121829] to-amber-950/80 border-2 border-red-500/40 rounded-2xl p-4 shadow-xl space-y-2.5 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-red-500/20 text-red-400 border border-red-500/50 font-black font-mono text-[11px] uppercase px-2.5 py-0.5 tracking-wider shadow-[0_0_10px_rgba(239,68,68,0.4)]">
+                  ⚔️ WEEKLY BOSS PR OBJECTIVE ACTIVE
+                </Badge>
+                <span className="text-xs font-mono text-amber-400 font-bold">{activeBoss.name}</span>
+              </div>
+              <div className="text-xs font-mono font-bold text-slate-300">
+                HP: <span className="text-red-400">{(Math.max(0, 100 - (activeBoss.currentDamage || 0) * 100)).toFixed(1)}%</span>
+              </div>
+            </div>
+            
+            <p className="text-xs font-sans text-slate-300 leading-relaxed">
+              Target: <strong className="text-white font-mono">{activeBoss.targetExercise}</strong> ({activeBoss.targetWeight} KG × {activeBoss.targetReps} Reps). Every completed set near or above this target deals direct HP damage to <strong className="text-red-400">{activeBoss.name}</strong>!
+            </p>
+
+            {/* Live Boss HP Bar */}
+            <div className="w-full bg-slate-950/80 h-2.5 rounded-full overflow-hidden border border-red-500/30">
+              <div 
+                className="bg-gradient-to-r from-red-600 via-amber-500 to-emerald-400 h-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                style={{ width: `${Math.max(0, Math.min(100, 100 - (activeBoss.currentDamage || 0) * 100))}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Voice Logger Integration */}
         <div className="mb-6">

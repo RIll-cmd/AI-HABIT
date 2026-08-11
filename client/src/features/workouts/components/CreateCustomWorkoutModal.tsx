@@ -14,6 +14,8 @@ interface CreateCustomWorkoutModalProps {
   onClose: () => void;
 }
 
+import { API_BASE_URL } from "@/constants";
+
 export function CreateCustomWorkoutModal({ isOpen, onClose }: CreateCustomWorkoutModalProps) {
   const { addCustomTemplate } = useWorkoutStore();
   const [planName, setPlanName] = useState("");
@@ -26,7 +28,7 @@ export function CreateCustomWorkoutModal({ isOpen, onClose }: CreateCustomWorkou
     if (!isOpen) return;
     const fetchCatalog = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/workouts/exercises");
+        const res = await fetch(`${API_BASE_URL}/api/workouts/exercises`);
         if (res.ok) {
           const data = await res.json();
           setAvailableCatalog(data);

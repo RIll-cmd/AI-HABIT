@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dumbbell, Activity, Trophy, Flame, Play, Bot, Loader2, Plus, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { API_BASE_URL } from "@/constants";
 
 const PREDEFINED_SPLITS = [
   {
@@ -18,11 +19,11 @@ const PREDEFINED_SPLITS = [
     target: "Chest • Shoulders • Triceps",
     statGain: "+Strength & Endurance",
     exercises: [
-      { id: "ex-push-1", name: "Barbell Bench Press", primaryMuscle: "Chest", equipment: "Barbell" },
-      { id: "ex-push-2", name: "Incline Dumbbell Press", primaryMuscle: "Chest", equipment: "Dumbbell" },
-      { id: "ex-push-3", name: "Overhead Barbell Press", primaryMuscle: "Shoulders", equipment: "Barbell" },
-      { id: "ex-push-4", name: "Dips", primaryMuscle: "Chest", equipment: "Bodyweight" },
-      { id: "ex-push-5", name: "Tricep Rope Pushdown", primaryMuscle: "Arms", equipment: "Cable" },
+      { id: "ex1", name: "Barbell Bench Press", primaryMuscle: "Chest", equipment: "Barbell" },
+      { id: "ex7", name: "Incline Dumbbell Press", primaryMuscle: "Chest", equipment: "Dumbbell" },
+      { id: "ex4", name: "Overhead Barbell Press", primaryMuscle: "Shoulders", equipment: "Barbell" },
+      { id: "ex11", name: "Dips", primaryMuscle: "Chest", equipment: "Bodyweight" },
+      { id: "ex9", name: "Tricep Rope Pushdown", primaryMuscle: "Arms", equipment: "Cable" },
     ],
   },
   {
@@ -30,11 +31,11 @@ const PREDEFINED_SPLITS = [
     target: "Back • Biceps • Rear Delts",
     statGain: "+Strength & Endurance",
     exercises: [
-      { id: "ex-pull-1", name: "Barbell Deadlift", primaryMuscle: "Back", equipment: "Barbell" },
-      { id: "ex-pull-2", name: "Lat Pulldown", primaryMuscle: "Back", equipment: "Cable" },
-      { id: "ex-pull-3", name: "Bent-over Barbell Row", primaryMuscle: "Back", equipment: "Barbell" },
-      { id: "ex-pull-4", name: "Pull-ups", primaryMuscle: "Back", equipment: "Bodyweight" },
-      { id: "ex-pull-5", name: "Dumbbell Bicep Curl", primaryMuscle: "Arms", equipment: "Dumbbell" },
+      { id: "ex3", name: "Barbell Deadlift", primaryMuscle: "Back", equipment: "Barbell" },
+      { id: "ex12", name: "Lat Pulldown", primaryMuscle: "Back", equipment: "Cable" },
+      { id: "ex6", name: "Barbell Row", primaryMuscle: "Back", equipment: "Barbell" },
+      { id: "ex8", name: "Pull Up", primaryMuscle: "Back", equipment: "Bodyweight" },
+      { id: "ex5", name: "Dumbbell Bicep Curl", primaryMuscle: "Arms", equipment: "Dumbbell" },
     ],
   },
   {
@@ -42,11 +43,11 @@ const PREDEFINED_SPLITS = [
     target: "Quads • Hamstrings • Calves",
     statGain: "+Strength & Endurance",
     exercises: [
-      { id: "ex-leg-1", name: "Barbell Back Squat", primaryMuscle: "Legs", equipment: "Barbell" },
-      { id: "ex-leg-2", name: "Romanian Deadlift", primaryMuscle: "Legs", equipment: "Barbell" },
-      { id: "ex-leg-3", name: "Leg Press", primaryMuscle: "Legs", equipment: "Machine" },
-      { id: "ex-leg-4", name: "Lying Leg Curl", primaryMuscle: "Legs", equipment: "Machine" },
-      { id: "ex-leg-5", name: "Calf Raises", primaryMuscle: "Legs", equipment: "Machine" },
+      { id: "ex2", name: "Barbell Back Squat", primaryMuscle: "Legs", equipment: "Barbell" },
+      { id: "ex13", name: "Romanian Deadlift", primaryMuscle: "Legs", equipment: "Barbell" },
+      { id: "ex14", name: "Leg Press", primaryMuscle: "Legs", equipment: "Machine" },
+      { id: "ex15", name: "Lying Leg Curl", primaryMuscle: "Legs", equipment: "Machine" },
+      { id: "ex16", name: "Calf Raises", primaryMuscle: "Legs", equipment: "Machine" },
     ],
   },
   {
@@ -54,10 +55,10 @@ const PREDEFINED_SPLITS = [
     target: "Abs • Obliques • Stability",
     statGain: "+Endurance & Consistency",
     exercises: [
-      { id: "ex-core-1", name: "Cable Woodchoppers", primaryMuscle: "Core", equipment: "Cable" },
-      { id: "ex-core-2", name: "Hanging Leg Raises", primaryMuscle: "Core", equipment: "Bodyweight" },
-      { id: "ex-core-3", name: "Planks", primaryMuscle: "Core", equipment: "Bodyweight" },
-      { id: "ex-core-4", name: "Push-ups", primaryMuscle: "Chest", equipment: "Bodyweight" },
+      { id: "ex17", name: "Cable Woodchoppers", primaryMuscle: "Core", equipment: "Cable" },
+      { id: "ex18", name: "Hanging Leg Raises", primaryMuscle: "Core", equipment: "Bodyweight" },
+      { id: "ex19", name: "Planks", primaryMuscle: "Core", equipment: "Bodyweight" },
+      { id: "ex20", name: "Push-ups", primaryMuscle: "Chest", equipment: "Bodyweight" },
     ],
   },
 ];
@@ -81,7 +82,7 @@ export default function WorkoutsPage() {
     const fetchRanks = async () => {
       if (!user) return;
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/workouts/ranks/${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/workouts/ranks/${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setRanks(data.ranks || []);
@@ -98,7 +99,7 @@ export default function WorkoutsPage() {
   const handleQuickWorkout = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/fitness/sessions/start", {
+      const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ characterId: user.id })
@@ -117,7 +118,7 @@ export default function WorkoutsPage() {
   const handleStartTemplate = async (name: string, exercises: any[]) => {
     if (!user?.id) return;
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/fitness/sessions/start", {
+      const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ characterId: user.id })
@@ -137,7 +138,7 @@ export default function WorkoutsPage() {
     if (!user) return;
     setIsAnalyzing(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/aira/analyze-workout", {
+      const res = await fetch(`${API_BASE_URL}/api/aira/analyze-workout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

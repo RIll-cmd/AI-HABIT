@@ -22,11 +22,10 @@ async def get_exercises():
     Returns all master exercises from the database ordered by category and name.
     """
     try:
-        exercises = await db.exercise.find_many(
-            order=[
-                {"category": "asc"},
-                {"name": "asc"},
-            ]
+        from routers.workouts import seed_exercises_auto
+        await seed_exercises_auto()
+        exercises = await db.exercisedefinition.find_many(
+            order={"name": "asc"}
         )
         return exercises
     except Exception as e:
@@ -48,10 +47,10 @@ async def start_workout_session(payload: WorkoutSessionStartSchema):
         existing_active = await db.workoutsession.find_first(
             where={
                 "characterId": character.id,
-                "completed": False,
+                "durationSeconds": None,
             },
             include={
-                "exerciseLogs": {
+                "sets": {
                     "include": {
                         "exercise": True,
                     }
@@ -64,12 +63,10 @@ async def start_workout_session(payload: WorkoutSessionStartSchema):
         session = await db.workoutsession.create(
             data={
                 "characterId": character.id,
-                "planId": payload.planId,
-                "completed": False,
-                "startedAt": datetime.now(timezone.utc),
+                "date": datetime.now(timezone.utc),
             },
             include={
-                "exerciseLogs": {
+                "sets": {
                     "include": {
                         "exercise": True,
                     }
@@ -87,7 +84,7 @@ async def start_workout_session(payload: WorkoutSessionStartSchema):
 @router.post("/sessions/{session_id}/log")
 async def create_exercise_log(session_id: str, payload: ExerciseLogCreateSchema):
     """
-    Appends a new ExerciseLog set entry to the specified WorkoutSession.
+    Appends a new WorkoutSet entry to the specified WorkoutSession.
     Log entries are strictly append-only.
     """
     session = await db.workoutsession.find_unique(where={"id": session_id})
@@ -97,31 +94,65 @@ async def create_exercise_log(session_id: str, payload: ExerciseLogCreateSchema)
             detail=f"Workout session '{session_id}' not found."
         )
 
-    exercise = await db.exercise.find_unique(where={"id": payload.exerciseId})
+    exercise = await db.exercisedefinition.find_unique(where={"id": payload.exerciseId})
     if not exercise:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exercise '{payload.exerciseId}' not found."
+        exercise = await db.exercisedefinition.find_first(
+            where={
+                "OR": [
+                    {"name": payload.exerciseId},
+                    {"id": payload.exerciseId}
+                ]
+            }
+        )
+    if not exercise:
+        from routers.workouts import seed_exercises_auto
+        await seed_exercises_auto()
+        exercise = await db.exercisedefinition.find_first(
+            where={
+                "OR": [
+                    {"id": payload.exerciseId},
+                    {"name": payload.exerciseId}
+                ]
+            }
+        )
+    if not exercise:
+        exercise = await db.exercisedefinition.create(
+            data={
+                "id": payload.exerciseId if payload.exerciseId.startswith("ex") else f"ex-{payload.exerciseId}",
+                "name": payload.exerciseId,
+                "primaryMuscle": "Chest",
+                "equipment": "Barbell",
+                "trackingMetrics": "Weight, Reps"
+            }
         )
 
     try:
-        log_entry = await db.exerciselog.create(
+        log_entry = await db.workoutset.create(
             data={
                 "sessionId": session_id,
-                "exerciseId": payload.exerciseId,
-                "set": payload.set,
+                "exerciseId": exercise.id,
                 "weight": payload.weight,
                 "reps": payload.reps,
                 "rpe": payload.rpe,
-                "restTime": payload.restTime,
-                "notes": payload.notes,
                 "createdAt": datetime.now(timezone.utc),
             },
             include={
                 "exercise": True,
             }
         )
-        return log_entry
+        
+        # Calculate & deduct real-time Weekly Boss PR damage
+        from services.fitness_engine import apply_set_boss_damage
+        boss_damage = await apply_set_boss_damage(
+            character_id=session.characterId,
+            exercise_name=exercise.name,
+            weight=payload.weight,
+            reps=payload.reps
+        )
+
+        res_dict = log_entry.model_dump() if hasattr(log_entry, "model_dump") else log_entry.__dict__
+        res_dict["bossDamage"] = boss_damage
+        return res_dict
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -133,11 +164,11 @@ async def create_exercise_log(session_id: str, payload: ExerciseLogCreateSchema)
 async def create_exercise_log_from_text(session_id: str, payload: TextLogSchema):
     """
     Parses a raw text string (Phase 1 Voice Simulator) such as 'Bench Press 60 for 8'
-    and appends a new ExerciseLog set entry to the WorkoutSession.
+    and appends a new WorkoutSet entry to the WorkoutSession.
     """
     session = await db.workoutsession.find_unique(
         where={"id": session_id},
-        include={"exerciseLogs": True}
+        include={"sets": True}
     )
     if not session:
         raise HTTPException(
@@ -157,7 +188,7 @@ async def create_exercise_log_from_text(session_id: str, payload: TextLogSchema)
     reps = parsed["reps"]
     rpe = parsed.get("rpe")
 
-    existing_sets = [log for log in (session.exerciseLogs or []) if log.exerciseId == exercise_id]
+    existing_sets = [log for log in (session.sets or []) if log.exerciseId == exercise_id]
     set_num = len(existing_sets) + 1
 
     if parsed.get("isSameWeight") and weight == -1.0:
@@ -165,30 +196,41 @@ async def create_exercise_log_from_text(session_id: str, payload: TextLogSchema)
             weight = float(existing_sets[-1].weight)
         else:
             # Fallback to history
-            last_log = await db.exerciselog.find_first(
+            last_log = await db.workoutset.find_first(
                 where={"exerciseId": exercise_id, "session": {"characterId": session.characterId}},
                 order={"createdAt": "desc"}
             )
             weight = float(last_log.weight) if last_log else 20.0
 
     try:
-        log_entry = await db.exerciselog.create(
+        log_entry = await db.workoutset.create(
             data={
                 "sessionId": session_id,
                 "exerciseId": exercise_id,
-                "set": set_num,
                 "weight": weight,
                 "reps": reps,
                 "rpe": rpe,
-                "restTime": 60,
-                "notes": f"Quick Text Log: '{payload.text}'",
                 "createdAt": datetime.now(timezone.utc),
             },
             include={
                 "exercise": True,
             }
         )
-        return log_entry
+        
+        # Calculate & deduct real-time Weekly Boss PR damage
+        from services.fitness_engine import apply_set_boss_damage
+        ex_def = log_entry.exercise
+        ex_name = ex_def.name if ex_def else "Bench Press"
+        boss_damage = await apply_set_boss_damage(
+            character_id=session.characterId,
+            exercise_name=ex_name,
+            weight=weight,
+            reps=reps
+        )
+
+        res_dict = log_entry.model_dump() if hasattr(log_entry, "model_dump") else log_entry.__dict__
+        res_dict["bossDamage"] = boss_damage
+        return res_dict
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -205,7 +247,7 @@ async def finish_workout_session(session_id: str):
     session = await db.workoutsession.find_unique(
         where={"id": session_id},
         include={
-            "exerciseLogs": {
+            "sets": {
                 "include": {
                     "exercise": True,
                 }
@@ -219,20 +261,18 @@ async def finish_workout_session(session_id: str):
         )
 
     finished_at = datetime.now(timezone.utc)
-    started_at = session.startedAt
-    duration_seconds = int((finished_at - started_at).total_seconds())
+    started_at = session.date or finished_at
+    duration_seconds = max(60, int((finished_at - started_at).total_seconds()))
 
     try:
-        if not session.completed:
+        if session.durationSeconds is None:
             session = await db.workoutsession.update(
                 where={"id": session_id},
                 data={
-                    "completed": True,
-                    "finishedAt": finished_at,
-                    "duration": duration_seconds,
+                    "durationSeconds": duration_seconds,
                 },
                 include={
-                    "exerciseLogs": {
+                    "sets": {
                         "include": {
                             "exercise": True,
                         }
@@ -254,7 +294,7 @@ async def finish_workout_session(session_id: str):
             db=db,
             character_id=session.characterId,
             activity_type="WORKOUT",
-            reference_id=session.planId or ""
+            reference_id=""
         )
 
         res_dict = session.model_dump() if hasattr(session, "model_dump") else session.__dict__
@@ -280,10 +320,10 @@ async def get_active_session(character_id: str):
     session = await db.workoutsession.find_first(
         where={
             "characterId": character_id,
-            "completed": False,
+            "durationSeconds": None,
         },
         include={
-            "exerciseLogs": {
+            "sets": {
                 "include": {
                     "exercise": True,
                 }
@@ -303,17 +343,16 @@ async def get_workout_history(character_id: str):
     history = await db.workoutsession.find_many(
         where={
             "characterId": character_id,
-            "completed": True,
+            "durationSeconds": {"not": None},
         },
         include={
-            "exerciseLogs": {
+            "sets": {
                 "include": {
                     "exercise": True,
                 }
             },
-            "plan": True,
         },
-        order={"startedAt": "desc"}
+        order={"date": "desc"}
     )
     return history
 
@@ -326,7 +365,7 @@ async def get_session_details(session_id: str):
     session = await db.workoutsession.find_unique(
         where={"id": session_id},
         include={
-            "exerciseLogs": {
+            "sets": {
                 "include": {
                     "exercise": True,
                 }
@@ -347,10 +386,13 @@ async def get_personal_records(character_id: str):
     Returns all Personal Record entries for a character ordered by date descending.
     """
     await ensure_character_exists(character_id)
-    prs = await db.personalrecord.find_many(
-        where={"characterId": character_id},
+    prs = await db.workoutset.find_many(
+        where={
+            "session": {"characterId": character_id},
+            "isPr": True,
+        },
         include={"exercise": True},
-        order={"date": "desc"}
+        order={"createdAt": "desc"}
     )
     return prs
 
@@ -372,8 +414,6 @@ async def get_overload_batch(character_id: str):
     avoiding N+1 fetches from the frontend.
     """
     await ensure_character_exists(character_id)
-    # We could fetch all distinct exercises for the character here, or just let frontend pass a list.
-    # But since frontend will just query all exercises in the current session, let's just make it a POST taking a list of exercise IDs.
     pass
 
 @router.post("/overload-batch/{character_id}")
@@ -418,15 +458,15 @@ async def get_boss_damage_preview(character_id: str, session_id: str):
         
     session = await db.workoutsession.find_unique(
         where={"id": session_id},
-        include={"exerciseLogs": {"include": {"exercise": True}}}
+        include={"sets": {"include": {"exercise": True}}}
     )
-    if not session or not session.exerciseLogs:
+    if not session or not session.sets:
         return {"damage": active_boss.currentDamage}
 
     from services.fitness_engine import calculate_boss_damage
 
     total_damage = active_boss.currentDamage
-    for log in session.exerciseLogs:
+    for log in session.sets:
         if not log.exercise: continue
         ex_name = log.exercise.name.lower()
         target_ex = active_boss.targetExercise.lower()

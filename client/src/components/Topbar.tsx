@@ -49,7 +49,12 @@ export function Topbar() {
   } = useAiraStore();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
   const unreadCount = useNotificationStore(state => state.getUnreadCount());
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const name = character?.name || "Cyrill";
   const rank = character?.rank || "E";
@@ -281,10 +286,10 @@ export function Topbar() {
           {/* Action Icons */}
           <div className="flex items-center gap-1 sm:gap-2">
             <NotificationDrawer>
-              <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-white hover:bg-slate-800/60 cursor-pointer rounded-xl transition-all">
+              <Button suppressHydrationWarning variant="ghost" size="icon" className="relative text-slate-400 hover:text-white hover:bg-slate-800/60 cursor-pointer rounded-xl transition-all">
                 <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                {isMounted && unreadCount > 0 && (
+                  <span suppressHydrationWarning className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
                 )}
               </Button>
             </NotificationDrawer>

@@ -61,11 +61,12 @@ export function ShopItemCard({ item }: ShopItemCardProps) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 rounded-lg bg-muted/50 border flex-shrink-0 p-1 flex items-center justify-center" style={{ borderColor: `${rarityColor}40` }}>
-              <Image 
-                src={item.icon || getItemIconPath(item.name)} 
+              <img 
+                src={(item.icon && item.icon.includes('/icons/Icon')) ? item.icon : getItemIconPath(item.name, item.type)} 
+                onError={(e) => { e.currentTarget.src = getItemIconPath(item.name, item.type); }}
+                className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" 
+                style={{ imageRendering: "pixelated" }}
                 alt={item.name} 
-                fill 
-                className="object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] p-1.5" 
               />
             </div>
             <div>

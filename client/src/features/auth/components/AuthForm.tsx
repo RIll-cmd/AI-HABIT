@@ -12,6 +12,9 @@ import {
   User,
   Sparkles,
   UserPlus,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,18 +38,22 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   // Form State
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Username Validation Rules
+  // Username & Password Validation Rules
   const hasMinLength = username.length >= 3;
   const hasMaxLength = username.length <= 20;
   const isAlphanumeric = /^[a-zA-Z0-9_]+$/.test(username);
   const isValidUsername = hasMinLength && hasMaxLength && isAlphanumeric;
+  const hasPasswordMinLength = password.length >= 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "register" && !isValidUsername) return;
+    if (mode === "register" && (!isValidUsername || !hasPasswordMinLength)) return;
+    if (mode === "login" && (!username || !password)) return;
     
     setErrorMsg(null);
     setIsLoading(true);
@@ -57,7 +64,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
@@ -69,7 +76,11 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
 
       // Success
-      await useAuthStore.getState().checkAuth();
+      if (data.token && (data.user || data.username)) {
+        useAuthStore.getState().setAuth(data.user || { id: data.characterId || username, username }, data.token);
+      } else {
+        await useAuthStore.getState().checkAuth();
+      }
       
       router.push("/dashboard");
     } catch (err) {
@@ -95,7 +106,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
 
-      await useAuthStore.getState().checkAuth();
+      if (data.token && (data.user || data.username)) {
+        useAuthStore.getState().setAuth(data.user || { id: data.characterId || data.username, username: data.username }, data.token);
+      } else {
+        await useAuthStore.getState().checkAuth();
+      }
       
       router.push("/dashboard");
     } catch (err) {
@@ -106,9 +121,9 @@ export function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <Card className="w-full bg-[#151C33] border-white/10 shadow-2xl backdrop-blur-md">
-      <CardHeader className="text-center pb-4">
-        <div className="w-12 h-12 rounded-[16px] bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
+    <Card suppressHydrationWarning className="w-full bg-[#151C33] border-white/10 shadow-2xl backdrop-blur-md">
+      <CardHeader suppressHydrationWarning className="text-center pb-4">
+        <div suppressHydrationWarning className="w-12 h-12 rounded-[16px] bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
           {mode === "guest" ? (
             <UserCheck className="w-6 h-6 text-blue-400" />
           ) : mode === "register" ? (
@@ -135,10 +150,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent suppressHydrationWarning className="space-y-4">
         {mode === "guest" ? (
-          <div className="space-y-5">
-            <div className="p-4 rounded-[14px] bg-blue-950/40 border border-blue-500/20 text-slate-300 text-xs leading-relaxed font-sans">
+          <div suppressHydrationWarning className="space-y-5">
+            <div suppressHydrationWarning className="p-4 rounded-[14px] bg-blue-950/40 border border-blue-500/20 text-slate-300 text-xs leading-relaxed font-sans">
               <p className="font-semibold text-blue-300 mb-1 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
                 Temporary Ascendant Mode
@@ -147,7 +162,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               can convert to a permanent account anytime.
             </div>
 
-            <div className="p-4 rounded-[14px] bg-[#0B1020] border border-white/10 flex items-center justify-between">
+            <div suppressHydrationWarning className="p-4 rounded-[14px] bg-[#0B1020] border border-white/10 flex items-center justify-between">
               <div>
                 <span className="text-[10px] uppercase font-mono text-slate-500 block">
                   Assigned Identity
@@ -171,17 +186,17 @@ export function AuthForm({ mode }: AuthFormProps) {
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form suppressHydrationWarning onSubmit={handleSubmit} className="space-y-4">
             {errorMsg && (
-              <div className="p-3 bg-red-950/40 border border-red-500/30 text-red-400 text-xs rounded-lg font-sans">
+              <div suppressHydrationWarning className="p-3 bg-red-950/40 border border-red-500/30 text-red-400 text-xs rounded-lg font-sans">
                 {errorMsg}
               </div>
             )}
-            <div>
+            <div suppressHydrationWarning>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-sans">
                 Username
               </label>
-              <div className="relative">
+              <div suppressHydrationWarning className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <Input
                   type="text"
@@ -194,16 +209,46 @@ export function AuthForm({ mode }: AuthFormProps) {
               </div>
             </div>
 
+            <div suppressHydrationWarning>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-sans">
+                Password
+              </label>
+              <div suppressHydrationWarning className="relative">
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pl-9 pr-10 bg-[#0B1020] border-white/10 text-white"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-slate-500 hover:text-slate-300 transition-colors"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
             {mode === "register" && (
               <>
-                {/* USERNAME VALIDATION CHECKLIST */}
-                <div className="p-3.5 rounded-[14px] bg-[#0B1020] border border-white/10 space-y-2 mt-2">
+                {/* VALIDATION CHECKLIST */}
+                <div suppressHydrationWarning className="p-3.5 rounded-[14px] bg-[#0B1020] border border-white/10 space-y-2 mt-2">
                   <div className="text-[11px] font-semibold text-slate-400 font-sans mb-1">
-                    Username Requirements:
+                    Account Requirements:
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 text-[11px] font-sans">
+                  <div suppressHydrationWarning className="grid grid-cols-1 gap-2 text-[11px] font-sans">
                     <div
+                      suppressHydrationWarning
                       className={`flex items-center gap-1.5 ${hasMinLength && hasMaxLength ? "text-emerald-400" : "text-slate-500"}`}
                     >
                       {hasMinLength && hasMaxLength ? (
@@ -211,10 +256,11 @@ export function AuthForm({ mode }: AuthFormProps) {
                       ) : (
                         <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
                       )}
-                      <span>3-20 Characters</span>
+                      <span>Username: 3-20 Characters</span>
                     </div>
 
                     <div
+                      suppressHydrationWarning
                       className={`flex items-center gap-1.5 ${isAlphanumeric && username.length > 0 ? "text-emerald-400" : "text-slate-500"}`}
                     >
                       {isAlphanumeric && username.length > 0 ? (
@@ -223,6 +269,18 @@ export function AuthForm({ mode }: AuthFormProps) {
                         <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
                       )}
                       <span>Letters, Numbers, Underscores Only</span>
+                    </div>
+
+                    <div
+                      suppressHydrationWarning
+                      className={`flex items-center gap-1.5 ${hasPasswordMinLength ? "text-emerald-400" : "text-slate-500"}`}
+                    >
+                      {hasPasswordMinLength ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                      )}
+                      <span>Password: Minimum 6 Characters</span>
                     </div>
                   </div>
                 </div>
@@ -233,7 +291,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               type="submit"
               variant="default"
               size="lg"
-              disabled={isLoading || (mode === "register" && !isValidUsername)}
+              disabled={isLoading || (mode === "register" && (!isValidUsername || !hasPasswordMinLength)) || (mode === "login" && (!username || !password))}
               className="w-full h-11 text-xs font-bold mt-4 shadow-lg shadow-blue-600/25 disabled:opacity-50"
             >
               <span>{isLoading ? "Authenticating..." : mode === "login" ? "Sign In" : "Create Account"}</span>
@@ -243,8 +301,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-3 pt-2 text-center text-xs text-slate-400 border-t border-white/5">
-        <div className="flex items-center justify-center gap-4 w-full">
+      <CardFooter suppressHydrationWarning className="flex flex-col gap-3 pt-2 text-center text-xs text-slate-400 border-t border-white/5">
+        <div suppressHydrationWarning className="flex items-center justify-center gap-4 w-full">
           {mode !== "login" && (
             <Link
               href="/login"
@@ -271,7 +329,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </div>
 
         {mode !== "guest" && (
-          <div>
+          <div suppressHydrationWarning>
             <Link
               href="/guest"
               className="text-slate-500 hover:text-slate-300 text-[11px] font-mono transition-colors"

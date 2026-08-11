@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { API_BASE_URL } from "@/constants";
 import { Sparkles, Check, Lock, Gift, Star, ShieldCheck } from "lucide-react";
-import { playUIMenuSFX, playBuffSFX } from "@/utils/audio";
+import { playUIMenuSFX, playBuffSFX, playAIRASound } from "@/utils/audio";
 import { Button } from "@/components/ui/button";
 
 interface SeasonTier {
@@ -72,6 +72,7 @@ export default function SeasonPassPage() {
 
       if (res.ok) {
         playBuffSFX();
+        playAIRASound("EVOLUTION");
         fetchSeasonPass();
         loadCharacter();
       }

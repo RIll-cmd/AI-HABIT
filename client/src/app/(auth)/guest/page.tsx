@@ -2,5 +2,9 @@ import React from "react";
 import { AuthForm } from "@/features/auth/components/AuthForm";
 
 export default function GuestPage() {
-  return <AuthForm mode="guest" />;
+  return (
+    <div suppressHydrationWarning className="w-full">
+      <AuthForm mode="guest" />;
+    </div>
+  );
 }

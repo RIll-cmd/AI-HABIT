@@ -13,6 +13,14 @@ interface HeatmapData {
   level: number;
 }
 
+const HeatmapComponent = CalendarHeatmap as unknown as React.ComponentType<{
+  startDate: Date;
+  endDate: Date;
+  values: HeatmapData[];
+  classForValue: (value: HeatmapData | undefined) => string;
+  tooltipDataAttrs: (value: HeatmapData | undefined) => Record<string, string>;
+}>;
+
 export function HabitHeatmap({ characterId }: { characterId: string }) {
   const [data, setData] = useState<HeatmapData[]>([]);
   
@@ -36,21 +44,21 @@ export function HabitHeatmap({ characterId }: { characterId: string }) {
   shiftDate.setFullYear(today.getFullYear() - 1);
 
   return (
-    <div className="p-4 bg-[#0B1020] border border-white/10 rounded-2xl w-full">
+    <div className="p-4 bg-bg-main border border-white/10 rounded-2xl w-full">
       <h3 className="text-lg font-bold text-white mb-4">Ascension Heatmap</h3>
       <div className="overflow-x-auto custom-scrollbar pb-2">
         <div style={{ minWidth: "700px" }}>
-          <CalendarHeatmap
+          <HeatmapComponent
             startDate={shiftDate}
             endDate={today}
             values={data}
-            classForValue={(value: any) => {
+            classForValue={(value) => {
               if (!value || !value.count) {
                 return "color-empty";
               }
               return `color-scale-${value.level}`;
             }}
-            tooltipDataAttrs={((value: any) => {
+            tooltipDataAttrs={(value) => {
               if (!value || !value.date) {
                 return { "data-tooltip-id": "heatmap-tooltip", "data-tooltip-content": "No missions completed" };
               }
@@ -58,7 +66,7 @@ export function HabitHeatmap({ characterId }: { characterId: string }) {
                 "data-tooltip-id": "heatmap-tooltip",
                 "data-tooltip-content": `${value.count} missions on ${value.date}`,
               };
-            }) as any}
+            }}
           />
           <Tooltip id="heatmap-tooltip" />
         </div>

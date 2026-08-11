@@ -12,17 +12,22 @@ interface RadarChartProps {
 }
 
 export function RadarChart({ data }: RadarChartProps) {
-  // Center (100, 100) with radius 75
+  // Center (100, 100) with radius 70
   const center = 100;
   const radius = 70;
-  const numPoints = data.length;
+  const validData = Array.isArray(data) ? data : [];
+  const numPoints = validData.length > 0 ? validData.length : 1;
 
   // Compute angles for each attribute point
   const getCoordinates = (index: number, val: number) => {
+    const rawVal = Number(val);
+    const safeVal = Number.isNaN(rawVal) ? 1 : rawVal;
     const angle = (Math.PI * 2 * index) / numPoints - Math.PI / 2;
-    const r = (val / 100) * radius;
-    const x = center + r * Math.cos(angle);
-    const y = center + r * Math.sin(angle);
+    const r = (safeVal / 100) * radius;
+    const rawX = center + r * Math.cos(angle);
+    const rawY = center + r * Math.sin(angle);
+    const x = Number.isNaN(rawX) ? center : rawX;
+    const y = Number.isNaN(rawY) ? center : rawY;
     return { x, y };
   };
 
@@ -30,9 +35,10 @@ export function RadarChart({ data }: RadarChartProps) {
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
 
   // Polygon points string for actual attribute values
-  const points = data
+  const points = validData
     .map((d, i) => {
-      const { x, y } = getCoordinates(i, d.value);
+      const val = Number(d?.value) || 1;
+      const { x, y } = getCoordinates(i, val);
       return `${x},${y}`;
     })
     .join(" ");
@@ -42,12 +48,14 @@ export function RadarChart({ data }: RadarChartProps) {
       <svg viewBox="0 0 200 200" className="w-full h-full overflow-visible">
         {/* Background Grid Webs */}
         {gridLevels.map((level) => {
-          const webPoints = data
+          const webPoints = validData
             .map((_, i) => {
               const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
               const r = level * radius;
-              const x = center + r * Math.cos(angle);
-              const y = center + r * Math.sin(angle);
+              const rawX = center + r * Math.cos(angle);
+              const rawY = center + r * Math.sin(angle);
+              const x = Number.isNaN(rawX) ? center : rawX;
+              const y = Number.isNaN(rawY) ? center : rawY;
               return `${x},${y}`;
             })
             .join(" ");
@@ -63,10 +71,12 @@ export function RadarChart({ data }: RadarChartProps) {
         })}
 
         {/* Axis Spokes */}
-        {data.map((_, i) => {
+        {validData.map((_, i) => {
           const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
-          const x = center + radius * Math.cos(angle);
-          const y = center + radius * Math.sin(angle);
+          const rawX = center + radius * Math.cos(angle);
+          const rawY = center + radius * Math.sin(angle);
+          const x = Number.isNaN(rawX) ? center : rawX;
+          const y = Number.isNaN(rawY) ? center : rawY;
           return (
             <line
               key={i}
@@ -90,13 +100,16 @@ export function RadarChart({ data }: RadarChartProps) {
         />
 
         {/* Value Points */}
-        {data.map((d, i) => {
-          const { x, y } = getCoordinates(i, d.value);
+        {validData.map((d, i) => {
+          const val = Number(d?.value) || 1;
+          const { x, y } = getCoordinates(i, val);
+          const safeCx = Number.isNaN(x) ? 0 : x;
+          const safeCy = Number.isNaN(y) ? 0 : y;
           return (
             <circle
               key={i}
-              cx={x}
-              cy={y}
+              cx={safeCx}
+              cy={safeCy}
               r="3.5"
               fill="#c084fc"
               stroke="#13141f"
@@ -106,15 +119,17 @@ export function RadarChart({ data }: RadarChartProps) {
         })}
 
         {/* Labels */}
-        {data.map((d, i) => {
+        {validData.map((d, i) => {
           const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
           const labelRadius = radius + 16;
-          const lx = center + labelRadius * Math.cos(angle);
-          const ly = center + labelRadius * Math.sin(angle);
-          const shortName = d.name.slice(0, 3).toUpperCase();
+          const rawLx = center + labelRadius * Math.cos(angle);
+          const rawLy = center + labelRadius * Math.sin(angle);
+          const lx = Number.isNaN(rawLx) ? center : rawLx;
+          const ly = Number.isNaN(rawLy) ? center : rawLy;
+          const shortName = (d?.name || "").slice(0, 3).toUpperCase();
           return (
             <text
-              key={d.name}
+              key={d?.name || i}
               x={lx}
               y={ly}
               textAnchor="middle"

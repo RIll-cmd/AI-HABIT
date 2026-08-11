@@ -172,6 +172,26 @@ export const KanbanQuestBoard: React.FC = () => {
         </div>
       )}
 
+      {/* Empty State Banner for New Accounts */}
+      {totalQuests === 0 && (
+        <div className="bg-[#151C33] border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center flex flex-col items-center justify-center space-y-3 shadow-xl">
+          <div className="w-12 h-12 rounded-full bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
+            <Target className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold font-mono text-white uppercase tracking-wider">No Active Quests Constructed</h3>
+          <p className="text-xs text-slate-400 max-w-md font-sans">
+            Your quest board is clean. Construct your first quest to start earning EXP, Gold, and Stat Points.
+          </p>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase font-mono shadow-lg flex items-center gap-2 mt-2"
+          >
+            <Plus className="w-4 h-4" />
+            + CONSTRUCT QUEST
+          </button>
+        </div>
+      )}
+
       {/* 4-Column Kanban Quest Board Swimlanes */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
         {COLUMNS.map((col) => {

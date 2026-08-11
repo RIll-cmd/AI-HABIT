@@ -8,6 +8,60 @@ from routers.inventory import grant_item
 
 router = APIRouter(prefix="/api/tower", tags=["tower"])
 
+async def seed_tower_floors_auto():
+    boss_data = {
+        5: {"name": "Golux", "stat": "Discipline", "element": "Ascension"},
+        10: {"name": "Arcane Wizard", "stat": "Strength", "element": "Tempest"},
+        15: {"name": "Necromancer", "stat": "Recovery", "element": "Flame"},
+        20: {"name": "NightBorne", "stat": "Consistency", "element": "Tide"},
+    }
+    regular_data = [
+        {"name": "Spiked Slime", "stat": "Knowledge", "element": "Flame"},
+        {"name": "Vampire Bat", "stat": "Focus", "element": "Tempest"},
+        {"name": "Dungeon Rat", "stat": "Strength", "element": "Tide"},
+        {"name": "Armored Crab", "stat": "Knowledge", "element": "Earth"},
+        {"name": "Flying Skull", "stat": "Endurance", "element": "Flame"},
+    ]
+
+    for floor_num in range(1, 21):
+        is_boss = (floor_num % 5 == 0)
+        level = floor_num
+        hp_mult = 4 if is_boss else 1
+
+        info = boss_data.get(floor_num) or regular_data[(floor_num - 1) % len(regular_data)]
+
+        enemy = await db.towerenemy.create(
+            data={
+                "name": info["name"],
+                "level": level,
+                "hp": int(120 * level * hp_mult),
+                "attack": int(12 * level * (1.8 if is_boss else 1)),
+                "defense": int(8 * level * (1.4 if is_boss else 1)),
+                "speed": int(5 * level),
+                "weaknessStat": info["stat"],
+                "resistanceStat": info["element"],
+                "icon": "/icons/boss.png" if is_boss else "/icons/enemy.png",
+                "isBoss": is_boss
+            }
+        )
+
+        await db.towerfloor.create(
+            data={
+                "floorNumber": floor_num,
+                "requiredPower": 0,
+                "requiredStrength": 0,
+                "requiredEndurance": 0,
+                "requiredKnowledge": 0,
+                "requiredRecovery": 0,
+                "requiredFocus": 0,
+                "requiredDiscipline": 0,
+                "enemyId": enemy.id,
+                "isBoss": is_boss,
+                "goldReward": int(50 * floor_num * (3 if is_boss else 1)),
+                "expReward": int(20 * floor_num * (3 if is_boss else 1))
+            }
+        )
+
 @router.get("/{character_id}")
 async def get_tower_floors(character_id: str):
     """
@@ -21,19 +75,26 @@ async def get_tower_floors(character_id: str):
         include={"stats": True}
     )
     
-    stats = character.stats
+    stats = character.stats if character else None
     c_strength = stats.strength if stats else 1
     c_endurance = stats.endurance if stats else 1
     c_knowledge = stats.knowledge if stats else 1
     c_recovery = stats.recovery if stats else 1
     c_focus = stats.focus if stats else 1
     c_discipline = stats.discipline if stats else 1
-    c_power = character.power
+    c_power = character.power if character else 50
 
     floors = await db.towerfloor.find_many(
         include={"enemy": True},
         order={"floorNumber": "asc"},
     )
+
+    if not floors:
+        await seed_tower_floors_auto()
+        floors = await db.towerfloor.find_many(
+            include={"enemy": True},
+            order={"floorNumber": "asc"},
+        )
 
     progress_records = await db.towerprogress.find_many(
         where={"characterId": character_id}

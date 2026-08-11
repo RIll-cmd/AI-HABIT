@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { API_BASE_URL } from "@/constants";
 import { Sparkles, CheckCircle2, Target } from "lucide-react";
-import { playUIMenuSFX, playBuffSFX } from "@/utils/audio";
+import { playUIMenuSFX, playBuffSFX, playAIRASound } from "@/utils/audio";
 
 interface Achievement {
   id: string;
@@ -56,6 +56,7 @@ export default function AchievementsPage() {
       });
       if (res.ok) {
         playBuffSFX();
+        playAIRASound("NEW_RESISTANCE");
         fetchAchievements();
         loadCharacter();
       }

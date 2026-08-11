@@ -6,17 +6,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Dumbbell, Target, Shield, CheckCheck, Trash2, Bell } from "lucide-react";
+import { Dumbbell, Target, Shield, CheckCheck, Trash2, Bell, Bot } from "lucide-react";
 import { useNotificationStore, NotificationCategory, AppNotification } from "@/store/useNotificationStore";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
-const CATEGORIES: { label: string; value: NotificationCategory }[] = [
+const CATEGORIES: { label: string; value: NotificationCategory; icon?: React.ElementType }[] = [
   { label: "ALL", value: "ALL" },
-  { label: "🤖 AIRA BRIEFINGS", value: "AIRA BRIEFINGS" },
-  { label: "🏋️ WORKOUTS", value: "WORKOUTS" },
-  { label: "🎯 HABITS", value: "HABITS" },
-  { label: "⚔️ TOWER / SYSTEM", value: "TOWER / SYSTEM" },
+  { label: "AIRA BRIEFINGS", value: "AIRA BRIEFINGS", icon: Bot },
+  { label: "WORKOUTS", value: "WORKOUTS", icon: Dumbbell },
+  { label: "HABITS", value: "HABITS", icon: Target },
+  { label: "TOWER", value: "TOWER / SYSTEM", icon: Shield },
 ];
 
 export function NotificationDrawer({ children }: { children: React.ReactNode }) {
@@ -63,19 +63,23 @@ export function NotificationDrawer({ children }: { children: React.ReactNode }) 
           
           {/* Categories Scrollable Row */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 mt-4 scrollbar-hide">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => setActiveCategory(cat.value)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  activeCategory === cat.value
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                    : "bg-white/5 text-slate-400 border border-transparent hover:bg-white/10"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.value}
+                  onClick={() => setActiveCategory(cat.value)}
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider transition-all flex items-center gap-1.5 ${
+                    activeCategory === cat.value
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                      : "bg-white/5 text-slate-400 border border-transparent hover:bg-white/10 hover:text-slate-200"
+                  }`}
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5" />}
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
         </SheetHeader>
 
@@ -99,18 +103,42 @@ export function NotificationDrawer({ children }: { children: React.ReactNode }) 
 function NotificationCard({ notification, onRead }: { notification: AppNotification; onRead: () => void }) {
   const isAira = notification.category === "AIRA BRIEFINGS";
   
-  const getIcon = () => {
+  const renderIcon = () => {
     switch (notification.category) {
       case "AIRA BRIEFINGS":
-        return <img src="/AIRA ICON/fairy-gif.gif" alt="AIRA" className="w-6 h-6 object-contain" />;
+        return (
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-cyan-500/40 bg-slate-900 flex-shrink-0 relative flex items-center justify-center">
+            <img
+              src="/AIRA ICON/cropped/aira-neutral.png"
+              alt="AIRA"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        );
       case "WORKOUTS":
-        return <Dumbbell className="w-5 h-5 text-amber-400" />;
+        return (
+          <div className="w-9 h-9 rounded-full bg-[#0B1020] border border-amber-500/30 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+            <Dumbbell className="w-4 h-4 text-amber-400" />
+          </div>
+        );
       case "HABITS":
-        return <Target className="w-5 h-5 text-emerald-400" />;
+        return (
+          <div className="w-9 h-9 rounded-full bg-[#0B1020] border border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+            <Target className="w-4 h-4 text-emerald-400" />
+          </div>
+        );
       case "TOWER / SYSTEM":
-        return <Shield className="w-5 h-5 text-purple-400" />;
+        return (
+          <div className="w-9 h-9 rounded-full bg-[#0B1020] border border-purple-500/30 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+            <Shield className="w-4 h-4 text-purple-400" />
+          </div>
+        );
       default:
-        return <Bell className="w-5 h-5 text-slate-400" />;
+        return (
+          <div className="w-9 h-9 rounded-full bg-[#0B1020] border border-white/10 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+            <Bell className="w-4 h-4 text-slate-400" />
+          </div>
+        );
     }
   };
 
@@ -126,15 +154,11 @@ function NotificationCard({ notification, onRead }: { notification: AppNotificat
       {!notification.isRead && (
         <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
       )}
-      <div className="flex gap-3">
-        <div className="flex-shrink-0 mt-0.5">
-          <div className="w-10 h-10 rounded-full bg-[#0B1020] border border-white/10 flex items-center justify-center shadow-inner overflow-hidden">
-            {getIcon()}
-          </div>
-        </div>
+      <div className="flex gap-3 items-start">
+        {renderIcon()}
         <div className="flex-1 min-w-0 pr-4">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`text-[10px] font-bold tracking-wider uppercase ${isAira ? "text-cyan-400" : "text-slate-400"}`}>
+            <span className={`text-[10px] font-bold tracking-wider uppercase font-mono ${isAira ? "text-cyan-400" : "text-slate-400"}`}>
               {notification.category}
             </span>
             <span className="text-[10px] text-slate-500 font-mono">

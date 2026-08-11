@@ -6,6 +6,7 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { SkillNode } from '@/features/skills/components/SkillNode';
 import { SkillDetailModal } from '@/features/skills/components/SkillDetailModal';
 import { SkillDefinition, PlayerSkill } from '@/features/skills/types';
+import { playAIRASound } from '@/utils/audio';
 
 export default function SkillsPage() {
   const { definitions, playerSkills, fetchSkills, unlockSkill, loading: skillsLoading } = useSkillStore();
@@ -68,6 +69,7 @@ export default function SkillsPage() {
     setUnlockLoading(true);
     try {
       await unlockSkill(character.id, selectedSkill.id);
+      playAIRASound("NEW_SKILL");
     } catch (e) {
       // Error handled by store toast
     } finally {

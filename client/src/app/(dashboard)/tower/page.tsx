@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BattleModal } from "@/features/tower/components/BattleModal";
 import { getEnemySpritePath, CHARACTER_AVATAR_PREVIEW } from "@/utils/sprites";
-import { playBattleSFX, playUIMenuSFX } from "@/utils/audio";
+import { playBattleSFX, playUIMenuSFX, playAIRASound } from "@/utils/audio";
 
 export default function TowerPage() {
   const { character } = useCharacterStore();
@@ -82,11 +82,13 @@ export default function TowerPage() {
                     ${isSelected ? 'border-primary ring-2 ring-primary/20 bg-accent' : 'border-transparent bg-card/80 backdrop-blur-sm'}
                   `}
                 >
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center border-2 ${statusColor} ${statusGlow} transition-all overflow-hidden p-1 shrink-0 bg-slate-950/60`}>
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center border-2 ${statusColor} ${statusGlow} transition-all overflow-hidden p-1.5 shrink-0 bg-slate-950/80`}>
                     <img
                       src={getEnemySpritePath(floor.enemy.name, floor.floorNumber, floor.isBoss)}
                       alt={floor.enemy.name}
+                      onError={(e) => { e.currentTarget.src = "/BossesAndEnemies_sprite/cropped/slime_cropped.gif"; }}
                       className={`w-full h-full object-contain ${floor.status === "LOCKED" ? "opacity-40 grayscale" : "drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]"}`}
+                      style={{ imageRendering: "pixelated" }}
                     />
                   </div>
                   
@@ -111,63 +113,67 @@ export default function TowerPage() {
       </div>
 
       {/* Detail Panel */}
-      <div className="w-1/2 flex flex-col gap-6">
+      <div className="w-1/2 flex flex-col gap-6 h-full min-h-0">
         {selectedFloor ? (
-          <div className="bg-card rounded-xl border p-6 shadow-sm flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  Floor {selectedFloor.floorNumber}
-                  {selectedFloor.status === "CLEARED" && <Badge className="bg-green-500 ml-2">CLEARED</Badge>}
-                </h2>
-                <p className="text-muted-foreground">Enemy: {selectedFloor.enemy.name}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-bold font-mono tracking-wider">{selectedFloor.status}</p>
-              </div>
-            </div>
-
-            {/* Tower Battle View (Player Left vs Enemy Right Face-Off) */}
-            <div className="relative p-5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-[#151C33] to-red-950/60 border border-indigo-500/30 overflow-hidden mb-6 flex items-center justify-between shadow-inner">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
-
-              {/* Player Side (Left) */}
-              <div className="flex flex-col items-center gap-1 relative z-10">
-                <div className="w-24 h-24 rounded-2xl bg-indigo-950/60 border border-cyan-500/40 p-2 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                  <img
-                    src={CHARACTER_AVATAR_PREVIEW}
-                    alt={character?.name || "Player"}
-                    className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(6,182,212,0.6)]"
-                  />
+          <div className="bg-card rounded-xl border p-6 shadow-sm flex flex-col justify-between h-full min-h-0 space-y-4">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+              <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                    Floor {selectedFloor.floorNumber}
+                    {selectedFloor.status === "CLEARED" && <Badge className="bg-green-500 ml-2">CLEARED</Badge>}
+                  </h2>
+                  <p className="text-muted-foreground">Enemy: {selectedFloor.enemy.name}</p>
                 </div>
-                <span className="text-xs font-bold text-cyan-300 font-mono mt-1">{character?.name || "Player"}</span>
-                <span className="text-[10px] text-slate-400 font-mono">Pwr: <span className="text-amber-400 font-bold">{character?.power || 0}</span></span>
-              </div>
-
-              {/* VS Center Badge */}
-              <div className="flex flex-col items-center justify-center relative z-10">
-                <div className="w-10 h-10 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 font-black font-mono text-sm tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse">
-                  VS
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-bold font-mono tracking-wider">{selectedFloor.status}</p>
                 </div>
-                <span className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mt-1">FACE OFF</span>
               </div>
 
-              {/* Enemy Side (Right) */}
-              <div className="flex flex-col items-center gap-1 relative z-10">
-                <div className="w-24 h-24 rounded-2xl bg-red-950/60 border border-red-500/40 p-2 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-                  <img
-                    src={getEnemySpritePath(selectedFloor.enemy.name, selectedFloor.floorNumber, selectedFloor.isBoss)}
-                    alt={selectedFloor.enemy.name}
-                    className="w-full h-full object-contain transform -scale-x-100 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]"
-                  />
+              {/* Tower Battle View (Player Left vs Enemy Right Face-Off) */}
+              <div className="relative p-5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-[#151C33] to-red-950/60 border border-indigo-500/30 overflow-visible flex items-center justify-between shadow-inner min-h-[140px]">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent pointer-events-none rounded-2xl" />
+
+                {/* Player Side (Left) */}
+                <div className="flex flex-col items-center gap-1 relative z-10">
+                  <div className="w-20 h-20 rounded-2xl bg-indigo-950/60 border border-cyan-500/40 p-1 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)] overflow-hidden">
+                    <img
+                      src={CHARACTER_AVATAR_PREVIEW}
+                      alt={character?.name || "Player"}
+                      onError={(e) => { e.currentTarget.src = CHARACTER_AVATAR_PREVIEW; }}
+                      className="w-16 h-16 object-contain drop-shadow-[0_0_10px_rgba(6,182,212,0.6)]"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-cyan-300 font-mono mt-1">{character?.name || "Player"}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Pwr: <span className="text-amber-400 font-bold">{character?.power || 0}</span></span>
                 </div>
-                <span className="text-xs font-bold text-red-400 font-mono mt-1 text-center truncate max-w-[100px]">{selectedFloor.enemy.name}</span>
-                <span className="text-[10px] text-slate-400 font-mono">Lv. <span className="text-red-300 font-bold">{selectedFloor.enemy.level}</span></span>
-              </div>
-            </div>
 
-            <div className="space-y-6 flex-1">
+                {/* VS Center Badge */}
+                <div className="flex flex-col items-center justify-center relative z-10 px-2">
+                  <div className="w-10 h-10 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 font-black font-mono text-sm tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse">
+                    VS
+                  </div>
+                  <span className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mt-1">FACE OFF</span>
+                </div>
+
+                {/* Enemy Side (Right) */}
+                <div className="flex flex-col items-center gap-1 relative z-10">
+                  <div className="w-20 h-20 rounded-2xl bg-slate-900/50 border border-red-500/30 p-1 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] overflow-hidden">
+                    <img
+                      src={getEnemySpritePath(selectedFloor.enemy.name, selectedFloor.floorNumber, selectedFloor.isBoss)}
+                      alt={selectedFloor.enemy.name}
+                      onError={(e) => { e.currentTarget.src = "/BossesAndEnemies_sprite/cropped/slime_cropped.gif"; }}
+                      className="w-16 h-16 object-contain transform -scale-x-100 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-red-400 font-mono mt-1 text-center truncate max-w-[120px]">{selectedFloor.enemy.name}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Lv. <span className="text-red-300 font-bold">{selectedFloor.enemy.level}</span></span>
+                </div>
+              </div>
+
               {/* Enemy Weaknesses & Telemetry */}
               <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-sm uppercase tracking-wider text-cyan-400 flex items-center gap-2">
@@ -249,12 +255,15 @@ export default function TowerPage() {
             </div>
 
             <Button 
-              className="w-full h-14 text-lg font-bold mt-4" 
+              className="w-full h-14 text-lg font-bold shrink-0 mt-2" 
               size="lg"
               disabled={selectedFloor.status === "LOCKED" || isSimulating || !character}
               onClick={() => {
                 if (character) {
                   playBattleSFX("encounter");
+                  if (selectedFloor.status === "CLEARED") {
+                    playAIRASound("REPEATING");
+                  }
                   challengeFloor(character.id, selectedFloor.floorNumber);
                 }
               }}
