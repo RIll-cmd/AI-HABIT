@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from "@/constants";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useCharacterStore } from "@/store/useCharacterStore";
@@ -61,7 +62,7 @@ export default function StatMatrixPage() {
 
   useEffect(() => {
     if (character?.id) {
-      fetch(`http://127.0.0.1:8000/api/character/titles/${character.id}`)
+      fetch(`${API_BASE_URL}/api/character/titles/${character.id}`)
         .then(res => res.json())
         .then(data => {
           if (data.titles) setTitles(data.titles);
@@ -131,7 +132,7 @@ export default function StatMatrixPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/character/stats/allocate", {
+      const res = await fetch(`${API_BASE_URL}/api/character/stats/allocate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -154,7 +155,7 @@ export default function StatMatrixPage() {
           });
           // Refresh titles
           if (character?.id) {
-            fetch(`http://127.0.0.1:8000/api/character/titles/${character.id}`)
+            fetch(`${API_BASE_URL}/api/character/titles/${character.id}`)
               .then(res => res.json())
               .then(d => { if (d.titles) setTitles(d.titles); });
           }
@@ -180,7 +181,7 @@ export default function StatMatrixPage() {
 
     setIsRespeccing(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/character/stats/respec", {
+      const res = await fetch(`${API_BASE_URL}/api/character/stats/respec`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

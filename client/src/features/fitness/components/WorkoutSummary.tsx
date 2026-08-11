@@ -1,5 +1,6 @@
 import React from "react";
-import { Award, Zap, Coins, Flame, Clock, Check, X, Shield, Dumbbell } from "lucide-react";
+import { Award, Zap, Flame, Clock, Check, X, Shield, Dumbbell } from "lucide-react";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { useFitnessStore } from "../store/useFitnessStore";
 
 export const WorkoutSummary: React.FC = () => {
@@ -75,7 +76,7 @@ export const WorkoutSummary: React.FC = () => {
             </div>
 
             <div className="bg-amber-950/50 border border-amber-500/40 rounded-xl p-3 flex items-center gap-3">
-              <Coins className="w-5 h-5 text-amber-400" />
+              <CurrencyIcon type="GOLD" size="md" />
               <div>
                 <div className="text-xs font-bold text-amber-300">+{gold} Gold</div>
                 <div className="text-[10px] text-slate-400">System Economy</div>

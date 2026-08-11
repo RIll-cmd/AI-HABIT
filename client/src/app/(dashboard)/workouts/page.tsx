@@ -151,7 +151,7 @@ export default function WorkoutsPage() {
         toast.info(
           <div className="flex flex-col gap-2">
             <div className="font-bold flex items-center gap-2">
-              <Bot className="w-4 h-4 text-sky-400" /> Ciel (AIRA)
+              <Bot className="w-4 h-4 text-sky-400" /> AIRA
             </div>
             <div className="text-sm">
               <ReactMarkdown>{data.analysis}</ReactMarkdown>
@@ -189,7 +189,7 @@ export default function WorkoutsPage() {
             disabled={isAnalyzing}
           >
             {isAnalyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bot className="w-4 h-4 mr-2" />}
-            Ciel Analysis
+            AIRA Analysis
           </Button>
 
           <Button

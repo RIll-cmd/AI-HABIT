@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from "@/constants";
 import React, { useState, useEffect } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export default function SkillTreePage() {
   useEffect(() => {
     const fetchSpecializations = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/character/specializations/all");
+        const res = await fetch(`${API_BASE_URL}/api/character/specializations/all`);
         if (res.ok) {
           const data = await res.json();
           setSpecializations(data.specializations || []);
@@ -64,7 +65,7 @@ export default function SkillTreePage() {
 
     setIsSelecting(spec.id);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/character/specializations/select", {
+      const res = await fetch(`${API_BASE_URL}/api/character/specializations/select`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

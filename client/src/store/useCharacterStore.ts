@@ -35,9 +35,9 @@ export interface CharacterStore {
 // We no longer use a mock character ID. It's retrieved from localStorage.
 const getStoredCharacterId = () => {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("ascend_character_id");
+    return localStorage.getItem("ascend_character_id") || "char-id-123";
   }
-  return null;
+  return "char-id-123";
 };
 
 const defaultStats: CharacterStats = {
@@ -79,13 +79,6 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
 
   loadCharacter: async (characterId?: string) => {
     const targetId = characterId || getStoredCharacterId();
-    
-    if (!targetId) {
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
-      return;
-    }
 
     const profile = await fetchCharacterProfile(targetId);
     if (profile) {

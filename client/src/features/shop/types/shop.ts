@@ -14,6 +14,16 @@ export interface ShopItem {
   rarity: string;
   icon: string;
   
+  // Optional stat bonuses
+  attack?: number;
+  defense?: number;
+  strength?: number;
+  knowledge?: number;
+  endurance?: number;
+  recovery?: number;
+  focus?: number;
+  consistency?: number;
+
   // Computed fields
   canAfford: boolean;
   meetsRequirements: boolean;

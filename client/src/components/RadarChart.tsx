@@ -93,10 +93,10 @@ export function RadarChart({ data }: RadarChartProps) {
         {/* Filled Data Polygon */}
         <polygon
           points={points}
-          fill="rgba(139, 92, 246, 0.35)"
-          stroke="#a855f7"
+          fill="rgba(6, 182, 212, 0.25)"
+          stroke="#06b6d4"
           strokeWidth="2"
-          className="transition-all duration-300"
+          className="transition-all duration-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]"
         />
 
         {/* Value Points */}
@@ -111,9 +111,10 @@ export function RadarChart({ data }: RadarChartProps) {
               cx={safeCx}
               cy={safeCy}
               r="3.5"
-              fill="#c084fc"
-              stroke="#13141f"
+              fill="#22d3ee"
+              stroke="#050a18"
               strokeWidth="1.5"
+              className="drop-shadow-[0_0_6px_rgba(6,182,212,0.8)]"
             />
           );
         })}

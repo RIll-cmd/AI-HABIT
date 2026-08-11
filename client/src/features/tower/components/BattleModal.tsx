@@ -61,13 +61,18 @@ export function BattleModal() {
         i++;
       } else {
         setIsAnimationComplete(true);
-        playAIRASound("NOTICE");
         clearInterval(interval);
       }
     }, 400); // Increased interval slightly to let sounds breathe
     
     return () => clearInterval(interval);
   }, [combatLog]);
+
+  useEffect(() => {
+    if (cielAnalysis && !isAnalyzing) {
+      playAIRASound("NOTICE");
+    }
+  }, [cielAnalysis, isAnalyzing]);
 
   useEffect(() => {
     if (combatLog) {

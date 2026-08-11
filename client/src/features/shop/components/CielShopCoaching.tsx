@@ -66,7 +66,7 @@ export function CielShopCoaching() {
                 <p>{analysis}</p>
               ) : (
                 <p className="text-indigo-300/60 italic text-xs">
-                  Click the button to request Ciel's tactical market & purchasing analysis.
+                  Click the button to request AIRA's tactical market & purchasing analysis.
                 </p>
               )}
             </div>

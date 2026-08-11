@@ -54,7 +54,7 @@ async def main():
                 "itemId": common_weapon.id,
                 "currencyType": "GOLD",
                 "price": 250,
-                "stock": None,
+                "stock": 5,
                 "requiredLevel": 1
             })
             
@@ -63,7 +63,7 @@ async def main():
                 "itemId": epic_weapon.id,
                 "currencyType": "GOLD",
                 "price": 4500,
-                "stock": 1,
+                "stock": 2,
                 "requiredLevel": 20
             })
             
@@ -72,7 +72,7 @@ async def main():
                 "itemId": consumable.id,
                 "currencyType": "GOLD",
                 "price": 500,
-                "stock": 10,
+                "stock": 4,
                 "requiredLevel": 1
             })
             

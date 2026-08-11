@@ -101,13 +101,11 @@ export default function AiraTerminalPage() {
     if (!inputPrompt.trim() || isLoading) return;
     const promptToSend = inputPrompt;
     setInputPrompt("");
-    playVoiceLine("/sounds/AIRA Persona/AI-UNDERSTOOD.mp3");
     await sendPrompt(promptToSend, characterId);
   };
 
   const handleQuickPrompt = async (text: string) => {
     if (isLoading) return;
-    playVoiceLine("/sounds/AIRA Persona/AI-UNDERSTOOD.mp3");
     await sendPrompt(text, characterId);
   };
 

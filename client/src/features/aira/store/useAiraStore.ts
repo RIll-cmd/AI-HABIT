@@ -97,7 +97,6 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
 
   sendPrompt: async (prompt: string, characterId?: string) => {
     if (!prompt.trim()) return;
-    playUnderstoodSound();
     const targetId = characterId || DEFAULT_CHARACTER_ID;
 
     const userMsg: AIRAMessage = {

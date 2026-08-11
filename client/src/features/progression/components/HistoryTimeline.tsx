@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Coins, ArrowUpRight, ArrowDownRight, History, Sparkles } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, History, Sparkles } from "lucide-react";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { EconomyLog } from "../types";
 
 interface HistoryTimelineProps {
@@ -24,8 +25,8 @@ export function HistoryTimeline({ logs = [], isLoading }: HistoryTimelineProps) 
     <div className="w-full bg-[#151C33] border border-slate-800/80 rounded-xl p-5 shadow-lg relative">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <Coins className="w-4 h-4 text-amber-400" />
+          <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <CurrencyIcon type="GOLD" size="sm" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-slate-200">

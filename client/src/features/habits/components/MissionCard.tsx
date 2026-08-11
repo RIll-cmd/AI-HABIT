@@ -65,8 +65,8 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
   const isCompleted = mission.status === "COMPLETED";
 
   return (
-    <Card className={`bg-[#0B1020] border-white/10 transition-all duration-200 hover:border-white/20 relative overflow-hidden ${
-      isCompleted ? "border-emerald-500/30 bg-emerald-950/10" : ""
+    <Card className={`bg-[#0a1024]/90 border-cyan-500/15 transition-all duration-200 hover:border-cyan-400/40 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] relative overflow-hidden rounded-2xl ${
+      isCompleted ? "border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : ""
     }`}>
       {/* Top accent bar */}
       <div

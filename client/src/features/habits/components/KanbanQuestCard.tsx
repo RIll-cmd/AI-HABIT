@@ -15,9 +15,12 @@ import {
   Tag,
   AlertCircle,
   Flame,
+  Pencil,
 } from "lucide-react";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { KanbanQuest, QuestRank, QuestStatus } from "../types/kanban";
 import { useKanbanMissionStore } from "../store/useKanbanMissionStore";
+import { EditQuestModal } from "./EditQuestModal";
 
 export interface KanbanQuestCardProps {
   quest: KanbanQuest;
@@ -50,6 +53,7 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
   const { updateQuestStatus, toggleSubtask, deleteQuest } = useKanbanMissionStore();
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const rankStyle = RANK_CONFIG[quest.rank] || RANK_CONFIG.C;
 
@@ -105,13 +109,23 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
           </span>
         </div>
 
-        <button
-          onClick={() => deleteQuest(quest.id)}
-          title="Delete Quest"
-          className="text-slate-600 hover:text-rose-400 transition-colors p-1 opacity-0 group-hover:opacity-100"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => setIsEditOpen(true)}
+            title="Edit Quest / Task"
+            className="text-slate-400 hover:text-cyan-300 transition-colors p-1"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            onClick={() => deleteQuest(quest.id)}
+            title="Delete Quest"
+            className="text-slate-600 hover:text-rose-400 transition-colors p-1"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <h4 className="text-sm font-bold text-white font-heading leading-snug mb-1">
@@ -195,9 +209,12 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
           <span className="text-amber-400 font-bold flex items-center gap-0.5">
             <Zap className="w-3 h-3 fill-current" /> +{quest.expReward} EXP
           </span>
-          <span className="text-amber-300 font-bold flex items-center gap-0.5">
-            <Coins className="w-3 h-3" /> +{quest.goldReward}g
-          </span>
+          {quest.goldReward > 0 && (
+            <div suppressHydrationWarning className="flex items-center gap-1 text-xs text-amber-400 font-mono font-bold bg-amber-950/20 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+              <CurrencyIcon type="GOLD" size="xs" />
+              <span>+{quest.goldReward}g</span>
+            </div>
+          )}
         </div>
 
         {dueDateLabel && (
@@ -246,6 +263,13 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
           </span>
         )}
       </div>
+
+      {/* Edit Quest Modal */}
+      <EditQuestModal
+        quest={quest}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      />
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { ShopItem } from "../types/shop";
 import { useCharacterStore } from "@/store/useCharacterStore";
-import { Coins, Diamond, Shield } from "lucide-react";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { rarityColors } from "@/features/inventory/utils/rarityColors";
 import { useEffect } from "react";
 import Image from "next/image";
@@ -36,14 +36,9 @@ export function PurchaseModal({ isOpen, onClose, onConfirm, item, isPurchasing }
   const remainingBalance = currentBalance - item.price;
   const canAfford = remainingBalance >= 0;
 
-  const CurrencyIcon = () => {
-    switch (item.currencyType) {
-      case "GEMS": return <Diamond className="w-4 h-4 text-cyan-400" />;
-      case "TOWER_TOKENS": return <Shield className="w-4 h-4 text-purple-400" />;
-      case "GOLD":
-      default: return <Coins className="w-4 h-4 text-yellow-400" />;
-    }
-  };
+  const CurrencyIconBadge = () => (
+    <CurrencyIcon type={item.currencyType} size="sm" />
+  );
 
   const rarityColor = (rarityColors as any)[item.rarity] || rarityColors.COMMON;
 
@@ -70,29 +65,34 @@ export function PurchaseModal({ isOpen, onClose, onConfirm, item, isPurchasing }
           </div>
           <div className="text-center">
             <h3 className="font-bold text-xl">{item.name}</h3>
-            <p className="text-sm text-muted-foreground uppercase tracking-wider" style={{ color: rarityColor }}>
+            <p className="text-xs font-mono font-bold uppercase tracking-wider mt-0.5" style={{ color: rarityColor }}>
               {item.rarity} {item.type}
             </p>
+            {item.description && (
+              <p className="text-xs text-slate-400 leading-relaxed italic mt-2 px-2">
+                "{item.description}"
+              </p>
+            )}
           </div>
           
           <div className="w-full bg-muted/30 rounded-lg p-4 space-y-3 mt-4 border border-border/50">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Current Balance:</span>
               <div className="flex items-center gap-1.5 font-medium">
-                {currentBalance.toLocaleString()} <CurrencyIcon />
+                {currentBalance.toLocaleString()} <CurrencyIconBadge />
               </div>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Cost:</span>
               <div className="flex items-center gap-1.5 font-bold text-destructive">
-                - {item.price.toLocaleString()} <CurrencyIcon />
+                - {item.price.toLocaleString()} <CurrencyIconBadge />
               </div>
             </div>
             <div className="w-full h-px bg-border/50" />
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Remaining Balance:</span>
               <div className={`flex items-center gap-1.5 font-bold ${canAfford ? 'text-primary' : 'text-destructive'}`}>
-                {remainingBalance.toLocaleString()} <CurrencyIcon />
+                {remainingBalance.toLocaleString()} <CurrencyIconBadge />
               </div>
             </div>
           </div>

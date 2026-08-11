@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { Skull, Target, Zap, Coins, Shield, CheckCircle2, Flame, Award } from "lucide-react";
+import { Skull, Target, Zap, Shield, CheckCircle2, Flame, Award } from "lucide-react";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { useFitnessStore } from "../store/useFitnessStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useUser } from "@/context/UserContext";
@@ -130,7 +131,7 @@ export const WorkoutBossCard: React.FC = () => {
 
           <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 text-center">
             <div className="flex items-center justify-center gap-1 text-amber-400 font-mono text-xs font-bold">
-              <Coins className="w-3.5 h-3.5" /> +{rewardsObj.gold}
+              <CurrencyIcon type="GOLD" size="xs" /> +{rewardsObj.gold}
             </div>
             <div className="text-[10px] text-slate-400 mt-0.5 font-mono">Gold</div>
           </div>

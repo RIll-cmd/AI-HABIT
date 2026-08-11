@@ -1,6 +1,16 @@
 export const APP_NAME = "Ascend OS";
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
+    return "https://ai-habit-omega-backend.onrender.com";
+  }
+  return "http://localhost:8000";
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export const NAVIGATION_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },

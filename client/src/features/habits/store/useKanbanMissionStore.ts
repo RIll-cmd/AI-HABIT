@@ -25,6 +25,7 @@ export interface KanbanMissionStore {
   setSelectedRank: (rank: QuestRank | null) => void;
 
   addQuest: (quest: Omit<KanbanQuest, "id" | "createdAt" | "activityLogs">) => void;
+  updateQuest: (questId: string, updates: Partial<Omit<KanbanQuest, "id" | "createdAt" | "activityLogs">>) => void;
   updateQuestStatus: (questId: string, newStatus: QuestStatus) => void;
   toggleSubtask: (questId: string, subtaskId: string) => void;
   updateProgressOverride: (questId: string, progress: number) => void;
@@ -139,5 +140,33 @@ export const useKanbanMissionStore = create<KanbanMissionStore>((set, get) => ({
     set((state) => ({
       quests: state.quests.filter((q) => q.id !== questId),
     }));
+  },
+
+  updateQuest: (questId, updates) => {
+    set((state) => ({
+      quests: state.quests.map((q) => {
+        if (q.id !== questId) return q;
+        const newRank = updates.rank || q.rank;
+        const rewards = RANK_REWARDS[newRank] || RANK_REWARDS.C;
+        const updatedLogs = [
+          ...q.activityLogs,
+          {
+            id: `log-${Date.now()}`,
+            action: "UPDATED",
+            details: `Quest details updated.`,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+        return {
+          ...q,
+          ...updates,
+          expReward: updates.rank ? rewards.exp : (updates.expReward ?? q.expReward),
+          goldReward: updates.rank ? rewards.gold : (updates.goldReward ?? q.goldReward),
+          statReward: updates.rank ? { stat: rewards.stat, amount: rewards.statAmount } : (updates.statReward ?? q.statReward),
+          activityLogs: updatedLogs,
+        };
+      }),
+    }));
+    playConfirmedSound();
   },
 }));

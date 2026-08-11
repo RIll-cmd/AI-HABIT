@@ -15,6 +15,14 @@ async def get_skills(character_id: str):
     await ensure_character_exists(character_id)
     
     definitions = await db.skilldefinition.find_many()
+    if not definitions:
+        try:
+            from scripts.seed_skills import seed_skills
+            await seed_skills()
+            definitions = await db.skilldefinition.find_many()
+        except Exception as e:
+            print(f"Auto-seed skills exception: {e}")
+
     player_skills = await db.playerskill.find_many(
         where={"characterId": character_id},
         include={"skillDefinition": True}

@@ -50,14 +50,14 @@ export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
     
     const borderColor = item 
       ? (RARITY_COLORS[item.itemDefinition.rarity] || RARITY_COLORS.COMMON) 
-      : 'border-purple-500/20';
+      : 'border-cyan-500/15 group-hover:border-cyan-500/40';
       
-    const bgOpacity = item ? 'bg-[#151C33]/90' : 'bg-[#151C33]/40';
+    const bgOpacity = item ? 'bg-[#0a1024]/90' : 'bg-[#0a1024]/50';
 
     return (
       <div 
         key={slotType}
-        className={`w-14 h-14 rounded-xl ${bgOpacity} border ${borderColor} flex flex-col items-center justify-center transition-all group relative`}
+        className={`w-14 h-14 rounded-xl ${bgOpacity} border ${borderColor} flex flex-col items-center justify-center transition-all duration-200 group relative shadow-md`}
         title={item ? item.itemDefinition.name : `Empty ${label} Slot`}
       >
         {item && item.itemDefinition.icon ? (
@@ -68,7 +68,7 @@ export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
             className="object-contain p-1.5 drop-shadow-md"
           />
         ) : (
-          <Icon className="w-5 h-5 text-slate-600/60" />
+          <Icon className="w-5 h-5 text-slate-600/60 group-hover:text-cyan-400/60 transition-colors" />
         )}
       </div>
     );
@@ -85,17 +85,17 @@ export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
       </div>
 
       {/* Center Portrait */}
-      <div className="w-[190px] h-[310px] bg-gradient-to-t from-[#151C33] to-[#0B1020] border-2 border-purple-900/50 rounded-[30px] flex items-center justify-center shadow-[0_0_40px_rgba(168,85,247,0.15)] relative overflow-hidden z-0">
-        <div className="absolute inset-0 bg-blue-500/5 mix-blend-overlay" />
+      <div className="w-[190px] h-[310px] bg-gradient-to-t from-[#0a1024] via-[#0d1430] to-[#070b1a] border-2 border-cyan-500/25 rounded-[30px] flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.15)] relative overflow-hidden z-0">
+        <div className="absolute inset-0 bg-cyan-500/5 mix-blend-overlay" />
         <img
           src={CHARACTER_AVATAR_PREVIEW}
           alt="Character Avatar"
-          className="w-44 h-44 object-contain drop-shadow-[0_0_25px_rgba(168,85,247,0.4)] z-10"
+          className="w-44 h-44 object-contain drop-shadow-[0_0_25px_rgba(6,182,212,0.4)] z-10"
           style={{ imageRendering: "pixelated" }}
         />
         
         {/* Ground Magic Circle effect */}
-        <div className="absolute -bottom-8 w-56 h-20 border-2 border-purple-500/20 rounded-[100%] transform rotate-x-60 animate-pulse pointer-events-none shadow-[0_0_30px_rgba(168,85,247,0.3)]" />
+        <div className="absolute -bottom-8 w-56 h-20 border-2 border-cyan-500/30 rounded-[100%] transform rotate-x-60 animate-pulse pointer-events-none shadow-[0_0_30px_rgba(6,182,212,0.4)]" />
       </div>
 
       {/* Right Slots */}

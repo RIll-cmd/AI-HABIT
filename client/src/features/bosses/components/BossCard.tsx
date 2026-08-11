@@ -3,7 +3,7 @@ import { Boss, useBossStore } from "../store/useBossStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { formatDistanceToNow, isPast } from "date-fns";
 import { CalendarClock, ShieldAlert, CheckCircle2, TrendingUp, Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { getEnemySpritePath } from "@/utils/sprites";
+import { getEnemySpriteUrl } from "@/utils/spriteUtils";
 
 interface BossCardProps {
   boss: Boss;
@@ -90,9 +90,9 @@ export function BossCard({ boss }: BossCardProps) {
         {/* Boss Sprite Artwork */}
         <div className="w-20 h-20 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.15)]">
           <img
-            src={getEnemySpritePath(boss.name, 1, true)}
+            src={getEnemySpriteUrl(boss.name, { isBoss: true, preferAnimated: true })}
             alt={boss.name}
-            onError={(e) => { e.currentTarget.src = "/BossesAndEnemies_sprite/cropped/gollux_cropped.png"; }}
+            onError={(e) => { e.currentTarget.src = "/bosses/gollux.gif"; }}
             className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"
             style={{ imageRendering: "pixelated" }}
           />
@@ -135,7 +135,7 @@ export function BossCard({ boss }: BossCardProps) {
               className="flex items-center gap-2 text-sm font-bold text-cyan-500 hover:text-cyan-400 transition-colors w-full"
             >
               <Sparkles className="w-4 h-4" />
-              {showAnalysis ? "Hide Ciel Trajectory Analysis" : "Request Ciel Trajectory Analysis"}
+              {showAnalysis ? "Hide AIRA Trajectory Analysis" : "Request AIRA Trajectory Analysis"}
               {showAnalysis ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
             </button>
             

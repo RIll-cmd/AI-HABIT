@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from "@/constants";
 import React, { useState, useEffect } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function CustomizePage() {
   useEffect(() => {
     const fetchTitles = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/character/titles/${character?.id || "char-id-123"}`);
+        const res = await fetch(`${API_BASE_URL}/api/character/titles/${character?.id || "char-id-123"}`);
         if (res.ok) {
           const data = await res.json();
           setTitles(data.titles || []);
@@ -57,7 +58,7 @@ export default function CustomizePage() {
   const handleEquipTitle = async (title: TitleItem) => {
     setIsEquipping(title.id);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/character/titles/equip", {
+      const res = await fetch(`${API_BASE_URL}/api/character/titles/equip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

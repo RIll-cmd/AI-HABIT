@@ -2,6 +2,11 @@ import json
 import os
 import random
 import asyncio
+from dotenv import load_dotenv
+
+# Load env variables from server/.env
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
 from prisma import Prisma
 
 # Item Types
@@ -48,6 +53,38 @@ def guess_type(name):
         
     return MATERIAL # Default fallback
 
+EXACT_ITEM_LORES = {
+    "Shadow Blade": "Forged from shadow-tempered steel harvested from F-Rank Gate rift edges. It absorbs ambient darkness to maintain a razor-sharp edge.",
+    "Dragon Slayer": "A colossal broadsword forged from the calcified rib cage of an S-Rank Drake. Legend says its blade ignites when wielded by an Ascendant with unyielding physical strength.",
+    "Health Potion": "A distilled crimson solution infused with condensed life energy. Restores cellular integrity and seals physical wounds instantly upon consumption.",
+    "EXP Elixir": "A luminous blue elixir brewed from distilled mana roots. Stimulates the Ascendant's neural pathways, accelerating overall experience growth and neural adaptation.",
+    "Guardian Cuirass": "Heavy chest armor hammered from high-density titan alloys. Designed to disperse brute physical force and shockwaves across its entire frame.",
+    "Ring of Dominion": "An ancient ring inscribed with runic binding glyphs. It enhances both muscle fiber recruitment and mental processing speed.",
+    "Double-EXP Token (1Hr)": "A synthesized system chip encoded with double experience algorithms. Temporarily doubles all EXP earned from daily disciplines and workouts.",
+    "Double-Gold Potion": "A sparkling golden tonic infused with fortune-channeling mana. Temporarily doubles all Gold currency rewards earned across missions.",
+    "Title Scroll: The Awakened": "An ancient parchment carrying the soul seal of an Awakened Monarch. Grants the prestige title 'The Awakened'.",
+    "Glowing Profile Border": "A luminous holographic ring forged from high-frequency energy particles. Displays a radiant border around the Ascendant's avatar.",
+}
+
+def get_rich_lore(name, item_type, rarity):
+    if name in EXACT_ITEM_LORES:
+        return EXACT_ITEM_LORES[name]
+    
+    r_lower = rarity.lower()
+    
+    if item_type == "WEAPON":
+        return f"A {r_lower} {name.lower()} imbued with compressed system mana. Its refined blade channels the wielder's kinetic discipline into decisive strike power."
+    elif item_type in ["HELMET", "ARMOR", "GLOVES", "BOOTS"]:
+        return f"A {r_lower} piece of defensive gear reinforced with high-grade alloy fibers. Designed to absorb kinetic impact and insulate the Ascendant against high-tier boss strikes."
+    elif item_type in ["RING", "NECKLACE"]:
+        return f"A {r_lower} accessory enchanted with ancient runic conduits. Resonates with the wearer's neural core, amplifying stat scaling and focus."
+    elif item_type == "CONSUMABLE":
+        return f"A highly concentrated {r_lower} alchemical solution. Synthesized to restore physical stamina and optimize the body's internal energy flow."
+    elif item_type in ["ARTIFACT", "RELIC"]:
+        return f"An ancient {r_lower} relic discovered within deep Gate dungeons. Radiates high-density system mana that empowers the owner's combat trajectory."
+    else:
+        return f"A rare {r_lower} material synthesized from Gate rifts. Highly valued by blacksmiths and alchemists for gear enhancement."
+
 async def main():
     json_path = os.path.join(os.path.dirname(__file__), "..", "..", "client", "public", "icons", "item-names.json")
     
@@ -80,11 +117,12 @@ async def main():
         knowledge = random.randint(0, 15) if item_type != CONSUMABLE and item_type != MATERIAL else 0
         
         sell_value = random.randint(10, 500)
+        lore_desc = get_rich_lore(item_name, item_type, item_rarity)
         
         await db.itemdefinition.create(
             data={
                 "name": item_name,
-                "description": f"A {item_rarity.lower()} {item_name}.",
+                "description": lore_desc,
                 "type": item_type,
                 "rarity": item_rarity,
                 "icon": icon_path,

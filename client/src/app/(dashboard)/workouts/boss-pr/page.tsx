@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useWorkoutStore } from "@/features/workouts/store/useWorkoutStore";
 
 import { API_BASE_URL } from "@/constants";
+import { getEnemySpriteUrl } from "@/utils/spriteUtils";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 
 export default function BossPRPage() {
   const { user } = useUser();
@@ -114,10 +116,11 @@ export default function BossPRPage() {
               {boss.name}
             </Badge>
             <div className="h-48 flex items-center justify-center my-4">
-               {boss.bossSprite ? (
+               {boss.name || boss.bossSprite ? (
                  <img 
-                   src={`/BossesAndEnemies_sprite/cropped/${boss.bossSprite}`} 
-                   alt={boss.name}
+                   src={getEnemySpriteUrl(boss.name || boss.bossSprite || "Gym Behemoth", { isBoss: true, preferAnimated: true })} 
+                   alt={boss.name || "Weekly Boss"}
+                   onError={(e) => { e.currentTarget.src = "/bosses/gollux.gif"; }}
                    className={`h-full object-contain ${boss.isDefeated ? 'grayscale opacity-50' : 'drop-shadow-[0_0_20px_rgba(220,38,38,0.4)] hover:scale-105 transition-transform'}`}
                  />
                ) : (
@@ -166,8 +169,9 @@ export default function BossPRPage() {
                 <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 text-sm font-bold">
                   +{rewards.exp} EXP
                 </Badge>
-                <Badge className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 text-sm font-bold">
-                  +{rewards.gold} Gold
+                <Badge className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 text-sm font-bold flex items-center gap-1.5">
+                  <CurrencyIcon type="GOLD" size="xs" />
+                  <span>+{rewards.gold} Gold</span>
                 </Badge>
                 <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1 text-sm font-bold uppercase">
                   +1 {rewards.stat}

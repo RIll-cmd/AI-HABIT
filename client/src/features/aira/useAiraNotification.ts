@@ -6,12 +6,12 @@ import { useTowerStore } from "@/features/tower/store/useTowerStore";
 import { useHabitStore } from "@/features/habits/store";
 import { useBossStore } from "@/features/bosses/store/useBossStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
-import { playVoiceLine } from "@/utils/audio";
+import { playVoiceLine, playAIRASound } from "@/utils/audio";
 
 /**
  * Global AIRA Periodic Briefing & Notification Manager Hook.
- * Runs a 60-second interval when active on the Dashboard to inspect
- * character, tower, habit, and boss states and present tactical HUD notifications.
+ * Runs an initial briefing scan (5s after entering) and repeats every 60 seconds (1 minute)
+ * to inspect character, tower, habit, and boss states and play tactical AIRA notifications.
  */
 export function useAiraNotification() {
   const pathname = usePathname();
@@ -22,9 +22,10 @@ export function useAiraNotification() {
     // Only run periodic analysis if enabled
     if (!autoBriefingsEnabled) return;
 
-    // Check if user is currently on the Dashboard
-    const isDashboard = pathname === "/" || pathname === "/dashboard";
-    if (!isDashboard) return;
+    // Do not run on unauthenticated public auth routes
+    const isPublicAuth =
+      pathname === "/login" || pathname === "/register" || pathname === "/unauthorized" || pathname === "/landing";
+    if (isPublicAuth) return;
 
     const runAnalysis = () => {
       const character = useCharacterStore.getState().character;
@@ -90,13 +91,17 @@ export function useAiraNotification() {
       // Dispatch Toast & Audio Cue
       showPeriodicToast(selectedBriefing.text, selectedBriefing.category);
       useNotificationStore.getState().addNotification(notificationCategory as any, selectedBriefing.text);
-      playVoiceLine("/sounds/AIRA Persona/AI-NOTICE.mp3");
+      
+      // Play AIRA Notice sound audio
+      playAIRASound("NOTICE");
     };
 
-    // Run initial briefing scan after 10 seconds, then repeat every 60 seconds (1 minute)
+    // Run initial briefing scan after 5 seconds, then repeat every 60 seconds (1 minute)
+    const initialTimerId = setTimeout(runAnalysis, 5000);
     const intervalId = setInterval(runAnalysis, 60000);
 
     return () => {
+      clearTimeout(initialTimerId);
       clearInterval(intervalId);
     };
   }, [pathname, autoBriefingsEnabled, showPeriodicToast]);

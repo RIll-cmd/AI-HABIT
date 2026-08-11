@@ -85,10 +85,10 @@ async def main():
 
     # 2.5 SEED SHOP CONSUMABLES
     consumables = [
-        {"name": "Double-EXP Token (1Hr)", "desc": "Grants 2x EXP for 1 hour or 5 activities.", "type": "CONSUMABLE", "rarity": "RARE", "icon": "/icons/Icon88.png", "price": 500, "currency": "GOLD"},
-        {"name": "Double-Gold Potion", "desc": "Grants 2x Gold for 1 hour or 5 activities.", "type": "CONSUMABLE", "rarity": "RARE", "icon": "/icons/Icon95.png", "price": 500, "currency": "GOLD"},
-        {"name": "Title Scroll: The Awakened", "desc": "Unlocks 'The Awakened' profile title.", "type": "COSMETIC", "rarity": "EPIC", "icon": "/icons/Icon102.png", "price": 100, "currency": "GEMS"},
-        {"name": "Glowing Profile Border", "desc": "A radiant border for your avatar.", "type": "COSMETIC", "rarity": "LEGENDARY", "icon": "/icons/Icon155.png", "price": 300, "currency": "GEMS"},
+        {"name": "Double-EXP Token (1Hr)", "desc": "A synthesized system chip encoded with double experience algorithms. Temporarily doubles all EXP earned from daily disciplines and workouts.", "type": "CONSUMABLE", "rarity": "RARE", "icon": "/icons/Icon88.png", "price": 500, "currency": "GOLD"},
+        {"name": "Double-Gold Potion", "desc": "A sparkling golden tonic infused with fortune-channeling mana. Temporarily doubles all Gold currency rewards earned across missions.", "type": "CONSUMABLE", "rarity": "RARE", "icon": "/icons/Icon95.png", "price": 500, "currency": "GOLD"},
+        {"name": "Title Scroll: The Awakened", "desc": "An ancient parchment carrying the soul seal of an Awakened Monarch. Grants the prestige title 'The Awakened'.", "type": "COSMETIC", "rarity": "EPIC", "icon": "/icons/Icon102.png", "price": 100, "currency": "GEMS"},
+        {"name": "Glowing Profile Border", "desc": "A luminous holographic ring forged from high-frequency energy particles. Displays a radiant border around the Ascendant's avatar.", "type": "COSMETIC", "rarity": "LEGENDARY", "icon": "/icons/Icon155.png", "price": 300, "currency": "GEMS"},
     ]
 
     for item in consumables:

@@ -5,7 +5,8 @@ import { useShopStore } from "@/features/shop/store/useShopStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { ShopItemCard } from "@/features/shop/components/ShopItemCard";
 import { CielShopCoaching } from "@/features/shop/components/CielShopCoaching";
-import { Coins, Diamond, Shield, Store, Loader2, RotateCw } from "lucide-react";
+import { Store, Loader2, RotateCw } from "lucide-react";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,29 +68,23 @@ export default function ShopPage() {
           
           <div className="flex gap-4">
             <Card className="bg-black/40 border-yellow-500/20 px-4 py-3 flex items-center gap-3 backdrop-blur-md">
-              <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                <Coins className="w-5 h-5 text-yellow-400" />
-              </div>
+              <CurrencyIcon type="GOLD" size="lg" />
               <div>
                 <p className="text-xs text-yellow-500/70 font-semibold uppercase tracking-wider">Gold</p>
                 <p className="text-xl font-bold text-yellow-400">{character.gold.toLocaleString()}</p>
               </div>
             </Card>
             <Card className="bg-black/40 border-cyan-500/20 px-4 py-3 flex items-center gap-3 backdrop-blur-md hidden sm:flex">
-              <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center">
-                <Diamond className="w-5 h-5 text-cyan-400" />
-              </div>
+              <CurrencyIcon type="GEMS" size="lg" />
               <div>
                 <p className="text-xs text-cyan-500/70 font-semibold uppercase tracking-wider">Gems</p>
                 <p className="text-xl font-bold text-cyan-400">{(character.gems || 0).toLocaleString()}</p>
               </div>
             </Card>
             <Card className="bg-black/40 border-purple-500/20 px-4 py-3 flex items-center gap-3 backdrop-blur-md hidden sm:flex">
-              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-purple-400" />
-              </div>
+              <CurrencyIcon type="THIRD" size="lg" />
               <div>
-                <p className="text-xs text-purple-500/70 font-semibold uppercase tracking-wider">Tower Tokens</p>
+                <p className="text-xs text-purple-500/70 font-semibold uppercase tracking-wider">3rd Currency</p>
                 <p className="text-xl font-bold text-purple-400">{(character.towerTokens || 0).toLocaleString()}</p>
               </div>
             </Card>

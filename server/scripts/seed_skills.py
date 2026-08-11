@@ -1,11 +1,14 @@
-import json
-import re
-import asyncio
+import sys
 from pathlib import Path
-from db import db
 
 # Base paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "server"))
+
+import json
+import re
+import asyncio
+from db import db
 MARKDOWN_PATH = PROJECT_ROOT / "client" / "public" / "skills_icon" / "skill_name.md"
 
 def extract_json_blocks(markdown_content):
