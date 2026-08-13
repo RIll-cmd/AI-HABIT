@@ -7,16 +7,77 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAiraNotification } from "@/features/aira/useAiraNotification";
 import { AiraPeriodicToast } from "@/features/aira/components/AiraPeriodicToast";
 
+/* Arcane rune glyphs for the floating rune system */
+const RUNE_GLYPHS = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ", "ᚺ", "ᚾ", "ᛁ", "ᛃ", "ᛈ", "ᛇ", "ᛉ", "ᛊ", "ᛏ", "ᛒ", "ᛗ", "ᛚ", "ᛞ", "ᛟ"];
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Initialize global AIRA 60-second periodic briefing hook
   useAiraNotification();
 
   return (
-    <div suppressHydrationWarning className="flex h-screen w-full bg-[#050a18] text-slate-100 overflow-hidden font-sans relative">
-      {/* Subtle ambient background glow for the entire shell */}
+    <div suppressHydrationWarning className="flex h-screen w-full bg-[#030712] text-slate-100 overflow-hidden font-sans relative scan-lines">
+      
+      {/* === CINEMATIC AMBIENT BACKGROUND SYSTEM === */}
       <div suppressHydrationWarning className="absolute inset-0 pointer-events-none z-0">
-        <div suppressHydrationWarning className="absolute top-0 left-1/3 w-[600px] h-[400px] bg-cyan-500/[0.03] rounded-full blur-[150px]" />
-        <div suppressHydrationWarning className="absolute bottom-0 right-1/4 w-[500px] h-[400px] bg-indigo-500/[0.03] rounded-full blur-[140px]" />
+        
+        {/* Energy Grid Pattern */}
+        <div suppressHydrationWarning className="absolute inset-0 energy-grid opacity-40" />
+        
+        {/* Animated Glow Orbs — slow drifting ambient light */}
+        <div suppressHydrationWarning className="absolute top-[-10%] left-[20%] w-[700px] h-[500px] bg-cyan-500/[0.035] rounded-full blur-[180px] animate-float-slow" />
+        <div suppressHydrationWarning className="absolute bottom-[-5%] right-[15%] w-[600px] h-[500px] bg-indigo-500/[0.03] rounded-full blur-[160px] animate-float-slow" style={{ animationDelay: '-3s' }} />
+        <div suppressHydrationWarning className="absolute top-[40%] left-[60%] w-[400px] h-[400px] bg-purple-500/[0.025] rounded-full blur-[140px] animate-float-slow" style={{ animationDelay: '-5s' }} />
+        <div suppressHydrationWarning className="absolute top-[70%] left-[10%] w-[350px] h-[350px] bg-cyan-400/[0.02] rounded-full blur-[120px] animate-float-slow" style={{ animationDelay: '-7s' }} />
+        
+        {/* Floating Particles — small energy dots */}
+        {[...Array(12)].map((_, i) => (
+          <div 
+            key={`particle-${i}`}
+            suppressHydrationWarning
+            className="absolute w-1 h-1 rounded-full bg-cyan-400/40"
+            style={{
+              left: `${8 + (i * 7.5) % 85}%`,
+              bottom: `${-5}%`,
+              animation: `particle-float ${12 + (i * 2.3)}s linear infinite`,
+              animationDelay: `${i * 1.5}s`,
+            }}
+          />
+        ))}
+        
+        {/* Floating Rune Glyphs — arcane symbols drifting upward */}
+        {RUNE_GLYPHS.slice(0, 10).map((rune, i) => (
+          <span
+            key={`rune-bg-${i}`}
+            suppressHydrationWarning
+            className="rune text-cyan-400/30"
+            style={{
+              left: `${5 + (i * 9.5) % 90}%`,
+              bottom: `${5 + (i * 12) % 40}%`,
+              fontSize: `${10 + (i % 4) * 3}px`,
+              animationDuration: `${10 + (i * 1.7)}s`,
+              animationDelay: `${i * 2.2}s`,
+            }}
+          >
+            {rune}
+          </span>
+        ))}
+        
+        {/* Additional drifting runes with purple tint */}
+        {RUNE_GLYPHS.slice(10, 16).map((rune, i) => (
+          <span
+            key={`rune-drift-${i}`}
+            suppressHydrationWarning
+            className="rune-drift text-purple-400/25"
+            style={{
+              left: `${15 + (i * 14) % 70}%`,
+              bottom: `${20 + (i * 18) % 50}%`,
+              animationDuration: `${13 + (i * 2)}s`,
+              animationDelay: `${i * 3.5}s`,
+            }}
+          >
+            {rune}
+          </span>
+        ))}
       </div>
 
       <Sidebar />

@@ -64,24 +64,29 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
 
   const isCompleted = mission.status === "COMPLETED";
 
-  return (
-    <Card className={`bg-[#0a1024]/90 border-cyan-500/15 transition-all duration-200 hover:border-cyan-400/40 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] relative overflow-hidden rounded-2xl ${
-      isCompleted ? "border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : ""
-    }`}>
-      {/* Top accent bar */}
-      <div
-        className={`absolute top-0 left-0 right-0 h-1 ${
-          isCompleted
-            ? "bg-emerald-500"
-            : difficulty === "HARD"
-            ? "bg-amber-500"
-            : difficulty === "MEDIUM"
-            ? "bg-blue-500"
-            : "bg-emerald-500"
-        }`}
-      />
+  const accentColor = isCompleted
+    ? "from-emerald-500 via-emerald-400 to-emerald-500"
+    : difficulty === "HARD"
+    ? "from-amber-500 via-orange-400 to-amber-500"
+    : difficulty === "MEDIUM"
+    ? "from-blue-500 via-cyan-400 to-blue-500"
+    : "from-emerald-500 via-cyan-400 to-emerald-500";
 
-      <CardContent className="p-4 pt-5 space-y-3">
+  return (
+    <Card className={`bg-[#0a1024]/90 border-cyan-500/10 transition-all duration-400 hover:border-cyan-400/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] relative overflow-hidden rounded-2xl sweep-light ${
+      isCompleted ? "border-emerald-500/30 bg-emerald-950/15 shadow-[0_0_20px_rgba(16,185,129,0.1)] animate-energy-pulse" : ""
+    }`}>
+      {/* Animated top accent bar with gradient sweep */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden">
+        <div className={`h-full bg-gradient-to-r ${accentColor} animate-gradient-shift`} style={{ backgroundSize: '200% 100%' }} />
+      </div>
+
+      {/* Rune accent for completed */}
+      {isCompleted && (
+        <span suppressHydrationWarning className="rune-static text-emerald-400/15" style={{ top: '10%', right: '5%', fontSize: '12px', animationDelay: '0s' }}>ᛊ</span>
+      )}
+
+      <CardContent className="p-4 pt-5 space-y-3 relative z-10">
         {/* Header Badges & Title */}
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 min-w-0">
@@ -112,8 +117,8 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
             )}
           </div>
 
-          <div className="flex items-center space-x-1 shrink-0 bg-slate-800/80 px-2 py-1 rounded-lg border border-white/5">
-            <StatIcon className="w-3.5 h-3.5 text-purple-400" />
+          <div className="flex items-center space-x-1 shrink-0 bg-slate-800/80 px-2 py-1 rounded-lg border border-white/5 hover:border-purple-500/20 transition-colors">
+            <StatIcon className="w-3.5 h-3.5 text-purple-400 glow-purple" />
             <span className="text-[11px] font-medium text-slate-300 capitalize">
               {habit.primaryStat}
             </span>
@@ -122,9 +127,9 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
 
         {/* COMPLETED STATE DISPLAY */}
         {isCompleted ? (
-          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 flex items-center justify-between text-xs">
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 flex items-center justify-between text-xs shadow-[0_0_15px_rgba(16,185,129,0.1)]">
             <div className="flex items-center space-x-2 text-emerald-400 font-semibold">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 glow-emerald" />
               <span>Completed ({mission.completionType || "NORMAL"})</span>
             </div>
             <div className="flex items-center space-x-3 font-mono font-bold">
@@ -154,7 +159,7 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
                   playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
                   onComplete(mission.id, habit, "MINI");
                 }}
-                className="border-white/10 hover:border-slate-400 hover:bg-slate-800/80 flex flex-col items-center py-2.5 h-auto text-slate-300"
+                className="border-white/10 hover:border-slate-400 hover:bg-slate-800/80 hover:shadow-[0_0_12px_rgba(148,163,184,0.1)] flex flex-col items-center py-2.5 h-auto text-slate-300 transition-all duration-300"
               >
                 <span className="text-xs font-bold text-slate-200">MINI (40%)</span>
                 <span className="text-[10px] text-blue-400 font-mono font-semibold">
@@ -170,7 +175,7 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
                   playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
                   onComplete(mission.id, habit, "NORMAL");
                 }}
-                className="border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-white flex flex-col items-center py-2.5 h-auto"
+                className="border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] text-white flex flex-col items-center py-2.5 h-auto transition-all duration-300"
               >
                 <span className="text-xs font-bold text-blue-300">NORMAL (100%)</span>
                 <span className="text-[10px] text-blue-400 font-mono font-semibold">
@@ -186,7 +191,7 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
                   playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
                   onComplete(mission.id, habit, "ELITE");
                 }}
-                className="border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-white flex flex-col items-center py-2.5 h-auto"
+                className="border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] text-white flex flex-col items-center py-2.5 h-auto transition-all duration-300"
               >
                 <span className="text-xs font-bold text-amber-300">ELITE (170%)</span>
                 <span className="text-[10px] text-amber-400 font-mono font-semibold">

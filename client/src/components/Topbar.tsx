@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Bell,
   Settings,
@@ -91,14 +92,24 @@ export function Topbar() {
         onClose={() => setIsSettingsOpen(false)} 
         username={username} 
       />
-      <header suppressHydrationWarning className="h-[72px] px-4 sm:px-6 border-b border-cyan-500/10 bg-[#050a18]/90 backdrop-blur-xl flex items-center justify-between shrink-0 select-none font-sans sticky top-0 z-40 shadow-lg shadow-black/20">
+      <header suppressHydrationWarning className="h-[72px] px-4 sm:px-6 border-b border-cyan-500/10 bg-[#030712]/90 backdrop-blur-2xl flex items-center justify-between shrink-0 select-none font-sans sticky top-0 z-40 shadow-lg shadow-black/30 relative overflow-hidden">
+        
+        {/* Topbar bottom glow line */}
+        <div suppressHydrationWarning className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+        
+        {/* Subtle scan lines */}
+        <div suppressHydrationWarning className="absolute inset-0 bg-repeating-linear-gradient pointer-events-none opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(6,182,212,0.01) 3px, rgba(6,182,212,0.01) 6px)' }} />
+        
+        {/* Floating rune accents */}
+        <span suppressHydrationWarning className="rune-static text-cyan-400/10" style={{ top: '15%', left: '35%', fontSize: '10px', animationDelay: '1s' }}>ᚨ</span>
+        <span suppressHydrationWarning className="rune-static text-purple-400/10" style={{ top: '20%', right: '40%', fontSize: '9px', animationDelay: '3s' }}>ᛃ</span>
         
         {/* LEFT: CHARACTER PROFILE */}
-        <div suppressHydrationWarning className="flex items-center gap-4 flex-1">
+        <div suppressHydrationWarning className="flex items-center gap-4 flex-1 relative z-10">
           
           {/* Mobile Logo Fallback */}
           <Link href="/dashboard" className="md:hidden flex items-center gap-2">
-            <div suppressHydrationWarning className="w-8 h-8 rounded-[12px] bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+            <div suppressHydrationWarning className="w-8 h-8 rounded-[12px] bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 animate-energy-pulse">
               <Sparkles className="w-4 h-4" />
             </div>
           </Link>
@@ -106,9 +117,15 @@ export function Topbar() {
           {/* Interactive Profile Quick-Hub Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div suppressHydrationWarning className="hidden md:flex items-center gap-3 p-1.5 pr-5 rounded-2xl border border-transparent cursor-pointer hover:border-cyan-500/40 hover:bg-cyan-950/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all duration-300 group">
+              <motion.div
+                suppressHydrationWarning
+                className="hidden md:flex items-center gap-3 p-1.5 pr-5 rounded-2xl border border-transparent cursor-pointer hover:border-cyan-500/30 hover:bg-cyan-950/20 hover:shadow-[0_0_25px_rgba(6,182,212,0.1)] transition-all duration-400 group"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              >
                 {/* Avatar Sprite */}
-                <div suppressHydrationWarning className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0a1024] to-[#0d1430] border border-cyan-500/20 flex items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.1)] p-1 group-hover:border-cyan-400/40 transition-colors">
+                <div suppressHydrationWarning className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0a1024] to-[#0d1430] border border-cyan-500/20 flex items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.15)] p-1 group-hover:border-cyan-400/50 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-400">
                   <img
                     src={CHARACTER_AVATAR_SPRITE}
                     alt="Character Avatar"
@@ -116,7 +133,7 @@ export function Topbar() {
                     style={{ imageRendering: "pixelated" }}
                   />
                   {/* Corner pulse dot */}
-                  <div suppressHydrationWarning className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                  <div suppressHydrationWarning className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                 </div>
 
                 <div suppressHydrationWarning className="flex flex-col justify-center">
@@ -125,7 +142,7 @@ export function Topbar() {
                       {name}
                     </h2>
                     <div suppressHydrationWarning className="flex items-center gap-2 text-xs font-mono font-bold">
-                      <span className="text-cyan-400">Lv. {levelData.currentLevel}</span>
+                      <span className="text-cyan-400 animate-number-glow">Lv. {levelData.currentLevel}</span>
                     </div>
                   </div>
                   
@@ -133,12 +150,12 @@ export function Topbar() {
                     Rank: <span className="text-cyan-300 font-bold">{rank}-Rank</span>
                   </div>
 
-                  {/* EXP Bar — upgraded with glow */}
+                  {/* EXP Bar — with shimmer sweep */}
                   <div suppressHydrationWarning className="flex items-center gap-2">
-                    <div suppressHydrationWarning className="w-32 h-1.5 bg-slate-800/80 rounded-full overflow-hidden border border-white/5">
+                    <div suppressHydrationWarning className="w-32 h-1.5 bg-slate-800/80 rounded-full overflow-hidden border border-white/5 relative">
                       <div 
                         suppressHydrationWarning
-                        className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.5)] transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)] transition-all duration-700 bar-shimmer"
                         style={{ width: `${levelData.progressPercentage}%` }}
                       />
                     </div>
@@ -147,10 +164,10 @@ export function Topbar() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </DropdownMenuTrigger>
             
-            <DropdownMenuContent align="start" className="bg-[#0a1024]/95 backdrop-blur-xl border-cyan-500/20 text-slate-200 w-80 shadow-2xl shadow-black/60 p-4 rounded-2xl font-sans mt-2">
+            <DropdownMenuContent align="start" className="bg-[#0a1024]/95 backdrop-blur-2xl border-cyan-500/20 text-slate-200 w-80 shadow-2xl shadow-black/60 p-4 rounded-2xl font-sans mt-2">
               <div suppressHydrationWarning className="flex items-center gap-4 mb-4">
                 <div suppressHydrationWarning className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#0a1024] to-[#0d1430] border border-cyan-500/30 flex items-center justify-center p-1 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
                   <img src={CHARACTER_AVATAR_SPRITE} alt="Avatar" className="w-full h-full object-contain" style={{ imageRendering: "pixelated" }} />
@@ -239,23 +256,29 @@ export function Topbar() {
         </div>
 
         {/* RIGHT: CURRENCIES, NOTIFICATIONS, SETTINGS */}
-        <div suppressHydrationWarning className="flex items-center gap-5">
+        <div suppressHydrationWarning className="flex items-center gap-5 relative z-10">
           
-          {/* Currencies — upgraded with glow badges */}
-          <div suppressHydrationWarning className="hidden lg:flex items-center gap-4">
-            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-amber-950/20 border border-amber-500/15 hover:border-amber-400/40 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)] transition-all duration-200 cursor-default">
+          {/* Currencies — with float animation + glow */}
+          <motion.div
+            suppressHydrationWarning
+            className="hidden lg:flex items-center gap-4"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-amber-950/20 border border-amber-500/15 hover:border-amber-400/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-all duration-300 cursor-default animate-float-gentle" style={{ animationDelay: '0s' }}>
               <CurrencyIcon type="GOLD" size="sm" />
               <span className="text-xs font-mono text-amber-200 font-bold">{gold.toLocaleString()}</span>
               <span className="text-[10px] text-amber-500/50 ml-0.5">+</span>
             </div>
 
-            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-cyan-950/20 border border-cyan-500/15 hover:border-cyan-400/40 hover:shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all duration-200 cursor-default">
+            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-cyan-950/20 border border-cyan-500/15 hover:border-cyan-400/40 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300 cursor-default animate-float-gentle" style={{ animationDelay: '-1.5s' }}>
               <CurrencyIcon type="GEMS" size="sm" />
               <span className="text-xs font-mono text-cyan-200 font-bold">{gems.toLocaleString()}</span>
               <span className="text-[10px] text-cyan-500/50 ml-0.5">+</span>
             </div>
 
-            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-indigo-950/20 border border-indigo-500/15 hover:border-indigo-400/40 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all duration-200 cursor-default">
+            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-indigo-950/20 border border-indigo-500/15 hover:border-indigo-400/40 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 cursor-default animate-float-gentle" style={{ animationDelay: '-3s' }}>
               <CurrencyIcon type="THIRD" size="sm" />
               <span className="text-xs font-mono text-indigo-200 font-bold">{towerTokens.toLocaleString()}</span>
               <span className="text-[10px] text-indigo-500/50 ml-0.5">+</span>
@@ -263,7 +286,7 @@ export function Topbar() {
 
             {/* Streak Freeze Shield Badge */}
             <Link href="/calendar">
-              <div suppressHydrationWarning className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-950/30 border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] cursor-pointer transition-all duration-200">
+              <div suppressHydrationWarning className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-950/30 border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer transition-all duration-300">
                 <span className="text-xs font-mono text-purple-300 font-bold">🛡️ {character?.streakFreezes || 0}</span>
               </div>
             </Link>
@@ -277,17 +300,17 @@ export function Topbar() {
                 </span>
               </div>
             ))}
-          </div>
+          </motion.div>
 
           <div suppressHydrationWarning className="h-6 w-px bg-cyan-500/10 hidden lg:block mx-1" />
 
           {/* Action Icons */}
           <div suppressHydrationWarning className="flex items-center gap-1 sm:gap-2">
             <NotificationDrawer>
-              <Button suppressHydrationWarning variant="ghost" size="icon" className="relative text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer rounded-xl transition-all duration-200">
+              <Button suppressHydrationWarning variant="ghost" size="icon" className="relative text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer rounded-xl transition-all duration-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]">
                 <Bell className="w-4 h-4" />
                 {isMounted && unreadCount > 0 && (
-                  <span suppressHydrationWarning className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                  <span suppressHydrationWarning className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.9),0_0_20px_rgba(6,182,212,0.4)] animate-beacon" />
                 )}
               </Button>
             </NotificationDrawer>
@@ -295,11 +318,11 @@ export function Topbar() {
             {/* Settings Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-xl transition-all duration-200">
+                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-xl transition-all duration-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]">
                   <Settings className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[#0a1024]/95 backdrop-blur-xl border-cyan-500/20 text-slate-200 text-xs w-52 shadow-2xl shadow-black/60 rounded-2xl p-2">
+              <DropdownMenuContent align="end" className="bg-[#0a1024]/95 backdrop-blur-2xl border-cyan-500/20 text-slate-200 text-xs w-52 shadow-2xl shadow-black/60 rounded-2xl p-2">
                 <DropdownMenuLabel className="font-sans px-3 py-2">
                   <div className="font-bold text-white text-sm">System Settings</div>
                 </DropdownMenuLabel>
