@@ -7,7 +7,7 @@ const getApiBaseUrl = () => {
   if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
     return "https://ai-habit-omega-backend.onrender.com";
   }
-  return "http://localhost:8000";
+  return "http://127.0.0.1:8000";
 };
 
 export const API_BASE_URL = getApiBaseUrl();

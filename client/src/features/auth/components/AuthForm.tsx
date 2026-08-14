@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/useAuthStore";
+import { API_BASE_URL } from "@/constants";
 
 interface AuthFormProps {
   mode: "login" | "register" | "guest";
@@ -41,7 +42,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   // Username & Password Validation Rules
   const hasMinLength = username.length >= 3;
   const hasMaxLength = username.length <= 20;
-  const isAlphanumeric = /^[a-zA-Z0-9_]+$/.test(username);
+  const isAlphanumeric = /^[a-zA-Z0-9_]*$/.test(username);
   const isValidUsername = hasMinLength && hasMaxLength && isAlphanumeric;
   const hasPasswordMinLength = password.length >= 6;
 
@@ -55,7 +56,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${endpoint}`, {
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -79,7 +80,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       
       router.push("/dashboard");
     } catch (err) {
-      console.error(err);
+      console.warn("Auth request failed:", err);
       setErrorMsg("Network error. Please ensure backend is running.");
       setIsLoading(false);
     }
@@ -88,7 +89,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handleGuestGenerate = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/auth/guest`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/guest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -109,8 +110,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       
       router.push("/dashboard");
     } catch (err) {
-      console.error(err);
-      setErrorMsg("Network error.");
+      console.warn("Guest generation network error:", err);
+      setErrorMsg("Network error. Please check your backend connection.");
       setIsLoading(false);
     }
   };

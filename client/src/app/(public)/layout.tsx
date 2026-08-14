@@ -13,11 +13,11 @@ export default function PublicLayout({
       {/* HIGH-TECH TOP NAVIGATION BAR */}
       <header suppressHydrationWarning className="w-full h-20 px-6 sm:px-10 border-b border-cyan-500/10 bg-[#050a18]/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-50 shadow-lg shadow-black/40">
         <Link href="/landing" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:shadow-cyan-400/50 transition-all duration-300 group-hover:scale-105">
+          <div suppressHydrationWarning className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:shadow-cyan-400/50 transition-all duration-300 group-hover:scale-105">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div suppressHydrationWarning>
+            <div suppressHydrationWarning className="flex items-center gap-2">
               <span className="font-bold text-lg font-heading text-white tracking-[0.12em] group-hover:text-cyan-300 transition-colors">
                 ASCEND OS
               </span>
@@ -32,7 +32,7 @@ export default function PublicLayout({
         </Link>
 
         {/* RIGHT NAVIGATION ACTIONS */}
-        <div className="flex items-center gap-3">
+        <div suppressHydrationWarning className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -72,7 +72,7 @@ export default function PublicLayout({
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main suppressHydrationWarning className="flex-1 flex flex-col">{children}</main>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { useCharacterStore } from "@/store/useCharacterStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetcher } from "@/lib/api";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/constants";
 
 interface AccountSettingsModalProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ export function AccountSettingsModal({ isOpen, onClose, username }: AccountSetti
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/auth/account`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/account`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -4,6 +4,7 @@ import { useCharacterStore } from "@/store/useCharacterStore";
 import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
 import { playUISound } from "@/utils/audio";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/constants";
 
 interface ShopStore {
   items: ShopItem[];
@@ -24,7 +25,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   fetchShopItems: async (characterId) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/shop/${characterId}`);
+      const res = await fetch(`${API_BASE_URL}/api/shop/${characterId}`);
       if (!res.ok) throw new Error("Failed to fetch shop items");
       const data = await res.json();
       set({ items: data, isLoading: false });
@@ -37,7 +38,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     set({ isRefreshing: true, error: null });
     playUISound("/sounds/General/10_UI_Menu_SFX/079_Buy_sell_01.wav");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/shop/${characterId}/refresh`, {
+      const res = await fetch(`${API_BASE_URL}/api/shop/${characterId}/refresh`, {
         method: "POST"
       });
       if (!res.ok) throw new Error("Failed to rotate shop stock");
@@ -52,7 +53,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   
   buyItem: async (characterId, shopItemId) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/shop/${characterId}/buy`, {
+      const res = await fetch(`${API_BASE_URL}/api/shop/${characterId}/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shop_item_id: shopItemId })

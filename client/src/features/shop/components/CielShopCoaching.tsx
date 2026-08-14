@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
+import { API_BASE_URL } from "@/constants";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bot, Loader2, Sparkles, LineChart } from "lucide-react";
@@ -20,7 +21,7 @@ export function CielShopCoaching() {
     setIsLoading(true);
     playUISound("/sounds/General/10_UI_Menu_SFX/001_Hover_01.wav");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/aira/shop-analysis/${character.id}`);
+      const res = await fetch(`${API_BASE_URL}/api/aira/shop-analysis/${character.id}`);
       if (res.ok) {
         const data = await res.json();
         setAnalysis(data.analysis);

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 import { useCharacterStore } from "@/store/useCharacterStore";
+import { API_BASE_URL } from "@/constants";
 
 export interface TowerFloor {
   id: string;
@@ -73,7 +74,7 @@ interface TowerStore {
   clearCombatLog: () => void;
 }
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tower`;
+const API_URL = `${API_BASE_URL}/api/tower`;
 
 export const useTowerStore = create<TowerStore>((set, get) => ({
   floors: [],
@@ -145,7 +146,7 @@ export const useTowerStore = create<TowerStore>((set, get) => ({
       set({ isAnalyzing: true });
       try {
         const logsStr = data.events.map((e: any) => `[Turn ${e.turn}] ${e.actor} ${e.action}, dealing ${e.damage} damage.`);
-        const analysisRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/aira/analyze-combat`, {
+        const analysisRes = await fetch(`${API_BASE_URL}/api/aira/analyze-combat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

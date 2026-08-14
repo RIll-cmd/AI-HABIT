@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SkillDefinition, PlayerSkill, SkillUnlockResponse } from '../types';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { API_BASE_URL } from '@/constants';
 import { toast } from 'sonner';
 import { useInventoryStore } from '@/features/inventory/store/useInventoryStore';
 import { calculateTotalCombatStats } from '@/features/inventory/utils/combatStatCalculator';
@@ -17,7 +18,7 @@ interface SkillState {
   unlockSkill: (characterId: string, skillDefinitionId: string) => Promise<void>;
 }
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api`;
+const API_BASE = `${API_BASE_URL}/api`;
 
 export const useSkillStore = create<SkillState>((set, get) => ({
   definitions: [],
