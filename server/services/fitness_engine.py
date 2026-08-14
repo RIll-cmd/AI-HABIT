@@ -327,10 +327,12 @@ async def generate_weekly_boss(character_id: str) -> Any:
     boss_sprite = sprites[hash(character_id) % len(sprites)]
 
     rewards_obj = {
-        "exp": 500,
-        "gold": 100,
+        "exp": 2500,
+        "gold": 1000,
+        "gems": 50,
+        "towerTokens": 100,
         "stat": "strength",
-        "statAmount": 1,
+        "statAmount": 2,
     }
 
     expires_at = now + timedelta(days=7)
@@ -403,7 +405,7 @@ async def check_boss_defeat(session_id: str, character_id: str) -> tuple[bool, O
 
         rewards_dict = json.loads(active_boss.rewards)
 
-        # Grant Boss Rewards (+500 EXP, +100 Gold, +1 Strength)
+        # Grant Boss Rewards (+2500 EXP, +1000 Gold, +50 Gems, +100 Tokens, +2 Strength)
         character = await db.character.find_unique(
             where={"id": character_id},
             include={"stats": True}
@@ -412,17 +414,22 @@ async def check_boss_defeat(session_id: str, character_id: str) -> tuple[bool, O
             await db.character.update(
                 where={"id": character_id},
                 data={
-                    "exp": (character.exp or 0) + rewards_dict.get("exp", 500),
-                    "gold": (character.gold or 0) + rewards_dict.get("gold", 100),
+                    "exp": (character.exp or 0) + rewards_dict.get("exp", 2500),
+                    "gold": (character.gold or 0) + rewards_dict.get("gold", 1000),
+                    "gems": (character.gems or 0) + rewards_dict.get("gems", 50),
+                    "towerTokens": (character.towerTokens or 0) + rewards_dict.get("towerTokens", 100),
                 }
             )
             if character.stats:
                 await db.characterstats.update(
                     where={"characterId": character_id},
                     data={
-                        "strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 1)
+                        "strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 2)
                     }
                 )
+            await db.economylog.create(data={"characterId": character_id, "currency": "GOLD", "amount": rewards_dict.get("gold", 1000), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
+            await db.economylog.create(data={"characterId": character_id, "currency": "GEMS", "amount": rewards_dict.get("gems", 50), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
+            await db.economylog.create(data={"characterId": character_id, "currency": "TOWER_TOKENS", "amount": rewards_dict.get("towerTokens", 100), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
 
         return True, rewards_dict
         
@@ -454,15 +461,20 @@ async def check_boss_defeat(session_id: str, character_id: str) -> tuple[bool, O
                 await db.character.update(
                     where={"id": character_id},
                     data={
-                        "exp": (character.exp or 0) + rewards_dict.get("exp", 500),
-                        "gold": (character.gold or 0) + rewards_dict.get("gold", 100),
+                        "exp": (character.exp or 0) + rewards_dict.get("exp", 2500),
+                        "gold": (character.gold or 0) + rewards_dict.get("gold", 1000),
+                        "gems": (character.gems or 0) + rewards_dict.get("gems", 50),
+                        "towerTokens": (character.towerTokens or 0) + rewards_dict.get("towerTokens", 100),
                     }
                 )
                 if character.stats:
                     await db.characterstats.update(
                         where={"characterId": character_id},
-                        data={"strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 1)}
+                        data={"strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 2)}
                     )
+                await db.economylog.create(data={"characterId": character_id, "currency": "GOLD", "amount": rewards_dict.get("gold", 1000), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
+                await db.economylog.create(data={"characterId": character_id, "currency": "GEMS", "amount": rewards_dict.get("gems", 50), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
+                await db.economylog.create(data={"characterId": character_id, "currency": "TOWER_TOKENS", "amount": rewards_dict.get("towerTokens", 100), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
             return True, rewards_dict
 
     return False, None
@@ -583,15 +595,20 @@ async def apply_set_boss_damage(character_id: str, exercise_name: str, weight: f
             await db.character.update(
                 where={"id": character_id},
                 data={
-                    "exp": (character.exp or 0) + rewards_dict.get("exp", 500),
-                    "gold": (character.gold or 0) + rewards_dict.get("gold", 100),
+                    "exp": (character.exp or 0) + rewards_dict.get("exp", 2500),
+                    "gold": (character.gold or 0) + rewards_dict.get("gold", 1000),
+                    "gems": (character.gems or 0) + rewards_dict.get("gems", 50),
+                    "towerTokens": (character.towerTokens or 0) + rewards_dict.get("towerTokens", 100),
                 }
             )
             if character.stats:
                 await db.characterstats.update(
                     where={"characterId": character_id},
-                    data={"strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 1)}
+                    data={"strength": (character.stats.strength or 1) + rewards_dict.get("statAmount", 2)}
                 )
+            await db.economylog.create(data={"characterId": character_id, "currency": "GOLD", "amount": rewards_dict.get("gold", 1000), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
+            await db.economylog.create(data={"characterId": character_id, "currency": "GEMS", "amount": rewards_dict.get("gems", 50), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
+            await db.economylog.create(data={"characterId": character_id, "currency": "TOWER_TOKENS", "amount": rewards_dict.get("towerTokens", 100), "reason": f"Defeated Weekly Boss PR: {active_boss.name}", "source": "WEEKLY_BOSS"})
         rewards_granted = rewards_dict
 
     hp_percent = max(0.0, 100.0 - (new_damage * 100.0))

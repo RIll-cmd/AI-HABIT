@@ -55,33 +55,40 @@ export const StatRadarChart: React.FC<StatRadarChartProps> = ({
   data,
   primaryName = "Current Stat",
   secondaryName,
-  primaryColor = "#3B82F6",
+  primaryColor = "#06B6D4",
   secondaryColor = "#8B5CF6",
-  height = 340,
+  height = 380,
   showLegend = false,
 }) => {
   const hasSecondary = data.some((d) => d.secondaryValue !== undefined);
 
-  // Compute maximum domain value dynamically
-  const maxVal = Math.max(
-    10,
+  // Compute maximum domain value dynamically so the radar polygon fills the chart
+  const highestDataValue = Math.max(
+    1,
     ...data.map((d) => Math.max(d.value, d.secondaryValue || 0))
   );
-  const domainMax = Math.ceil(maxVal * 1.25);
+
+  // Scale domain intelligently so early game stats (1-5) and late game stats (>50) fill the graph
+  const domainMax =
+    highestDataValue <= 3
+      ? Math.max(highestDataValue + 1, 3)
+      : highestDataValue <= 10
+      ? Math.ceil(highestDataValue * 1.2)
+      : Math.ceil(highestDataValue * 1.12);
 
   return (
     <div className="w-full relative flex items-center justify-center select-none" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data}>
-          <PolarGrid stroke="#334155" strokeDasharray="3 3" />
+        <RadarChart cx="50%" cy="50%" outerRadius="82%" data={data}>
+          <PolarGrid stroke="rgba(6, 182, 212, 0.25)" strokeDasharray="3 3" />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: "#94A3B8", fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}
+            tick={{ fill: "#38BDF8", fontSize: 11, fontWeight: 700, fontFamily: "monospace" }}
           />
           <PolarRadiusAxis
             angle={30}
             domain={[0, domainMax]}
-            tick={{ fill: "#475569", fontSize: 9 }}
+            tick={{ fill: "#64748B", fontSize: 9, fontFamily: "monospace" }}
             axisLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -92,8 +99,9 @@ export const StatRadarChart: React.FC<StatRadarChartProps> = ({
             dataKey="value"
             stroke={primaryColor}
             fill={primaryColor}
-            fillOpacity={0.4}
-            strokeWidth={2}
+            fillOpacity={0.45}
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: primaryColor, stroke: "#0B1020", strokeWidth: 1.5 }}
           />
 
           {/* Secondary Radar (for comparison like Base vs. Equipped) */}
@@ -105,6 +113,7 @@ export const StatRadarChart: React.FC<StatRadarChartProps> = ({
               fill={secondaryColor}
               fillOpacity={0.35}
               strokeWidth={2}
+              dot={{ r: 3, fill: secondaryColor, stroke: "#0B1020", strokeWidth: 1.5 }}
             />
           )}
 

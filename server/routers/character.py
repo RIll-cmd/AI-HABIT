@@ -29,10 +29,21 @@ class RespecStatsInput(BaseModel):
     characterId: str
 
 
-def calculate_power_score(level: int, stats: dict, title_multiplier: float = 1.0) -> int:
-    total_stats = sum(stats.values())
+def calculate_power_score(
+    level: int,
+    stats: dict,
+    title_multiplier: float = 1.0,
+    class_multiplier: float = 1.0,
+    class_stat_bonus: dict = None
+) -> int:
+    eff_stats = dict(stats)
+    if class_stat_bonus:
+        for k, v in class_stat_bonus.items():
+            if k in eff_stats:
+                eff_stats[k] += v
+    total_stats = sum(eff_stats.values())
     base_power = (level * 50) + (total_stats * 10)
-    return int(base_power * title_multiplier)
+    return int(base_power * title_multiplier * class_multiplier)
 
 
 @router.get("/{character_id}")
@@ -418,9 +429,12 @@ async def get_specializations():
 @router.post("/specializations/select")
 async def select_specialization(payload: SelectSpecializationInput):
     """
-    Unlocks and selects a Class Specialization for a character.
+    Unlocks and selects a Class Specialization for a character, verifying both level and stat requirements.
     """
-    char = await db.character.find_unique(where={"id": payload.characterId})
+    char = await db.character.find_unique(
+        where={"id": payload.characterId},
+        include={"stats": True, "specialization": True, "characterTitles": {"where": {"isEquipped": True}, "include": {"title": True}}}
+    )
     if not char:
         raise HTTPException(status_code=404, detail="Character not found.")
 
@@ -428,16 +442,78 @@ async def select_specialization(payload: SelectSpecializationInput):
     if not spec:
         raise HTTPException(status_code=404, detail="Specialization not found.")
 
+    # 1. Level Requirement Check
     if char.level < spec.requiredLevel:
-        raise HTTPException(status_code=400, detail=f"Requires Level {spec.requiredLevel} to unlock {spec.name}.")
+        raise HTTPException(status_code=400, detail=f"Requires Level {spec.requiredLevel} to awaken {spec.name}. (Current Level: {char.level})")
+
+    # 2. Stat Requirements Check
+    if spec.requiredStats and char.stats:
+        try:
+            req_stats = json.loads(spec.requiredStats)
+            unmet_requirements = []
+            for stat_name, min_val in req_stats.items():
+                curr_val = getattr(char.stats, stat_name, 1)
+                if curr_val < min_val:
+                    unmet_requirements.append(f"{stat_name.capitalize()} {min_val} (Current: {curr_val})")
+            
+            if unmet_requirements:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unmet Stat Requirements for {spec.name}: " + ", ".join(unmet_requirements)
+                )
+        except json.JSONDecodeError:
+            pass
+
+    # Parse class bonuses
+    class_bonus = {}
+    if spec.statBonus:
+        try:
+            class_bonus = json.loads(spec.statBonus)
+        except Exception:
+            pass
+
+    # Calculate active title multiplier
+    active_title = char.characterTitles[0].title if (char.characterTitles and char.characterTitles[0].title) else None
+    title_mult = active_title.powerMultiplier if active_title else 1.0
+
+    current_stats = {
+        "strength": char.stats.strength,
+        "knowledge": char.stats.knowledge,
+        "discipline": char.stats.discipline,
+        "focus": char.stats.focus,
+        "endurance": char.stats.endurance,
+        "recovery": char.stats.recovery,
+        "consistency": char.stats.consistency
+    } if char.stats else {}
+
+    new_power = calculate_power_score(
+        char.level,
+        current_stats,
+        title_multiplier=title_mult,
+        class_multiplier=spec.powerMultiplier or 1.20,
+        class_stat_bonus=class_bonus
+    )
 
     updated_char = await db.character.update(
         where={"id": payload.characterId},
-        data={"specializationId": spec.id},
+        data={
+            "specializationId": spec.id,
+            "power": new_power
+        },
         include={"specialization": True, "stats": True}
     )
 
+    # Log Progress History
+    await db.progresshistory.create(
+        data={
+            "characterId": payload.characterId,
+            "type": "CLASS_AWAKENING",
+            "amount": new_power - char.power,
+            "description": f"Awakened Class: {spec.name}! Activated passive perk: {spec.passivePerk or 'Unlocked'}."
+        }
+    )
+
     return {
-        "message": f"Specialization '{spec.name}' selected successfully!",
+        "message": f"Class '{spec.name}' awakened successfully! Passive Perk: {spec.passivePerk or 'Active'}",
         "character": updated_char
     }

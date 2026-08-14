@@ -53,6 +53,10 @@ export interface HabitMetrics {
   successRate: number;
   completionRate: number;
   currentConsistency: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  totalCompletions?: number;
+  healthScore?: number;
 }
 
 export interface Habit {

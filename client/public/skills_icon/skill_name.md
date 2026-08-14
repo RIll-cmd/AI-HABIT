@@ -309,36 +309,46 @@ The skill tree utilizes the 4 elemental rows from `Free_Skills.png` as combat an
   {
     "id": "asc_01",
     "name": "Body Conditioning",
+    "icon": "Row8_Col1",
     "type": "Passive",
-    "requirements": { "Strength": 40, "Endurance": 40 },
+    "tier": 1,
+    "requirements": { "Strength": 20, "Endurance": 20 },
     "description": "Strength & Endurance stat efficiency +4%."
   },
   {
     "id": "asc_02",
     "name": "Mental Fortress",
+    "icon": "Row9_Col6",
     "type": "Passive",
-    "requirements": { "Focus": 40, "Discipline": 40 },
+    "tier": 2,
+    "requirements": { "Focus": 35, "Discipline": 35, "skills": ["asc_01"] },
     "description": "Focus & Discipline stat efficiency +5%."
   },
   {
     "id": "asc_03",
     "name": "Rapid Recovery",
+    "icon": "Row6_Col2",
     "type": "Passive",
-    "requirements": { "Recovery": 50 },
+    "tier": 3,
+    "requirements": { "Recovery": 50, "skills": ["asc_02"] },
     "description": "Energy regeneration speed +8%."
   },
   {
     "id": "asc_04",
     "name": "Tactical Mind",
+    "icon": "Row8_Col8",
     "type": "Passive",
-    "requirements": { "Knowledge": 40, "Focus": 40 },
+    "tier": 4,
+    "requirements": { "Knowledge": 60, "Focus": 60, "skills": ["asc_03"] },
     "description": "Converts Knowledge into +5% Critical Damage."
   },
   {
     "id": "asc_05",
     "name": "Limitless Growth",
-    "type": "Passive",
-    "requirements": { "Consistency": 50 },
+    "icon": "Row10_Col1",
+    "type": "Ultimate",
+    "tier": 5,
+    "requirements": { "Consistency": 70, "skills": ["asc_04"] },
     "description": "EXP gain from daily habits and tower missions increased by +10%."
   }
 ]

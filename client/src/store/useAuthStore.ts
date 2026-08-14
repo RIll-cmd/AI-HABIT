@@ -13,6 +13,7 @@ interface AuthStore {
   isAuthenticated: boolean;
   isLoading: boolean;
   isHydrated: boolean;
+  hydrateAuth: () => void;
   setAuth: (user: UserState, token?: string) => void;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -47,91 +48,106 @@ const clearCookie = () => {
   document.cookie = `ascend_session=; path=/; max-age=0; SameSite=Lax`;
 };
 
-export const useAuthStore = create<AuthStore>((set, get) => {
-  const initialUser = getStoredUser();
-  const initialToken = getStoredToken();
+export const useAuthStore = create<AuthStore>((set, get) => ({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  isLoading: false,
+  isHydrated: false,
 
-  return {
-    user: initialUser,
-    token: initialToken,
-    isAuthenticated: !!(initialUser || initialToken),
-    isLoading: false,
-    isHydrated: true,
+  hydrateAuth: () => {
+    if (typeof window === "undefined") return;
+    const initialUser = getStoredUser();
+    const initialToken = getStoredToken();
+    const hasAuth = !!(initialUser || initialToken);
+    set({
+      user: initialUser,
+      token: initialToken,
+      isAuthenticated: hasAuth,
+      isHydrated: true,
+    });
+    if (hasAuth) {
+      get().checkAuth();
+    }
+  },
 
-    setAuth: (user, token) => {
-      if (token) {
-        setCookie(token);
-        try {
-          localStorage.setItem("ascend_session", token);
-        } catch {}
-      }
+  setAuth: (user, token) => {
+    if (token) {
+      setCookie(token);
       try {
-        localStorage.setItem("ascend_user", JSON.stringify(user));
+        localStorage.setItem("ascend_session", token);
       } catch {}
+    }
+    try {
+      localStorage.setItem("ascend_user", JSON.stringify(user));
+    } catch {}
 
-      set({
-        user,
-        token: token || get().token,
-        isAuthenticated: true,
-        isLoading: false,
-        isHydrated: true,
-      });
-    },
+    set({
+      user,
+      token: token || get().token,
+      isAuthenticated: true,
+      isLoading: false,
+      isHydrated: true,
+    });
+  },
 
-    logout: () => {
-      clearCookie();
-      try {
-        localStorage.removeItem("ascend_session");
-        localStorage.removeItem("ascend_user");
-      } catch {}
-      set({ user: null, token: null, isAuthenticated: false, isLoading: false, isHydrated: true });
-      useCharacterStore.getState().setCharacter(null);
-    },
+  logout: () => {
+    clearCookie();
+    try {
+      localStorage.removeItem("ascend_session");
+      localStorage.removeItem("ascend_user");
+      localStorage.removeItem("ascend_character_id");
+    } catch {}
+    set({ user: null, token: null, isAuthenticated: false, isLoading: false, isHydrated: true });
+    useCharacterStore.getState().setCharacter(null);
+  },
 
-    checkAuth: async () => {
-      try {
-        const data = await fetcher<{ user: UserState; character: any; token?: string }>("/api/auth/me");
-        if (data && data.user) {
-          if (data.token) {
-            setCookie(data.token);
-            try {
-              localStorage.setItem("ascend_session", data.token);
-            } catch {}
-          }
+  checkAuth: async () => {
+    try {
+      const data = await fetcher<{ user: UserState; character: any; token?: string }>("/api/auth/me");
+      if (data && data.user) {
+        if (data.token) {
+          setCookie(data.token);
           try {
-            localStorage.setItem("ascend_user", JSON.stringify(data.user));
+            localStorage.setItem("ascend_session", data.token);
           } catch {}
-
-          set({
-            user: data.user,
-            token: data.token || get().token,
-            isAuthenticated: true,
-            isLoading: false,
-            isHydrated: true,
-          });
-          if (data.character) {
-            useCharacterStore.getState().setCharacter(data.character);
-          }
-        } else {
-          // Only clear if token is explicitly missing locally and no cached user exists
-          const cachedUser = getStoredUser();
-          const cachedToken = getStoredToken();
-          if (!cachedUser && !cachedToken) {
-            set({ user: null, token: null, isAuthenticated: false, isLoading: false, isHydrated: true });
-          } else {
-            set({ isLoading: false, isHydrated: true });
-          }
         }
-      } catch (err) {
-        console.warn("Auth check network error, preserving local session:", err);
-        const cachedUser = getStoredUser();
+        try {
+          localStorage.setItem("ascend_user", JSON.stringify(data.user));
+        } catch {}
+
         set({
-          user: cachedUser || get().user,
-          isAuthenticated: !!(cachedUser || get().user),
+          user: data.user,
+          token: data.token || get().token,
+          isAuthenticated: true,
           isLoading: false,
           isHydrated: true,
         });
+        if (data.character) {
+          useCharacterStore.getState().setCharacter(data.character);
+          try {
+            localStorage.setItem("ascend_character_id", data.character.id);
+          } catch {}
+        }
+      } else {
+        // Only clear if token is explicitly missing locally and no cached user exists
+        const cachedUser = getStoredUser();
+        const cachedToken = getStoredToken();
+        if (!cachedUser && !cachedToken) {
+          set({ user: null, token: null, isAuthenticated: false, isLoading: false, isHydrated: true });
+        } else {
+          set({ isLoading: false, isHydrated: true });
+        }
       }
-    },
-  };
-});
+    } catch (err) {
+      console.warn("Auth check network error, preserving local session:", err);
+      const cachedUser = getStoredUser();
+      set({
+        user: cachedUser || get().user,
+        isAuthenticated: !!(cachedUser || get().user),
+        isLoading: false,
+        isHydrated: true,
+      });
+    }
+  },
+}));

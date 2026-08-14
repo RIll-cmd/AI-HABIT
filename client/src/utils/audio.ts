@@ -1,6 +1,4 @@
-/**
- * Global Audio Utility for handling sound playback safely in Next.js (avoiding SSR issues).
- */
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 /**
  * Instantiates an Audio object and plays a UI sound from the /sounds/ directory.
@@ -10,9 +8,13 @@
 export function playUISound(filename: string, volume: number = 0.5) {
   if (typeof window === "undefined") return;
 
+  const settings = useSettingsStore.getState();
+  if (!settings.soundEnabled) return;
+
   try {
     const audio = new Audio(encodeURI(filename));
-    audio.volume = volume;
+    const effectiveVol = Math.max(0, Math.min(1, volume * (settings.sfxVolume / 100)));
+    audio.volume = effectiveVol;
     const playPromise = audio.play();
 
     if (playPromise !== undefined) {
@@ -34,9 +36,13 @@ export function playUISound(filename: string, volume: number = 0.5) {
 export function playVoiceLine(filename: string, volume: number = 0.8) {
   if (typeof window === "undefined") return;
 
+  const settings = useSettingsStore.getState();
+  if (!settings.soundEnabled) return;
+
   try {
     const audio = new Audio(encodeURI(filename));
-    audio.volume = volume;
+    const effectiveVol = Math.max(0, Math.min(1, volume * (settings.voiceVolume / 100)));
+    audio.volume = effectiveVol;
     const playPromise = audio.play();
 
     if (playPromise !== undefined) {

@@ -8,6 +8,32 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
+import random
+
+def is_equipment_item(item_type: str = "", name: str = "") -> bool:
+    t = (item_type or "").upper()
+    n = (name or "").lower()
+    if t in ["WEAPON", "ARMOR", "EQUIPMENT", "ACCESSORY", "HELM", "BOOTS", "RING", "SHIELD", "GLOVES"]:
+        return True
+    if any(k in n for k in ["sword", "blade", "bow", "axe", "armor", "cuirass", "shield", "helm", "boots", "ring", "staff", "dagger", "hammer", "crossbow", "compound"]):
+        return True
+    return False
+
+def calculate_shop_stock(item_type: str = "", rarity: str = "COMMON", name: str = "") -> int:
+    # Weapons and equipment have strictly 1 stock in shop rotations
+    if is_equipment_item(item_type, name):
+        return 1
+    # Consumables and materials can have multiple stock
+    r = (rarity or "COMMON").upper()
+    if r == "COMMON":
+        return random.randint(5, 15)
+    elif r == "RARE":
+        return random.randint(3, 8)
+    elif r == "EPIC":
+        return random.randint(2, 5)
+    else:
+        return random.randint(1, 3)
+
 async def seed_shop_items_auto():
     defs = await db.itemdefinition.find_many()
     if not defs:
@@ -41,14 +67,7 @@ async def seed_shop_items_auto():
 
     for idx, d in enumerate(defs[:6]):
         rarity = (d.rarity or "COMMON").upper()
-        if rarity == "COMMON":
-            stock = random.randint(4, 5)
-        elif rarity == "RARE":
-            stock = random.randint(3, 4)
-        elif rarity == "EPIC":
-            stock = random.randint(2, 3)
-        else:
-            stock = random.randint(1, 2)
+        stock = calculate_shop_stock(d.type, rarity, d.name)
 
         await db.shopitem.create(
             data={
@@ -74,9 +93,21 @@ async def get_shop_items(character_id: str):
     
     result = []
     for si in shop_items:
+        item_def = si.item
+        display_stock = si.stock
+
+        # Ensure weapons & equipment always have 1 stock max
+        if item_def and is_equipment_item(item_def.type, item_def.name):
+            if display_stock is not None and display_stock > 1:
+                display_stock = 1
+                try:
+                    await db.shopitem.update(where={"id": si.id}, data={"stock": 1})
+                except Exception:
+                    pass
+
         # Check stock
         in_stock = True
-        if si.stock is not None and si.stock <= 0:
+        if display_stock is not None and display_stock <= 0:
             in_stock = False
             
         # Check requirements
@@ -94,15 +125,13 @@ async def get_shop_items(character_id: str):
             can_afford = character.gems >= si.price
         elif si.currencyType == "TOWER_TOKENS":
             can_afford = character.towerTokens >= si.price
-            
-        item_def = si.item
         
         result.append(ShopItemDetailSchema(
             id=si.id,
             itemId=si.itemId,
             currencyType=si.currencyType,
             price=si.price,
-            stock=si.stock,
+            stock=display_stock,
             requiredLevel=si.requiredLevel,
             requiredPower=si.requiredPower,
             name=item_def.name if item_def else "Unknown",
@@ -110,6 +139,15 @@ async def get_shop_items(character_id: str):
             type=item_def.type if item_def else "UNKNOWN",
             rarity=item_def.rarity if item_def else "COMMON",
             icon=item_def.icon if item_def else "",
+            sellValue=getattr(item_def, "sellValue", 0) if item_def else 0,
+            attack=getattr(item_def, "attack", 0) if item_def else 0,
+            defense=getattr(item_def, "defense", 0) if item_def else 0,
+            strength=getattr(item_def, "strength", 0) if item_def else 0,
+            knowledge=getattr(item_def, "knowledge", 0) if item_def else 0,
+            endurance=getattr(item_def, "endurance", 0) if item_def else 0,
+            recovery=getattr(item_def, "recovery", 0) if item_def else 0,
+            focus=getattr(item_def, "focus", 0) if item_def else 0,
+            discipline=getattr(item_def, "discipline", 0) if item_def else 0,
             canAfford=can_afford,
             meetsRequirements=meets_reqs,
             inStock=in_stock
@@ -242,29 +280,26 @@ async def refresh_shop_items(character_id: str):
     # Delete existing shop items
     await db.shopitem.delete_many()
 
-    # Create new rotated shop items with stock strictly 1 to 5 based on rarity
+    # Create new rotated shop items with stock based on equipment vs consumable
     for item_def in selected_defs:
         rarity = (item_def.rarity or "COMMON").upper()
+        stock = calculate_shop_stock(item_def.type, rarity, item_def.name)
         
         if rarity == "COMMON":
             currency_type = "GOLD"
             price = random.randint(150, 350)
-            stock = random.randint(4, 5)
             req_level = 1
         elif rarity == "RARE":
             currency_type = random.choice(["GOLD", "TOWER_TOKENS"])
             price = random.randint(500, 1200) if currency_type == "GOLD" else random.randint(50, 150)
-            stock = random.randint(3, 4)
             req_level = random.randint(3, 8)
         elif rarity == "EPIC":
             currency_type = random.choice(["GOLD", "GEMS"])
             price = random.randint(2500, 5000) if currency_type == "GOLD" else random.randint(100, 300)
-            stock = random.randint(2, 3)
             req_level = random.randint(10, 20)
         else: # LEGENDARY / MYTHIC
             currency_type = random.choice(["GOLD", "GEMS"])
             price = random.randint(8000, 15000) if currency_type == "GOLD" else random.randint(500, 1000)
-            stock = random.randint(1, 2)
             req_level = random.randint(15, 30)
 
         await db.shopitem.create(

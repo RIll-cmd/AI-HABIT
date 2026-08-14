@@ -3,6 +3,8 @@
 import React from "react";
 import { getEnemySpriteUrl } from "@/utils/spriteUtils";
 import { CHARACTER_AVATAR_PREVIEW } from "@/utils/sprites";
+import { SystemTooltip } from "@/components/ui/SystemTooltip";
+import { getEnemyLore } from "@/features/lore/loreData";
 
 interface FloorBattleBannerProps {
   playerName?: string;
@@ -22,6 +24,7 @@ export function FloorBattleBanner({
   isBoss = false,
 }: FloorBattleBannerProps) {
   const spriteUrl = getEnemySpriteUrl(enemyName, { floorOrLevel: floorNumber, isBoss });
+  const enemyLore = getEnemyLore(enemyName, floorNumber, isBoss);
 
   return (
     <div className="relative p-5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-[#151C33] to-red-950/60 border border-indigo-500/30 overflow-visible flex items-center justify-between shadow-inner min-h-[140px]">
@@ -51,26 +54,42 @@ export function FloorBattleBanner({
       </div>
 
       {/* Enemy Side (Right) */}
-      <div className="flex flex-col items-center gap-1 relative z-10">
-        <div className="w-20 h-20 rounded-2xl bg-slate-900/50 border border-red-500/30 p-1 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] overflow-hidden">
-          <img
-            src={spriteUrl}
-            alt={enemyName}
-            onError={(e) => {
-              // Gracefully fall back to static PNG or default slime sprite without broken image icon
-              const fallbackStatic = `/sprites/static/${enemyName.toLowerCase().split(' ')[0]}.png`;
-              if (e.currentTarget.src !== fallbackStatic) {
-                e.currentTarget.src = fallbackStatic;
-              } else {
-                e.currentTarget.src = "/sprites/static/slime.png";
-              }
-            }}
-            className="w-16 h-16 object-contain transform -scale-x-100 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]"
-            style={{ imageRendering: "pixelated" }}
-          />
-        </div>
-        <span className="text-xs font-bold text-red-400 font-mono mt-1 text-center truncate max-w-[120px]">{enemyName}</span>
-        <span className="text-[10px] text-slate-400 font-mono">Lv. <span className="text-red-300 font-bold">{enemyLevel}</span></span>
+      <div className="relative z-10">
+        <SystemTooltip
+          title={enemyLore.name}
+          subtitle={`Floor ${floorNumber} • Level ${enemyLevel}`}
+          category={enemyLore.category}
+          rarity={enemyLore.rarity}
+          description={enemyLore.description}
+          lore={enemyLore.lore}
+          mechanics={`⚡ Weakness & Tactics: ${enemyLore.weakness}`}
+          stats={[
+            { label: "Level", value: `Lv. ${enemyLevel}` },
+            { label: "Threat Rating", value: enemyLore.threatLevel, color: isBoss ? "text-red-400" : "text-cyan-400" }
+          ]}
+          tags={["Tower", "Combat", isBoss ? "Boss" : "Enemy"]}
+        >
+          <div className="flex flex-col items-center gap-1 cursor-help group">
+            <div className="w-20 h-20 rounded-2xl bg-slate-900/50 border border-red-500/30 group-hover:border-red-400/60 p-1 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] overflow-hidden transition-colors">
+              <img
+                src={spriteUrl}
+                alt={enemyName}
+                onError={(e) => {
+                  const fallbackStatic = `/sprites/static/${enemyName.toLowerCase().split(' ')[0]}.png`;
+                  if (e.currentTarget.src !== fallbackStatic) {
+                    e.currentTarget.src = fallbackStatic;
+                  } else {
+                    e.currentTarget.src = "/sprites/static/slime.png";
+                  }
+                }}
+                className="w-16 h-16 object-contain transform -scale-x-100 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)] group-hover:scale-110 transition-transform duration-300"
+                style={{ imageRendering: "pixelated" }}
+              />
+            </div>
+            <span className="text-xs font-bold text-red-400 font-mono mt-1 text-center truncate max-w-[120px]">{enemyName}</span>
+            <span className="text-[10px] text-slate-400 font-mono">Lv. <span className="text-red-300 font-bold">{enemyLevel}</span></span>
+          </div>
+        </SystemTooltip>
       </div>
     </div>
   );

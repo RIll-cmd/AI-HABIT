@@ -45,6 +45,7 @@ interface WorkoutState {
   // Custom Workout Plans
   addCustomTemplate: (name: string, target: string, exercises: ExerciseDefinition[]) => void;
   deleteCustomTemplate: (id: string) => void;
+  hydrateTemplates: () => void;
 }
 
 const STORAGE_KEY = "ascend_os_custom_workout_plans";
@@ -74,7 +75,9 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
   exercises: [],
   sets: [],
   restTimerEnd: null,
-  customTemplates: loadStoredCustomTemplates(),
+  customTemplates: [],
+
+  hydrateTemplates: () => set({ customTemplates: loadStoredCustomTemplates() }),
 
   startWorkout: (sessionId) => set({
     isWorkoutActive: true,

@@ -14,6 +14,7 @@ interface InventoryState {
   equipItem: (playerItemId: string) => Promise<void>;
   toggleLock: (playerItemId: string) => Promise<void>;
   toggleFavorite: (playerItemId: string) => Promise<void>;
+  useItem: (playerItemId: string) => Promise<void>;
 }
 
 export const useInventoryStore = create<InventoryState>((set, get) => ({
@@ -128,6 +129,33 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       // Revert on error
       set({ items });
       console.error(err);
+    }
+  },
+
+  useItem: async (playerItemId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/inventory/${playerItemId}/use`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to consume item");
+      const data = await res.json();
+
+      const { items } = get();
+      if (data.remainingQuantity <= 0) {
+        set({ items: items.filter((i) => i.id !== playerItemId) });
+      } else {
+        set({
+          items: items.map((i) =>
+            i.id === playerItemId ? { ...i, quantity: data.remainingQuantity } : i
+          ),
+        });
+      }
+
+      // Reload character to reflect EXP / Gold changes
+      useCharacterStore.getState().loadCharacter();
+    } catch (err: any) {
+      console.error("Failed to use item:", err);
+      throw err;
     }
   },
 }));

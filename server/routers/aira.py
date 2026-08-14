@@ -244,7 +244,7 @@ async def get_boss_trajectory(character_id: str, boss_id: str):
     # Fetch Boss
     boss = await db.boss.find_first(
         where={"id": boss_id, "characterId": character_id},
-        include={"damageLogs": {"orderBy": {"createdAt": "desc"}}}
+        include={"damageLogs": {"order": {"createdAt": "desc"}}}
     )
     if not boss:
         raise HTTPException(status_code=404, detail="Boss not found")

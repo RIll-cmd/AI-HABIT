@@ -17,6 +17,8 @@ export interface TowerFloor {
   isBoss: boolean;
   goldReward: number;
   expReward: number;
+  gemReward?: number;
+  towerTokensReward?: number;
   itemRewardDefinitionId: string | null;
   status: "LOCKED" | "AVAILABLE" | "ATTEMPTED" | "CLEARED";
   isEligible: boolean;
@@ -55,6 +57,8 @@ export interface CombatLog {
   rewards?: {
     gold: number;
     exp: number;
+    gems?: number;
+    towerTokens?: number;
     items: string[];
   };
 }

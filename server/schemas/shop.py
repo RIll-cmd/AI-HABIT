@@ -19,6 +19,18 @@ class ShopItemDetailSchema(BaseModel):
     type: str
     rarity: str
     icon: str
+    sellValue: Optional[int] = 0
+    
+    # Combat & Primary Stats
+    attack: Optional[int] = 0
+    defense: Optional[int] = 0
+    strength: Optional[int] = 0
+    knowledge: Optional[int] = 0
+    endurance: Optional[int] = 0
+    recovery: Optional[int] = 0
+    focus: Optional[int] = 0
+    discipline: Optional[int] = 0
+    consistency: Optional[int] = 0
     
     # Computed fields for the character
     canAfford: bool

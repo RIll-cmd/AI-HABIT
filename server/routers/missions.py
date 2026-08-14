@@ -77,6 +77,96 @@ async def complete_mission(mission_id: str, payload: MissionCompleteSchema):
             reference_id=updated_mission.habitId
         )
 
+    # Check for Elite/Hardcore bonus gems
+    bonus_gems = 0
+    if payload.completionType in ["ELITE", "HARDCORE"]:
+        bonus_gems = 2 if payload.completionType == "HARDCORE" else 1
+        await db.character.update(
+            where={"id": updated_mission.characterId},
+            data={"gems": {"increment": bonus_gems}}
+        )
+        await db.economylog.create(
+            data={
+                "characterId": updated_mission.characterId,
+                "currency": "GEMS",
+                "amount": bonus_gems,
+                "reason": f"Mission Overachieve Bonus ({payload.completionType})",
+                "source": "MISSION_BONUS"
+            }
+        )
+
+    # Check for Daily All-Clear Consistency Triumph
+    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    today_end = today_start + timedelta(days=1)
+    
+    today_missions = await db.mission.find_many(
+        where={
+            "characterId": updated_mission.characterId,
+            "date": {"gte": today_start, "lt": today_end}
+        }
+    )
+    
+    pending_today = [m for m in today_missions if m.status != "COMPLETED"]
+    
+    if len(today_missions) > 0 and len(pending_today) == 0:
+        # All missions today completed! Check if all-clear bonus was already awarded today
+        date_str = today_start.strftime('%Y-%m-%d')
+        existing_all_clear = await db.economylog.find_first(
+            where={
+                "characterId": updated_mission.characterId,
+                "reason": f"Daily Consistency All-Clear ({date_str})"
+            }
+        )
+        if not existing_all_clear:
+            all_clear_gold = 100
+            all_clear_gems = 10
+            all_clear_tokens = 25
+            
+            await db.character.update(
+                where={"id": updated_mission.characterId},
+                data={
+                    "gold": {"increment": all_clear_gold},
+                    "gems": {"increment": all_clear_gems},
+                    "towerTokens": {"increment": all_clear_tokens}
+                }
+            )
+            
+            await db.economylog.create(
+                data={
+                    "characterId": updated_mission.characterId,
+                    "currency": "GOLD",
+                    "amount": all_clear_gold,
+                    "reason": f"Daily Consistency All-Clear ({date_str})",
+                    "source": "DAILY_CONSISTENCY"
+                }
+            )
+            await db.economylog.create(
+                data={
+                    "characterId": updated_mission.characterId,
+                    "currency": "GEMS",
+                    "amount": all_clear_gems,
+                    "reason": f"Daily Consistency All-Clear ({date_str})",
+                    "source": "DAILY_CONSISTENCY"
+                }
+            )
+            await db.economylog.create(
+                data={
+                    "characterId": updated_mission.characterId,
+                    "currency": "TOWER_TOKENS",
+                    "amount": all_clear_tokens,
+                    "reason": f"Daily Consistency All-Clear ({date_str})",
+                    "source": "DAILY_CONSISTENCY"
+                }
+            )
+            await db.progresshistory.create(
+                data={
+                    "characterId": updated_mission.characterId,
+                    "type": "DAILY_CONSISTENCY",
+                    "amount": all_clear_gems,
+                    "description": f"🌟 100% Daily All-Clear! Earned +{all_clear_gold} Gold, +{all_clear_gems} Gems, +{all_clear_tokens} Tower Tokens!"
+                }
+            )
+
     return updated_mission
 
 @router.get("/heatmap/{character_id}")

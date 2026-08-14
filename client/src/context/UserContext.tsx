@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
+import { API_BASE_URL } from "@/constants";
 
 export interface StatData {
   id?: string;
@@ -47,26 +49,16 @@ interface UserContextType {
   toggleMission: (missionId: string) => void;
 }
 
-const UserContext = createContext<UserContextType>({
-  user: null,
-  loading: true,
-  error: null,
-  refetch: async () => {},
-  toggleMission: () => {},
-});
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-
 const DEFAULT_USER: UserData = {
   id: "char-1",
-  username: "Shadow Monarch",
+  username: "Ascendant",
   level: 1,
   exp: 0,
   gold: 500,
   crystals: 50,
   power: 97,
   rank: "F",
-  title: "Hydration Monarch",
+  title: "Ascendant Monarch",
   guild: "Lone Ascendants",
   stats: {
     strength: 1,
@@ -80,29 +72,49 @@ const DEFAULT_USER: UserData = {
   missions: [],
 };
 
+const UserContext = createContext<UserContextType>({
+  user: null,
+  loading: false,
+  error: null,
+  refetch: async () => {},
+  toggleMission: () => {},
+});
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(DEFAULT_USER);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Safely hydrate auth credentials on client mount
+  useEffect(() => {
+    useAuthStore.getState().hydrateAuth();
+  }, []);
+
+  const authUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   const fetchUser = async () => {
+    if (!isAuthenticated && !authUser) {
+      return;
+    }
+    const identifier = authUser?.username || authUser?.id || "Shadow Monarch";
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/user/Shadow%20Monarch`, {
+      const res = await fetch(`${API_BASE_URL}/api/user/${encodeURIComponent(identifier)}`, {
         cache: "no-store",
+        credentials: "include",
       });
       if (!res.ok) {
-        throw new Error(`Backend returned HTTP status ${res.status}`);
+        throw new Error(`HTTP ${res.status}`);
       }
       const data: UserData = await res.json();
       setUser(data);
     } catch (err: unknown) {
-      console.warn("Could not fetch user data from FastAPI backend, using fallback user profile:", err);
       const message =
         err instanceof Error
           ? err.message
-          : "Failed to connect to FastAPI backend server";
+          : "Failed to connect to backend server";
       setError(message);
       setUser((prev) => prev || DEFAULT_USER);
     } finally {
@@ -111,9 +123,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchUser();
-  }, []);
+    if (isAuthenticated && authUser) {
+      fetchUser();
+    }
+  }, [isAuthenticated, authUser?.username, authUser?.id]);
 
   const toggleMission = (missionId: string) => {
     if (!user) return;
@@ -137,3 +150,4 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 export function useUser() {
   return useContext(UserContext);
 }
+

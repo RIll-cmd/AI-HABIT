@@ -50,7 +50,7 @@ async def create_boss(character_id: str, payload: BossCreate):
     complete_boss = await db.boss.find_unique(
         where={"id": boss.id},
         include={
-            "phases": {"order_by": {"orderIndex": "asc"}},
+            "phases": {"order": {"orderIndex": "asc"}},
             "activities": True,
             "damageLogs": True
         }
@@ -63,11 +63,11 @@ async def get_bosses(character_id: str):
     bosses = await db.boss.find_many(
         where={"characterId": character_id},
         include={
-            "phases": {"order_by": {"orderIndex": "asc"}},
+            "phases": {"order": {"orderIndex": "asc"}},
             "activities": True,
-            "damageLogs": {"order_by": {"createdAt": "desc"}}
+            "damageLogs": {"order": {"createdAt": "desc"}}
         },
-        order_by={"createdAt": "desc"}
+        order={"createdAt": "desc"}
     )
     
     return bosses

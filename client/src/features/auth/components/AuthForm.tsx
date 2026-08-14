@@ -56,24 +56,35 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const url = `${API_BASE_URL}${endpoint}`;
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       
       if (!res.ok) {
-        setErrorMsg(data.detail || "Authentication failed.");
+        setErrorMsg(data.detail || data.message || `Authentication failed (${res.status}).`);
         setIsLoading(false);
         return;
       }
 
       // Success
+      const charId = data.characterId || (data.user && data.user.id) || username;
+      try {
+        localStorage.setItem("ascend_character_id", charId);
+      } catch {}
+
       if (data.token && (data.user || data.username)) {
-        useAuthStore.getState().setAuth(data.user || { id: data.characterId || username, username }, data.token);
+        useAuthStore.getState().setAuth(data.user || { id: charId, username }, data.token);
       } else {
         await useAuthStore.getState().checkAuth();
       }
@@ -81,29 +92,41 @@ export function AuthForm({ mode }: AuthFormProps) {
       router.push("/dashboard");
     } catch (err) {
       console.warn("Auth request failed:", err);
-      setErrorMsg("Network error. Please ensure backend is running.");
+      setErrorMsg("Network error: Unable to connect to the backend server. Please verify the backend is running on port 8000.");
       setIsLoading(false);
     }
   };
 
   const handleGuestGenerate = async () => {
     setIsLoading(true);
+    setErrorMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/guest`, {
+      const url = `${API_BASE_URL}/api/auth/guest`;
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       
       if (!res.ok) {
-        setErrorMsg(data.detail || "Guest login failed.");
+        setErrorMsg(data.detail || data.message || `Guest login failed (${res.status}).`);
         setIsLoading(false);
         return;
       }
 
+      const charId = data.characterId || (data.user && data.user.id) || data.username;
+      try {
+        localStorage.setItem("ascend_character_id", charId);
+      } catch {}
+
       if (data.token && (data.user || data.username)) {
-        useAuthStore.getState().setAuth(data.user || { id: data.characterId || data.username, username: data.username }, data.token);
+        useAuthStore.getState().setAuth(data.user || { id: charId, username: data.username }, data.token);
       } else {
         await useAuthStore.getState().checkAuth();
       }
@@ -111,7 +134,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       router.push("/dashboard");
     } catch (err) {
       console.warn("Guest generation network error:", err);
-      setErrorMsg("Network error. Please check your backend connection.");
+      setErrorMsg("Network error: Unable to connect to the backend server. Please verify the backend is running on port 8000.");
       setIsLoading(false);
     }
   };
@@ -469,74 +492,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
         </div>
       </div>
-
-      {/* INLINE STYLES */}
-      <style>{`
-        .auth-form-wrapper {
-          perspective: 1000px;
-        }
-
-        .auth-halo-pulse {
-          animation: auth-halo 4s ease-in-out infinite;
-        }
-        @keyframes auth-halo {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-
-        .auth-icon-container {
-          width: 64px;
-          height: 64px;
-          position: relative;
-        }
-        .auth-icon-ring {
-          animation: auth-icon-spin 8s linear infinite;
-          border-radius: 20px;
-        }
-        @keyframes auth-icon-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        .auth-icon-sparkle {
-          position: absolute;
-          font-size: 10px;
-          color: rgba(6, 182, 212, 0.5);
-          animation: auth-sparkle-float 3s ease-in-out infinite;
-          pointer-events: none;
-        }
-        .auth-icon-sparkle-1 { top: -6px; right: -6px; animation-delay: 0s; }
-        .auth-icon-sparkle-2 { bottom: -4px; left: -8px; animation-delay: 1s; }
-        .auth-icon-sparkle-3 { top: 50%; right: -10px; animation-delay: 2s; }
-        @keyframes auth-sparkle-float {
-          0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
-          50% { opacity: 1; transform: translateY(-5px) scale(1); }
-        }
-
-        .auth-submit-btn {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .auth-submit-btn:not(:disabled):hover {
-          transform: translateY(-1px);
-          filter: brightness(1.1);
-        }
-        .auth-submit-btn:not(:disabled):active {
-          transform: translateY(0px) scale(0.99);
-        }
-
-        .auth-spinner {
-          display: inline-block;
-          width: 16px;
-          height: 16px;
-          border: 2px solid rgba(255,255,255,0.2);
-          border-top-color: white;
-          border-radius: 50%;
-          animation: auth-spin 0.6s linear infinite;
-        }
-        @keyframes auth-spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

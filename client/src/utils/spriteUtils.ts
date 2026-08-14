@@ -18,6 +18,13 @@ const ANIMATED_GIF_KEYS = new Set([
   "bat",
   "rat",
   "crab",
+  "skull",
+  "pebble",
+  "mushroom",
+  "necromancer",
+  "wizard",
+  "bringer_of_death",
+  "bringer-of-death",
 ]);
 
 export interface SpriteUrlOptions {

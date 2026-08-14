@@ -68,7 +68,7 @@ export const WorkoutSummary: React.FC = () => {
           {/* EXP & Gold */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-cyan-950/50 border border-cyan-500/40 rounded-xl p-3 flex items-center gap-3">
-              <Zap className="w-5 h-5 text-cyan-400" />
+              <CurrencyIcon type="EXP" size="md" />
               <div>
                 <div className="text-xs font-bold text-cyan-300">+{exp} EXP</div>
                 <div className="text-[10px] text-slate-400">Character Leveling</div>

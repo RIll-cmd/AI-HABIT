@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from prisma.errors import RecordNotFoundError
 from db import db
-from routers import auth, character, habits, missions, progression, achievements, analytics, tower, inventory, aira, fitness, skills, bosses, workouts, shop, season_pass
+from routers import auth, character, habits, missions, progression, achievements, analytics, tower, inventory, aira, fitness, skills, bosses, workouts, shop, season_pass, crafting, beasts
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,6 +63,8 @@ app.include_router(fitness.router)
 app.include_router(bosses.router, prefix="/api/bosses", tags=["bosses"])
 app.include_router(workouts.router, prefix="/api/workouts", tags=["workouts"])
 app.include_router(shop.router, prefix="/api/shop", tags=["shop"])
+app.include_router(crafting.router)
+app.include_router(beasts.router)
 
 @app.get("/")
 def read_root():
@@ -90,7 +92,8 @@ async def get_user(user_id_or_email: str):
         where={
             "OR": [
                 {"id": user_id_or_email},
-                {"email": user_id_or_email}
+                {"email": user_id_or_email},
+                {"username": user_id_or_email}
             ]
         },
         include={

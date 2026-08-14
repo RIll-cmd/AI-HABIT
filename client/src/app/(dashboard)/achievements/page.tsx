@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { API_BASE_URL } from "@/constants";
-import { Sparkles, CheckCircle2, Target, Trophy, Filter, Award, Lock, Check } from "lucide-react";
+import { Sparkles, CheckCircle2, Target, Trophy, Filter, Award, Lock, Check, Dumbbell, Flame, MessageSquare, Layers } from "lucide-react";
 import { playUIMenuSFX, playBuffSFX, playAIRASound } from "@/utils/audio";
+import { SystemTooltip } from "@/components/ui/SystemTooltip";
 
 interface Achievement {
   id: string;
@@ -30,7 +31,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "First Step of Greatness",
     description: "Complete your first daily habit mission.",
     category: "HABITS",
-    icon: "/icons/Icon10.png",
+    icon: "/achievements_icons/sliced/ach_icon_1.png",
     targetValue: 1,
     currentProgress: 1,
     isCompleted: true,
@@ -44,7 +45,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Unbroken Streak",
     description: "Maintain a 7-day habit streak.",
     category: "HABITS",
-    icon: "/icons/Icon15.png",
+    icon: "/achievements_icons/sliced/ach_icon_2.png",
     targetValue: 7,
     currentProgress: 3,
     isCompleted: false,
@@ -58,7 +59,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Consistency Sovereign",
     description: "Complete 50 daily habit missions.",
     category: "HABITS",
-    icon: "/icons/Icon20.png",
+    icon: "/achievements_icons/sliced/ach_icon_3.png",
     targetValue: 50,
     currentProgress: 12,
     isCompleted: false,
@@ -72,7 +73,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Iron Will",
     description: "Maintain a 30-day habit streak.",
     category: "HABITS",
-    icon: "/icons/Icon25.png",
+    icon: "/achievements_icons/sliced/ach_icon_4.png",
     targetValue: 30,
     currentProgress: 3,
     isCompleted: false,
@@ -86,7 +87,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Novice Lifter",
     description: "Complete 1 workout session.",
     category: "WORKOUT",
-    icon: "/icons/Icon30.png",
+    icon: "/achievements_icons/sliced/ach_icon_5.png",
     targetValue: 1,
     currentProgress: 1,
     isCompleted: true,
@@ -100,7 +101,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Strength Unleashed",
     description: "Log 10 workout sessions.",
     category: "WORKOUT",
-    icon: "/icons/Icon35.png",
+    icon: "/achievements_icons/sliced/ach_icon_6.png",
     targetValue: 10,
     currentProgress: 4,
     isCompleted: false,
@@ -114,7 +115,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Barbell Master",
     description: "Log 25 workout sessions.",
     category: "WORKOUT",
-    icon: "/icons/Icon40.png",
+    icon: "/achievements_icons/sliced/ach_icon_7.png",
     targetValue: 25,
     currentProgress: 4,
     isCompleted: false,
@@ -128,7 +129,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Titan of the Gym",
     description: "Achieve an S-Rank on any exercise e1RM.",
     category: "WORKOUT",
-    icon: "/icons/Icon45.png",
+    icon: "/achievements_icons/sliced/ach_icon_8.png",
     targetValue: 1,
     currentProgress: 0,
     isCompleted: false,
@@ -142,7 +143,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Tower Challenger",
     description: "Conquer Floor 5 in the Tower.",
     category: "TOWER",
-    icon: "/icons/Icon50.png",
+    icon: "/achievements_icons/sliced/ach_icon_9.png",
     targetValue: 5,
     currentProgress: 2,
     isCompleted: false,
@@ -156,7 +157,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Floor Dominator",
     description: "Conquer Floor 15 in the Tower.",
     category: "TOWER",
-    icon: "/icons/Icon55.png",
+    icon: "/achievements_icons/sliced/ach_icon_10.png",
     targetValue: 15,
     currentProgress: 2,
     isCompleted: false,
@@ -170,7 +171,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Tower Monarch",
     description: "Conquer Floor 30 in the Tower.",
     category: "TOWER",
-    icon: "/icons/Icon60.png",
+    icon: "/achievements_icons/sliced/ach_icon_11.png",
     targetValue: 30,
     currentProgress: 2,
     isCompleted: false,
@@ -184,7 +185,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Grandmaster Ascendant",
     description: "Reach the 50th Floor of the Tower.",
     category: "TOWER",
-    icon: "/icons/Icon65.png",
+    icon: "/achievements_icons/sliced/ach_icon_12.png",
     targetValue: 50,
     currentProgress: 2,
     isCompleted: false,
@@ -198,7 +199,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "AI Assistant Partner",
     description: "Send 10 prompts to AIRA.",
     category: "SOCIAL",
-    icon: "/icons/Icon70.png",
+    icon: "/achievements_icons/sliced/ach_icon_13.png",
     targetValue: 10,
     currentProgress: 5,
     isCompleted: false,
@@ -212,7 +213,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Guild Contributor",
     description: "Earn 1,000 Total Power Score.",
     category: "SOCIAL",
-    icon: "/icons/Icon75.png",
+    icon: "/achievements_icons/sliced/ach_icon_14.png",
     targetValue: 1000,
     currentProgress: 350,
     isCompleted: false,
@@ -226,7 +227,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Ascended Being",
     description: "Reach Character Level 25.",
     category: "SOCIAL",
-    icon: "/icons/Icon80.png",
+    icon: "/achievements_icons/sliced/ach_icon_15.png",
     targetValue: 25,
     currentProgress: 5,
     isCompleted: false,
@@ -240,7 +241,7 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
     title: "Shadow Monarch Ascended",
     description: "Reach Character Level 50.",
     category: "SOCIAL",
-    icon: "/icons/Icon85.png",
+    icon: "/icons/Icon175.png",
     targetValue: 50,
     currentProgress: 5,
     isCompleted: false,
@@ -432,11 +433,36 @@ export default function AchievementsPage() {
                   : "bg-slate-900/60 text-slate-400 border-slate-800 hover:text-white"
               }`}
             >
-              {cat === "ALL" && "ALL CATEGORIES"}
-              {cat === "HABITS" && "🎯 HABITS"}
-              {cat === "WORKOUT" && "🏋️ WORKOUT"}
-              {cat === "TOWER" && "⚔️ TOWER"}
-              {cat === "SOCIAL" && "💬 SOCIAL"}
+              {cat === "ALL" && (
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>ALL CATEGORIES</span>
+                </span>
+              )}
+              {cat === "HABITS" && (
+                <span className="flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>HABITS</span>
+                </span>
+              )}
+              {cat === "WORKOUT" && (
+                <span className="flex items-center gap-1.5">
+                  <Dumbbell className="w-3.5 h-3.5 text-amber-400" />
+                  <span>WORKOUT</span>
+                </span>
+              )}
+              {cat === "TOWER" && (
+                <span className="flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-red-400" />
+                  <span>TOWER</span>
+                </span>
+              )}
+              {cat === "SOCIAL" && (
+                <span className="flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-purple-400" />
+                  <span>SOCIAL</span>
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -471,23 +497,52 @@ export default function AchievementsPage() {
 
                 {/* Header: Icon, Title & Status */}
                 <div className="flex gap-4 items-start relative z-10 mb-3">
-                  <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center shrink-0 p-1.5 relative shadow-inner">
-                    <img
-                      src={ach.icon}
-                      alt={ach.title}
-                      onError={(e) => {
-                        e.currentTarget.src = "/icons/Icon10.png";
-                      }}
-                      className={`w-full h-full object-contain ${
-                        !isUnlocked ? "opacity-40 grayscale" : "drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                  <SystemTooltip
+                    title={ach.title}
+                    subtitle={`Achievement Milestone • ${ach.category}`}
+                    category="System Chronicle"
+                    rarity={ach.isClaimed ? "LEGENDARY" : isUnlocked ? "EPIC" : "RARE"}
+                    description={ach.description}
+                    lore="Etched permanently into your Hunter Chronicle upon meeting the dimensional requirement."
+                    mechanics={`Unlock Requirement: ${unlockHow}\nRewards: +${ach.rewardGold} Gold, +${ach.rewardGems} Gems`}
+                    stats={[
+                      { label: "Current Progress", value: `${Math.min(ach.currentProgress, ach.targetValue)} / ${ach.targetValue}` },
+                      { label: "Status", value: ach.isClaimed ? "Claimed" : isUnlocked ? "Unlocked" : "Locked", color: isUnlocked ? "text-emerald-400" : "text-amber-400" },
+                      { label: "Gold Bounty", value: `+${ach.rewardGold}g`, color: "text-amber-400" },
+                      { label: "Gems Bounty", value: `+${ach.rewardGems}`, color: "text-cyan-400" }
+                    ]}
+                    tags={["Achievement", ach.category, isUnlocked ? "Unlocked" : "Locked"]}
+                  >
+                    <div
+                      className={`w-16 h-16 rounded-2xl bg-gradient-to-b from-[#131B33] to-[#0A0F22] border flex items-center justify-center shrink-0 p-2 relative shadow-inner cursor-help ${
+                        isUnlocked
+                          ? "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+                          : "border-white/10"
                       }`}
-                    />
-                    {ach.isClaimed && (
-                      <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-lg border border-emerald-400">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </div>
-                    )}
-                  </div>
+                    >
+                      <img
+                        src={ach.icon}
+                        alt={ach.title}
+                        onError={(e) => {
+                          e.currentTarget.src = "/achievements_icons/sliced/ach_icon_1.png";
+                        }}
+                        className={`w-12 h-12 object-contain transition-all duration-300 ${
+                          !isUnlocked
+                            ? "opacity-70 filter contrast-125 brightness-90"
+                            : "drop-shadow-[0_0_10px_rgba(245,158,11,0.7)] scale-105"
+                        }`}
+                      />
+                      {ach.isClaimed ? (
+                        <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-lg border border-emerald-400">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      ) : !isUnlocked ? (
+                        <div className="absolute -bottom-1 -right-1 bg-slate-900/90 text-slate-400 rounded-md p-1 border border-slate-700 shadow">
+                          <Lock className="w-2.5 h-2.5" />
+                        </div>
+                      ) : null}
+                    </div>
+                  </SystemTooltip>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">

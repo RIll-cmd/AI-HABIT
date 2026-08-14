@@ -1,26 +1,27 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAiraStore } from "./store";
+import { useSettingsStore } from "@/store/useSettingsStore";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useTowerStore } from "@/features/tower/store/useTowerStore";
 import { useHabitStore } from "@/features/habits/store";
 import { useBossStore } from "@/features/bosses/store/useBossStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
-import { playVoiceLine, playAIRASound } from "@/utils/audio";
+import { playAIRASound } from "@/utils/audio";
 
 /**
  * Global AIRA Periodic Briefing & Notification Manager Hook.
- * Runs an initial briefing scan (5s after entering) and repeats every 60 seconds (1 minute)
- * to inspect character, tower, habit, and boss states and play tactical AIRA notifications.
+ * Respects both global Settings preferences and local store toggles.
  */
 export function useAiraNotification() {
   const pathname = usePathname();
   const { autoBriefingsEnabled, showPeriodicToast } = useAiraStore();
+  const { airaPeriodicEnabled, airaIntervalSeconds, notificationSound } = useSettingsStore();
   const lastBriefingIndexRef = useRef<number>(0);
 
   useEffect(() => {
-    // Only run periodic analysis if enabled
-    if (!autoBriefingsEnabled) return;
+    // Only run periodic analysis if enabled in both settings & store
+    if (!autoBriefingsEnabled || !airaPeriodicEnabled) return;
 
     // Do not run on unauthenticated public auth routes
     const isPublicAuth =
@@ -92,17 +93,20 @@ export function useAiraNotification() {
       showPeriodicToast(selectedBriefing.text, selectedBriefing.category);
       useNotificationStore.getState().addNotification(notificationCategory as any, selectedBriefing.text);
       
-      // Play AIRA Notice sound audio
-      playAIRASound("NOTICE");
+      // Play AIRA Notice sound audio if notification sound is active
+      if (notificationSound) {
+        playAIRASound("NOTICE");
+      }
     };
 
-    // Run initial briefing scan after 5 seconds, then repeat every 60 seconds (1 minute)
+    // Run initial briefing scan after 5 seconds, then repeat every interval
+    const intervalMs = Math.max(15000, (airaIntervalSeconds || 60) * 1000);
     const initialTimerId = setTimeout(runAnalysis, 5000);
-    const intervalId = setInterval(runAnalysis, 60000);
+    const intervalId = setInterval(runAnalysis, intervalMs);
 
     return () => {
       clearTimeout(initialTimerId);
       clearInterval(intervalId);
     };
-  }, [pathname, autoBriefingsEnabled, showPeriodicToast]);
+  }, [pathname, autoBriefingsEnabled, airaPeriodicEnabled, airaIntervalSeconds, notificationSound, showPeriodicToast]);
 }

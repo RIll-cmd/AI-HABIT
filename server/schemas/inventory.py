@@ -46,3 +46,12 @@ class ToggleActionResponse(BaseModel):
     status: str
     message: str
     playerItem: PlayerItemSchema
+
+class ItemUseResponse(BaseModel):
+    status: str
+    message: str
+    effectType: str
+    effectValue: int
+    consumedItemId: str
+    remainingQuantity: int
+

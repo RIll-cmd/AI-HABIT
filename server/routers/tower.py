@@ -129,6 +129,8 @@ async def get_tower_floors(character_id: str):
         floor_dict["attempts"] = prog.attempts if prog else 0
         floor_dict["bestClearTimeSeconds"] = prog.bestClearTimeSeconds if prog else None
         floor_dict["clearedAt"] = prog.clearedAt if prog else None
+        floor_dict["towerTokensReward"] = int(10 * floor.floorNumber * (3 if floor.isBoss else 1))
+        floor_dict["gemReward"] = int(25 * (floor.floorNumber // 5)) if floor.isBoss else (5 if floor.floorNumber % 2 == 0 else 2)
         merged_floors.append(floor_dict)
 
     return merged_floors
@@ -203,13 +205,18 @@ async def challenge_floor(character_id: str, request: ChallengeRequest):
             }
         )
         
+        token_reward = int(10 * floor_num * (3 if floor.isBoss else 1))
+        gem_reward = int(25 * (floor_num // 5)) if floor.isBoss else (5 if floor_num % 2 == 0 else 2)
+
         if floor_num > character.highestTowerFloor:
             await db.character.update(
                 where={"id": character_id},
                 data={
                     "highestTowerFloor": floor_num,
-                    "gold": character.gold + floor.goldReward,
-                    "exp": character.exp + floor.expReward
+                    "gold": (character.gold or 0) + floor.goldReward,
+                    "exp": (character.exp or 0) + floor.expReward,
+                    "towerTokens": (character.towerTokens or 0) + token_reward,
+                    "gems": (character.gems or 0) + gem_reward
                 }
             )
             if floor.goldReward > 0:
@@ -228,10 +235,28 @@ async def challenge_floor(character_id: str, request: ChallengeRequest):
                     "reason": f"Cleared Tower Floor {floor_num}",
                     "source": "TOWER"
                 })
+            if token_reward > 0:
+                await db.economylog.create(data={
+                    "characterId": character_id,
+                    "currency": "TOWER_TOKENS",
+                    "amount": token_reward,
+                    "reason": f"Cleared Tower Floor {floor_num}",
+                    "source": "TOWER"
+                })
+            if gem_reward > 0:
+                await db.economylog.create(data={
+                    "characterId": character_id,
+                    "currency": "GEMS",
+                    "amount": gem_reward,
+                    "reason": f"Cleared Tower Floor {floor_num}",
+                    "source": "TOWER"
+                })
                 
             rewards_dict = {
                 "gold": floor.goldReward,
                 "exp": floor.expReward,
+                "towerTokens": token_reward,
+                "gems": gem_reward,
                 "items": []
             }
             if floor.itemRewardDefinitionId:
@@ -240,7 +265,23 @@ async def challenge_floor(character_id: str, request: ChallengeRequest):
                 
             combat_log.rewards = rewards_dict
         else:
-            combat_log.rewards = {"gold": 0, "exp": 0, "items": []}
+            # Repeat clear farming bounty
+            repeat_tokens = max(5, int(3 * floor_num))
+            repeat_gold = max(10, int(15 * floor_num))
+            await db.character.update(
+                where={"id": character_id},
+                data={
+                    "gold": (character.gold or 0) + repeat_gold,
+                    "towerTokens": (character.towerTokens or 0) + repeat_tokens,
+                }
+            )
+            combat_log.rewards = {
+                "gold": repeat_gold,
+                "exp": 0,
+                "towerTokens": repeat_tokens,
+                "gems": 0,
+                "items": []
+            }
             
     else:
         await db.towerprogress.update(

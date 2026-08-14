@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { KanbanQuest, QuestRank, QuestStatus, QuestSubtask } from "../types/kanban";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { playSuccessfulSound, playConfirmedSound, playEvolutionSound } from "@/features/audio/useSystemAudio";
@@ -32,11 +33,13 @@ export interface KanbanMissionStore {
   deleteQuest: (questId: string) => void;
 }
 
-export const useKanbanMissionStore = create<KanbanMissionStore>((set, get) => ({
-  quests: [],
-  searchQuery: "",
-  selectedTag: null,
-  selectedRank: null,
+export const useKanbanMissionStore = create<KanbanMissionStore>()(
+  persist(
+    (set, get) => ({
+      quests: [],
+      searchQuery: "",
+      selectedTag: null,
+      selectedRank: null,
 
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedTag: (tag) => set({ selectedTag: tag }),
@@ -169,4 +172,9 @@ export const useKanbanMissionStore = create<KanbanMissionStore>((set, get) => ({
     }));
     playConfirmedSound();
   },
-}));
+}),
+    {
+      name: "ascend_kanban_missions",
+    }
+  )
+);

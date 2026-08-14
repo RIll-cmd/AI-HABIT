@@ -25,8 +25,14 @@ export interface ClassSpecialization {
   baseClass: string;
   tier: number;
   requiredLevel: number;
+  requiredStats?: string | null;
   description?: string | null;
+  lore?: string | null;
   icon?: string | null;
+  statBonus?: string | null;
+  powerMultiplier?: number | null;
+  passivePerk?: string | null;
+  passiveEffect?: string | null;
 }
 
 export interface Character {

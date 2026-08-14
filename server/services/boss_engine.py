@@ -103,7 +103,9 @@ async def deal_boss_damage(db: Prisma, character_id: str, activity_type: str, re
                     where={"id": character_id},
                     data={
                         "exp": {"increment": rewards["exp"]},
-                        "gold": {"increment": rewards["gold"]}
+                        "gold": {"increment": rewards["gold"]},
+                        "gems": {"increment": rewards["gems"]},
+                        "towerTokens": {"increment": rewards["towerTokens"]},
                     }
                 )
                 
@@ -126,6 +128,24 @@ async def deal_boss_damage(db: Prisma, character_id: str, activity_type: str, re
                         "source": "BOSS"
                     }
                 )
+                await db.economylog.create(
+                    data={
+                        "characterId": character_id,
+                        "currency": "GEMS",
+                        "amount": rewards["gems"],
+                        "reason": f"Defeated Boss: {boss.name}",
+                        "source": "BOSS"
+                    }
+                )
+                await db.economylog.create(
+                    data={
+                        "characterId": character_id,
+                        "currency": "TOWER_TOKENS",
+                        "amount": rewards["towerTokens"],
+                        "reason": f"Defeated Boss: {boss.name}",
+                        "source": "BOSS"
+                    }
+                )
                 
                 result_summary["rewards"] = rewards
                 
@@ -136,10 +156,10 @@ async def deal_boss_damage(db: Prisma, character_id: str, activity_type: str, re
 def grant_boss_rewards(difficulty: str) -> Dict[str, int]:
     diff = difficulty.upper()
     rewards = {
-        "EASY": {"exp": 1000, "gold": 500},
-        "NORMAL": {"exp": 2500, "gold": 1200},
-        "HARD": {"exp": 7500, "gold": 3000},
-        "ELITE": {"exp": 15000, "gold": 7500},
-        "LEGENDARY": {"exp": 35000, "gold": 20000}
+        "EASY": {"exp": 1000, "gold": 500, "gems": 25, "towerTokens": 50},
+        "NORMAL": {"exp": 2500, "gold": 1200, "gems": 50, "towerTokens": 100},
+        "HARD": {"exp": 7500, "gold": 3000, "gems": 100, "towerTokens": 250},
+        "ELITE": {"exp": 15000, "gold": 7500, "gems": 200, "towerTokens": 500},
+        "LEGENDARY": {"exp": 35000, "gold": 20000, "gems": 500, "towerTokens": 1000}
     }
     return rewards.get(diff, rewards["NORMAL"])

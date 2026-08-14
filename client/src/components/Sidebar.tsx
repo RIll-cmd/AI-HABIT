@@ -21,14 +21,16 @@ import {
   Crown,
   Swords,
   Calendar,
-  Radio
+  Radio,
+  Hammer,
+  User,
 } from "lucide-react";
 
 import { playSystemOpen } from "@/features/audio/useSystemAudio";
 import { AiraAvatar } from "@/components/ui/AiraAvatar";
 import { playMovementSFX } from "@/utils/audio";
 
-const SIDEBAR_RUNES = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ"];
+const SIDEBAR_RUNES = ['ᚦ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ', 'ᛃ', 'ᛈ', 'ᛋ', 'ᛏ'];
 
 const navItemVariants = {
   hidden: { opacity: 0, x: -20, filter: "blur(4px)" },
@@ -57,6 +59,7 @@ export function Sidebar() {
 
   const sidebarNav = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Profile", href: "/profile", icon: User },
     { name: "Missions", href: "/missions", icon: Target },
     { name: "Habits", href: "/habits", icon: CheckCircle2 },
     { name: "Calendar", href: "/calendar", icon: Calendar },
@@ -64,11 +67,12 @@ export function Sidebar() {
     { name: "Boss PR", href: "/workouts/boss-pr", icon: Swords },
     { name: "Tower", href: "/tower", icon: Flame },
     { name: "Inventory", href: "/inventory", icon: Package },
+    { name: "Beasts & Pets", href: "/beasts", icon: Sparkles },
+    { name: "Forge & Craft", href: "/crafting", icon: Hammer },
     { name: "Skills", href: "/skills", icon: Zap },
     { name: "Bosses", href: "/bosses", icon: Skull },
     { name: "Shop", href: "/shop", icon: ShoppingBag },
     { name: "Achievements", href: "/achievements", icon: Trophy },
-    { name: "Season Pass", href: "/season-pass", icon: Crown },
     { name: "AI System", href: "/aira", icon: Bot },
   ];
 
@@ -118,7 +122,6 @@ export function Sidebar() {
               <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-bold tracking-wider">
                 v2.0 HUD
               </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
             </div>
           </div>
         </Link>
@@ -168,9 +171,6 @@ export function Sidebar() {
                   }`}
                 />
                 <span className="tracking-wide">{item.name}</span>
-                {isActive && (
-                  <div suppressHydrationWarning className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.9)] animate-pulse" />
-                )}
               </Link>
             </motion.div>
           );
@@ -197,7 +197,6 @@ export function Sidebar() {
           <div suppressHydrationWarning className="flex items-center gap-3 mb-3">
              <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-cyan-950/90 border border-cyan-500/40 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.3)] relative animate-energy-pulse">
                 <AiraAvatar mood="NEUTRAL" className="w-10 h-10 border-none shadow-none rounded-none" />
-                <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
              </div>
              <div suppressHydrationWarning>
                <div suppressHydrationWarning className="flex items-center gap-1.5">

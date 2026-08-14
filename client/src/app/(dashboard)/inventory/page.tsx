@@ -10,7 +10,7 @@ import { Search, Filter, Backpack } from 'lucide-react';
 type FilterTab = 'All' | 'Equipment' | 'Consumables' | 'Materials';
 
 export default function InventoryPage() {
-  const { items, isLoading, fetchInventory, equipItem, toggleLock, toggleFavorite } = useInventoryStore();
+  const { items, isLoading, fetchInventory, equipItem, toggleLock, toggleFavorite, useItem } = useInventoryStore();
   
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,6 +135,7 @@ export default function InventoryPage() {
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
         onEquip={(id) => equipItem(id)}
+        onUse={(id) => useItem(id)}
         onToggleFavorite={(id) => toggleFavorite(id)}
         onToggleLock={(id) => toggleLock(id)}
       />

@@ -14,6 +14,8 @@ import {
   Hexagon,
 } from 'lucide-react';
 import { CHARACTER_AVATAR_PREVIEW } from '@/utils/sprites';
+import { useBeastStore } from '@/features/beasts/store/useBeastStore';
+import { EquippedBeastDisplay } from '@/features/beasts/components/EquippedBeastDisplay';
 
 interface PaperDollProps {
   equippedItems: PlayerItem[];
@@ -42,6 +44,9 @@ const RARITY_COLORS: Record<string, string> = {
 const SLOT_RUNES = ['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ'];
 
 export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
+  const { collection } = useBeastStore();
+  const equippedBeast = collection?.equippedBeast || null;
+
   const getItemForSlot = (slot: string) => {
     return equippedItems.find(item => item.itemDefinition.type === slot);
   };
@@ -108,6 +113,13 @@ export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
           className="w-44 h-44 object-contain drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] z-10 group-hover:scale-105 transition-transform duration-500"
           style={{ imageRendering: "pixelated" }}
         />
+
+        {/* Floating Equipped Beast Companion */}
+        {equippedBeast && (
+          <div className="absolute top-4 right-3 z-20">
+            <EquippedBeastDisplay beast={equippedBeast} size="sm" />
+          </div>
+        )}
         
         {/* Ground Magic Circle effect — enhanced */}
         <div className="absolute -bottom-8 w-56 h-20 border-2 border-cyan-500/30 rounded-[100%] transform rotate-x-60 pointer-events-none shadow-[0_0_40px_rgba(6,182,212,0.5)] animate-pulse" />

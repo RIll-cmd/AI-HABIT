@@ -1,9 +1,5 @@
 // This is your Prisma schema file for Ascend OS (SaaS MVP Skeleton)
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 generator pyclient {
   provider = "prisma-client-py"
 }
@@ -68,6 +64,10 @@ model Character {
   bosses          Boss[]
   activeBuffs     ActiveBuff[]
   seasonProgresses CharacterSeasonProgress[]
+  equippedBeastId  String?
+  eggs             Egg[]
+  beasts           Beast[]
+  dailyStepLogs    DailyStepLog[]
 }
 
 model CharacterStats {
@@ -444,16 +444,22 @@ model CharacterTitle {
 }
 
 model ClassSpecialization {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  baseClass     String   // 'Warrior', 'Mage', 'Rogue'
-  tier          Int      @default(1) // 1 or 2
-  requiredLevel Int      @default(10)
-  description   String?
-  icon          String?
+  id               String   @id @default(uuid())
+  name             String   @unique
+  baseClass        String   // 'WARRIOR', 'MAGE', 'ASSASSIN', 'TANK', 'SHADOW_MONARCH', etc.
+  tier             Int      @default(1) // 1 or 2
+  requiredLevel    Int      @default(5)
+  requiredStats    String?  // JSON string: {"strength": 30, "endurance": 20, ...}
+  description      String?
+  lore             String?  // Deep Solo-Leveling / Ascend lore chronicle
+  icon             String?  // '/class_icons/icHunter.png'
+  statBonus        String?  // JSON string: {"strength": 40, "endurance": 25, ...}
+  powerMultiplier  Float    @default(1.20)
+  passivePerk      String?  // Name of the passive perk
+  passiveEffect    String?  // Detailed description of the perk
 
-  characters    Character[]
-  skills        SkillDefinition[]
+  characters       Character[]
+  skills           SkillDefinition[]
 }
 
 model SkillDefinition {
@@ -650,4 +656,52 @@ model CharacterSeasonProgress {
 
   @@unique([characterId, seasonId])
 }
+
+model Egg {
+  id             String    @id @default(uuid())
+  name           String
+  eggType        String    @default("ELEMENTAL") // 'ELEMENTAL', 'CYBER', 'VOID', 'SOLAR', 'ASTRAL', 'GLACIAL', 'NATURE', 'FROST'
+  sprite         String    @default("/eggs/egg_1.png")
+  rarity         String    @default("COMMON")    // 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'HOLOGRAPHIC'
+  targetSteps    Int       @default(5000)
+  currentSteps   Int       @default(0)
+  targetEnergy   Int       @default(5000)
+  currentEnergy  Int       @default(0)
+  status         String    @default("INCUBATING") // 'INCUBATING', 'READY_TO_HATCH', 'HATCHED'
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  hatchedBeastId String?
+  hatchedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Beast {
+  id               String    @id @default(uuid())
+  name             String
+  species          String
+  element          String    @default("FIRE") // 'FIRE', 'FROST', 'VOID', 'CYBER', 'NATURE', 'HOLY', 'STORM'
+  rarity           String    @default("COMMON") // 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'HOLOGRAPHIC'
+  spritePath       String    @default("/beasts/beast_1.png")
+  passiveBuffType  String    @default("EXP_BOOST") // 'EXP_BOOST', 'GOLD_BOOST', 'STR_BOOST', 'AGI_BOOST', 'INT_BOOST', 'STRENGTH', 'KNOWLEDGE', 'DISCIPLINE', 'RECOVERY', 'FOCUS', 'ENDURANCE'
+  passiveBuffValue Float     @default(5.0)
+  statBonusType    String    @default("EXP_BOOST")
+  statBonusValue   Float     @default(5.0)
+  description      String?
+  lore             String?
+  isEquipped       Boolean   @default(false)
+  characterId      String
+  character        Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  unlockedAt       DateTime  @default(now())
+}
+
+model DailyStepLog {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  stepCount   Int
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+}
+
 

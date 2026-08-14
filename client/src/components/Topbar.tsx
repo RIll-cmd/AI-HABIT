@@ -18,6 +18,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { CurrencyIcon } from "@/components/CurrencyDisplay";
+import { SystemTooltip } from "@/components/ui/SystemTooltip";
+import { CURRENCY_LORE } from "@/features/lore/loreData";
 import { AiraAvatar, AiraMood } from "@/components/ui/AiraAvatar";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useAiraStore } from "@/features/aira/store";
@@ -214,23 +216,23 @@ export function Topbar() {
                 </div>
               </div>
 
-              <div suppressHydrationWarning className="space-y-1 mb-2">
+              <div suppressHydrationWarning className="space-y-1">
                 <DropdownMenuItem asChild className="cursor-pointer hover:bg-cyan-500/10 py-2 rounded-lg">
-                  <Link href="/profile/stats" className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-cyan-400/60" />
-                    <span className="text-xs font-bold">[ 👤 VIEW FULL PROFILE ]</span>
+                  <Link href="/profile" className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-bold font-mono tracking-wider text-slate-200">[ VIEW FULL PROFILE ]</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleThemeToggle} className="cursor-pointer hover:bg-cyan-500/10 py-2 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Palette className="w-4 h-4 text-cyan-400/60" />
-                    <span className="text-xs font-bold">[ 🎨 TOGGLE SYSTEM HUD THEME ]</span>
+                    <Palette className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-bold font-mono tracking-wider text-slate-200">[ TOGGLE SYSTEM HUD THEME ]</span>
                   </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer hover:bg-cyan-500/10 py-2 rounded-lg">
                   <Link href="/profile/customize" className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-cyan-400/60" />
-                    <span className="text-xs font-bold">[ 🛡️ EQUIP TITLE ]</span>
+                    <Shield className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-bold font-mono tracking-wider text-slate-200">[ EQUIP TITLE ]</span>
                   </Link>
                 </DropdownMenuItem>
               </div>
@@ -241,13 +243,13 @@ export function Topbar() {
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer hover:bg-cyan-500/10 py-2 rounded-lg">
                   <div className="flex items-center gap-2">
                     <LogOut className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs font-bold text-slate-300">[ 🚪 LOGOUT ]</span>
+                    <span className="text-xs font-bold font-mono tracking-wider text-slate-300">[ LOGOUT ]</span>
                   </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer bg-red-950/20 text-red-400 hover:bg-red-900/30 py-2 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span className="text-xs font-bold">[ ⚠️ ACCOUNT SETTINGS / DANGER ZONE ]</span>
+                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                    <span className="text-xs font-bold font-mono tracking-wider">[ ACCOUNT SETTINGS / DANGER ZONE ]</span>
                   </div>
                 </DropdownMenuItem>
               </div>
@@ -266,30 +268,71 @@ export function Topbar() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-amber-950/20 border border-amber-500/15 hover:border-amber-400/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-all duration-300 cursor-default animate-float-gentle" style={{ animationDelay: '0s' }}>
-              <CurrencyIcon type="GOLD" size="sm" />
-              <span className="text-xs font-mono text-amber-200 font-bold">{gold.toLocaleString()}</span>
-              <span className="text-[10px] text-amber-500/50 ml-0.5">+</span>
-            </div>
-
-            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-cyan-950/20 border border-cyan-500/15 hover:border-cyan-400/40 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300 cursor-default animate-float-gentle" style={{ animationDelay: '-1.5s' }}>
-              <CurrencyIcon type="GEMS" size="sm" />
-              <span className="text-xs font-mono text-cyan-200 font-bold">{gems.toLocaleString()}</span>
-              <span className="text-[10px] text-cyan-500/50 ml-0.5">+</span>
-            </div>
-
-            <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-indigo-950/20 border border-indigo-500/15 hover:border-indigo-400/40 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 cursor-default animate-float-gentle" style={{ animationDelay: '-3s' }}>
-              <CurrencyIcon type="THIRD" size="sm" />
-              <span className="text-xs font-mono text-indigo-200 font-bold">{towerTokens.toLocaleString()}</span>
-              <span className="text-[10px] text-indigo-500/50 ml-0.5">+</span>
-            </div>
-
-            {/* Streak Freeze Shield Badge */}
-            <Link href="/calendar">
-              <div suppressHydrationWarning className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-950/30 border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer transition-all duration-300">
-                <span className="text-xs font-mono text-purple-300 font-bold">🛡️ {character?.streakFreezes || 0}</span>
+            {/* Gold */}
+            <SystemTooltip
+              title={CURRENCY_LORE.gold.name}
+              subtitle="Primary Ascend Currency"
+              category={CURRENCY_LORE.gold.category}
+              rarity={CURRENCY_LORE.gold.rarity}
+              description={CURRENCY_LORE.gold.description}
+              lore={CURRENCY_LORE.gold.lore}
+              mechanics={CURRENCY_LORE.gold.mechanics}
+              stats={[
+                { label: "Your Balance", value: `${gold.toLocaleString()} Gold`, color: "text-amber-400" },
+                { label: "Acquisition", value: "Tower, Missions, Habits, Bosses" }
+              ]}
+              tags={CURRENCY_LORE.gold.tags}
+            >
+              <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-amber-950/20 border border-amber-500/15 hover:border-amber-400/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-all duration-300 cursor-help animate-float-gentle" style={{ animationDelay: '0s' }}>
+                <CurrencyIcon type="GOLD" size="sm" />
+                <span className="text-xs font-mono text-amber-200 font-bold">{gold.toLocaleString()}</span>
+                <span className="text-[10px] text-amber-500/50 ml-0.5">+</span>
               </div>
-            </Link>
+            </SystemTooltip>
+
+            {/* Gems */}
+            <SystemTooltip
+              title={CURRENCY_LORE.gems.name}
+              subtitle="Premium Astral Currency"
+              category={CURRENCY_LORE.gems.category}
+              rarity={CURRENCY_LORE.gems.rarity}
+              description={CURRENCY_LORE.gems.description}
+              lore={CURRENCY_LORE.gems.lore}
+              mechanics={CURRENCY_LORE.gems.mechanics}
+              stats={[
+                { label: "Your Balance", value: `${gems.toLocaleString()} Gems`, color: "text-cyan-400" },
+                { label: "Acquisition", value: "Boss Clears, PR Milestones, Elite Tiers" }
+              ]}
+              tags={CURRENCY_LORE.gems.tags}
+            >
+              <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-cyan-950/20 border border-cyan-500/15 hover:border-cyan-400/40 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300 cursor-help animate-float-gentle" style={{ animationDelay: '-1.5s' }}>
+                <CurrencyIcon type="GEMS" size="sm" />
+                <span className="text-xs font-mono text-cyan-200 font-bold">{gems.toLocaleString()}</span>
+                <span className="text-[10px] text-cyan-500/50 ml-0.5">+</span>
+              </div>
+            </SystemTooltip>
+
+            {/* Tower Tokens (3rd Currency) */}
+            <SystemTooltip
+              title={CURRENCY_LORE.towerTokens.name}
+              subtitle="Ascension Sigil Currency"
+              category={CURRENCY_LORE.towerTokens.category}
+              rarity={CURRENCY_LORE.towerTokens.rarity}
+              description={CURRENCY_LORE.towerTokens.description}
+              lore={CURRENCY_LORE.towerTokens.lore}
+              mechanics={CURRENCY_LORE.towerTokens.mechanics}
+              stats={[
+                { label: "Your Balance", value: `${towerTokens.toLocaleString()} Tokens`, color: "text-indigo-400" },
+                { label: "Acquisition", value: "Tower Floor Clears, Boss PRs, Consistency" }
+              ]}
+              tags={CURRENCY_LORE.towerTokens.tags}
+            >
+              <div suppressHydrationWarning className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-indigo-950/20 border border-indigo-500/15 hover:border-indigo-400/40 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 cursor-help animate-float-gentle" style={{ animationDelay: '-3s' }}>
+                <CurrencyIcon type="TOWER_TOKENS" size="sm" />
+                <span className="text-xs font-mono text-indigo-200 font-bold">{towerTokens.toLocaleString()}</span>
+                <span className="text-[10px] text-indigo-500/50 ml-0.5">+</span>
+              </div>
+            </SystemTooltip>
 
             {/* Active Buffs */}
             {character?.activeBuffs?.map(buff => (
@@ -310,7 +353,7 @@ export function Topbar() {
               <Button suppressHydrationWarning variant="ghost" size="icon" className="relative text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer rounded-xl transition-all duration-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]">
                 <Bell className="w-4 h-4" />
                 {isMounted && unreadCount > 0 && (
-                  <span suppressHydrationWarning className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.9),0_0_20px_rgba(6,182,212,0.4)] animate-beacon" />
+                  <span suppressHydrationWarning className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
                 )}
               </Button>
             </NotificationDrawer>

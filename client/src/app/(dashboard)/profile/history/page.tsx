@@ -17,6 +17,7 @@ import {
   Dumbbell,
   Sparkles,
 } from "lucide-react";
+import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
 
 export default function HistoryPage() {
   const { character, gainExp } = useCharacterStore();
@@ -26,6 +27,9 @@ export default function HistoryPage() {
     <div className="space-y-6 font-sans">
       {/* HEADER BANNER */}
       <div className="p-6 rounded-[24px] bg-[#0B1020]/90 border border-amber-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+        {/* Floating Runes & Particles */}
+        <FloatingRuneField density="medium" />
+
         <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="space-y-1 z-10">

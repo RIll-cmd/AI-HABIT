@@ -18,6 +18,32 @@ const DEFAULT_ITEM_MAPPINGS: Record<string, string> = {
   "EXP Elixir": "/icons/Icon309.png",
   "Guardian Cuirass": "/icons/Icon185.png",
   "Ring of Dominion": "/icons/Icon244.png",
+
+  // Crafted Weapons & Gear
+  "Shadow Monarch's Dagger": "/icons/Icon7.png",
+  "Dragon-Bone Greatsword": "/icons/Icon19.png",
+  "Tempest Phantom Bow": "/icons/Icon110.png",
+  "Void Singularity Staff": "/icons/Icon80.png",
+  "Titan Alloy Cuirass": "/icons/Icon185.png",
+  "Abyssal Guardian Crown": "/icons/Icon171.png",
+  "Shadowstrider Greaves": "/icons/Icon230.png",
+  "Ring of Absolute Dominion": "/icons/Icon249.png",
+  "Amulet of Eternal Vitality": "/icons/Icon257.png",
+  "Grand Elixir of Ascension": "/icons/Icon309.png",
+  "Divine Full Recovery Potion": "/icons/Icon304.png",
+  "Double-EXP Hyper Matrix Token": "/icons/Icon267.png",
+
+  // Crafting Materials
+  "Large Silver Gem": "/icons/Icon341.png",
+  "Shadow Steel Ingot": "/icons/Icon390.png",
+  "Obsidian Core Crystal": "/icons/Icon392.png",
+  "Dragon Drake Scale": "/icons/Icon380.png",
+  "Ocean Sapphire Shard": "/icons/Icon338.png",
+  "Mana Root Essence": "/icons/Icon276.png",
+  "Crimson Life Herb": "/icons/Icon279.png",
+  "Solar Titan Quartz": "/icons/Icon331.png",
+  "Monarch Soul Fragment": "/icons/Icon268.png",
+  "System Processor Chip": "/icons/Icon261.png",
 };
 
 /**

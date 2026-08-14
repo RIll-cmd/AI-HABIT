@@ -17,15 +17,21 @@ export const SOUND_PATHS = {
   REWARD: "/sounds/System UI & Navigation/SYSTEM-CORRECT ANSWER REWARD.wav",
 };
 
+import { useSettingsStore } from "@/store/useSettingsStore";
+
 /**
  * Plays an audio sound safely, handling SSR checks and browser autoplay restrictions.
  */
 export function playSystemSound(soundPath: string, volume: number = 0.6) {
   if (typeof window === "undefined") return;
 
+  const settings = useSettingsStore.getState();
+  if (!settings.soundEnabled) return;
+
   try {
     const audio = new Audio(encodeURI(soundPath));
-    audio.volume = volume;
+    const effectiveVol = Math.max(0, Math.min(1, volume * (settings.voiceVolume / 100)));
+    audio.volume = effectiveVol;
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {

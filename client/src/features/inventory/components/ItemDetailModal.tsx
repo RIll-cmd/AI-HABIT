@@ -1,14 +1,16 @@
 import React, { useEffect } from 'react';
 import { PlayerItem } from '../types/inventory';
 import Image from 'next/image';
-import { X, Lock, Star, Shield, Sword } from 'lucide-react';
+import { X, Lock, Star, Shield, Sword, Sparkles, BookOpen, ShieldCheck, HelpCircle } from 'lucide-react';
 import { playUISound, playBuffSFX, playUIMenuSFX } from '@/utils/audio';
 import { getItemIconPath } from '@/utils/itemIcons';
+import { getItemUsageDetails } from '@/utils/itemUsageUtils';
 
 interface ItemDetailModalProps {
   item: PlayerItem | null;
   onClose: () => void;
   onEquip: (id: string) => void;
+  onUse?: (id: string) => void;
   onToggleLock: (id: string) => void;
   onToggleFavorite: (id: string) => void;
 }
@@ -21,17 +23,16 @@ const RARITY_COLORS: Record<string, string> = {
   MYTHIC: 'text-red-500 border-red-500 shadow-red-500/60',
 };
 
-const STAT_LABELS = [
-  'attack', 'defense', 'strength', 'knowledge', 'discipline', 'focus', 'endurance', 'recovery'
-];
-
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   item,
   onClose,
   onEquip,
+  onUse,
   onToggleLock,
   onToggleFavorite
 }) => {
+  const [isConsuming, setIsConsuming] = React.useState(false);
+
   useEffect(() => {
     if (item) {
       playUISound("/sounds/System UI & Navigation/SYSTEM--OPEN.mp3");
@@ -42,11 +43,10 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
   const { itemDefinition } = item;
   const rarityStyle = RARITY_COLORS[itemDefinition.rarity] || RARITY_COLORS.COMMON;
+  const usageDetails = getItemUsageDetails(itemDefinition);
 
-  // Collect non-zero stats
-  const activeStats = STAT_LABELS.filter(stat => (itemDefinition as any)[stat] > 0);
-
-  const canEquip = ["WEAPON", "HELMET", "ARMOR", "GLOVES", "BOOTS", "RING", "NECKLACE", "ARTIFACT", "RELIC"].includes(itemDefinition.type);
+  const canEquip = usageDetails.isEquipment;
+  const isConsumable = itemDefinition.type === "CONSUMABLE" || usageDetails.categoryLabel === "Consumable";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -57,7 +57,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
       />
 
       {/* Modal Content */}
-      <div className={`relative z-10 w-full max-w-sm bg-[#0B1020] border-2 rounded-2xl p-6 flex flex-col gap-4 shadow-2xl ${rarityStyle}`}>
+      <div className={`relative z-10 w-full max-w-md bg-[#0B1020] border-2 rounded-2xl p-6 flex flex-col gap-4 shadow-2xl ${rarityStyle}`}>
         
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
           <X className="w-5 h-5" />
@@ -65,44 +65,88 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
         {/* Header & Icon */}
         <div className="flex gap-4 items-start pr-8">
-          <div className="relative w-24 h-24 rounded-xl bg-black/40 border border-white/10 flex-shrink-0 p-3 flex items-center justify-center">
+          <div className="relative w-20 h-20 rounded-2xl bg-black/50 border border-white/15 flex-shrink-0 p-2 flex items-center justify-center shadow-inner">
              <Image 
                src={getItemIconPath(itemDefinition.name)} 
                alt={itemDefinition.name} 
                fill 
-               className="object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] p-2" 
+               className="object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] p-1.5" 
              />
           </div>
-          <div className="flex flex-col mt-1">
-            <h2 className="text-xl font-bold text-white leading-tight font-heading">{itemDefinition.name}</h2>
-            <span className={`text-[10px] uppercase tracking-widest font-bold mt-2 ${RARITY_COLORS[itemDefinition.rarity]?.split(' ')[0]}`}>
-              {itemDefinition.rarity} {itemDefinition.type}
-            </span>
-            <span className="text-xs text-amber-400 font-mono mt-1 flex items-center gap-1">
-              Value: {itemDefinition.sellValue}g
-            </span>
+          <div className="flex flex-col mt-0.5 min-w-0">
+            <h2 className="text-xl font-bold text-white leading-tight font-heading truncate">{itemDefinition.name}</h2>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span className={`text-[10px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded border ${RARITY_COLORS[itemDefinition.rarity]?.split(' ')[0]} bg-white/5 border-white/10`}>
+                {itemDefinition.rarity}
+              </span>
+              <span className="text-[10px] text-slate-300 font-mono uppercase tracking-wider bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                {itemDefinition.type}
+              </span>
+              {usageDetails.isEquipment && (
+                <span className="text-[9.5px] text-emerald-400 font-mono uppercase tracking-wider bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30 flex items-center gap-0.5">
+                  <ShieldCheck className="w-2.5 h-2.5" /> Equippable
+                </span>
+              )}
+              {isConsumable && (
+                <span className="text-[9.5px] text-cyan-400 font-mono uppercase tracking-wider bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30 flex items-center gap-0.5">
+                  <Sparkles className="w-2.5 h-2.5" /> Usable
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-1 text-xs font-mono">
+              <span className="text-amber-400">Sell Value: {itemDefinition.sellValue || 0}g</span>
+              <span className="text-slate-400">Qty: <strong className="text-white">{item.quantity}</strong></span>
+            </div>
           </div>
         </div>
 
-        {/* Description & Stats */}
-        <div className="bg-[#151C33]/50 rounded-xl p-4 text-sm text-gray-300 border border-white/5">
-          <p className="italic text-slate-400 text-xs leading-relaxed mb-4">"{itemDefinition.description || "A mysterious item of unknown origin."}"</p>
+        {/* Description, How to Use & Stats */}
+        <div className="bg-[#151C33]/60 rounded-xl p-4 text-sm text-gray-300 border border-white/10 space-y-3 max-h-[360px] overflow-y-auto custom-scrollbar">
+          {/* Lore */}
+          <p className="italic text-slate-300 text-xs leading-relaxed bg-[#050a18]/70 p-2.5 rounded-lg border border-white/5">
+            &quot;{itemDefinition.description || "A mysterious item forged within system rift gates."}&quot;
+          </p>
           
-          {activeStats.length > 0 && (
-            <div className="grid grid-cols-2 gap-y-2 gap-x-4 border-t border-white/10 pt-4">
-              {activeStats.map(stat => (
-                <div key={stat} className="flex justify-between items-center bg-black/20 px-2 py-1.5 rounded">
-                  <span className="capitalize text-[10px] text-slate-400 font-mono tracking-wider">{stat}</span>
-                  <span className="font-bold text-white text-xs font-mono">
-                    +{(itemDefinition as any)[stat]}
-                  </span>
-                </div>
-              ))}
+          {/* How to Use / Slot Guide */}
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#101830] to-[#080d1e] border border-indigo-500/30 text-[11px] leading-relaxed">
+            <span className="text-[9.5px] font-mono font-bold text-indigo-300 uppercase tracking-wider block mb-0.5 flex items-center gap-1">
+              <BookOpen className="w-3 h-3 text-indigo-400" />
+              How to Use & Function:
+            </span>
+            <p className="text-slate-200 font-sans text-[11px]">{usageDetails.usageGuide}</p>
+            <div className="mt-1 text-[9.5px] font-mono text-indigo-300">
+              Slot: <strong className="text-white">{usageDetails.slotLabel}</strong>
+            </div>
+          </div>
+
+          {/* Equipment Stat Bonuses */}
+          {usageDetails.hasBonuses && (
+            <div className="p-2.5 rounded-xl bg-[#0B1428] border border-cyan-500/25">
+              <span className="text-[9.5px] font-mono font-bold text-cyan-400 uppercase tracking-widest block mb-1.5 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-cyan-400" />
+                Equipment Stat Attributes
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {usageDetails.statBonuses.map(s => {
+                  const Icon = s.icon;
+                  return (
+                    <div key={s.label} className={`flex justify-between items-center px-2.5 py-1.5 rounded-lg ${s.bg} border ${s.borderColor}`}>
+                      <span className="flex items-center gap-1.5 text-[10px] text-slate-300 font-mono tracking-wider">
+                        <Icon className={`w-3.5 h-3.5 ${s.color}`} />
+                        {s.label}
+                      </span>
+                      <span className="font-bold text-white text-xs font-mono">
+                        +{s.value}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {itemDefinition.passive && (
-            <div className="mt-4 border-t border-white/10 pt-4">
+            <div className="border-t border-white/10 pt-2">
               <span className="text-yellow-400 font-bold block mb-1 text-xs uppercase tracking-widest">Passive Effect</span>
               <p className="text-xs text-slate-300">{itemDefinition.passive}</p>
             </div>
@@ -130,6 +174,30 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             >
               <Sword className="w-4 h-4" />
               {item.isEquipped ? "Unequip Item" : "Equip Item"}
+            </button>
+          )}
+
+          {isConsumable && (
+            <button 
+              disabled={isConsuming}
+              onClick={async () => {
+                if (!onUse) return;
+                setIsConsuming(true);
+                playBuffSFX("buff");
+                playUISound("/sounds/Combat & Actions/SKILL--ACTIVATE.mp3");
+                try {
+                  await onUse(item.id);
+                  onClose();
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsConsuming(false);
+                }
+              }}
+              className="w-full py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-600/30"
+            >
+              <Sparkles className="w-4 h-4 text-cyan-200" />
+              {isConsuming ? "Consuming..." : "Use Item Now"}
             </button>
           )}
 
@@ -163,3 +231,4 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     </div>
   );
 };
+

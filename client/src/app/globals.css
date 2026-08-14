@@ -700,3 +700,468 @@ h6 {
     @apply font-sans;
   }
 }
+
+/* ==========================================================================
+   AUTH SYSTEM & AMBIENT ANIMATIONS
+   ========================================================================== */
+
+.auth-layout-root {
+  background: radial-gradient(ellipse at 50% 0%, #0a1628 0%, #050a18 50%, #020510 100%);
+}
+
+.auth-starfield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  opacity: 0;
+  animation: auth-star-twinkle ease-in-out infinite;
+}
+
+@keyframes auth-star-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 0.7; transform: scale(1); }
+}
+
+.auth-glow-core {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+  animation: auth-glow-pulse 6s ease-in-out infinite;
+}
+
+.auth-glow-accent {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+  animation: auth-glow-pulse 8s ease-in-out infinite 2s;
+}
+
+.auth-glow-tertiary {
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+  animation: auth-glow-pulse 7s ease-in-out infinite 4s;
+}
+
+@keyframes auth-glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.auth-orbital {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.auth-orbital-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid;
+}
+
+.auth-orbital-ring-1 {
+  width: 500px;
+  height: 500px;
+  top: -250px;
+  left: -250px;
+  border-color: rgba(6, 182, 212, 0.08);
+  animation: auth-orbital-spin 30s linear infinite;
+}
+
+.auth-orbital-ring-2 {
+  width: 650px;
+  height: 650px;
+  top: -325px;
+  left: -325px;
+  border-color: rgba(99, 102, 241, 0.06);
+  animation: auth-orbital-spin 45s linear infinite reverse;
+}
+
+@keyframes auth-orbital-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.auth-runes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.auth-rune {
+  position: absolute;
+  font-size: 18px;
+  color: rgba(6, 182, 212, 0.12);
+  animation: auth-rune-float 6s ease-in-out infinite;
+}
+
+@keyframes auth-rune-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.1; }
+  50% { transform: translateY(-15px) rotate(10deg); opacity: 0.25; }
+}
+
+.auth-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 1;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+}
+
+.auth-card-entrance {
+  animation: auth-card-slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes auth-card-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.auth-logo-icon {
+  animation: auth-logo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes auth-logo-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.5), 0 0 50px rgba(6, 182, 212, 0.15); }
+}
+
+.auth-form-wrapper {
+  perspective: 1000px;
+}
+
+.auth-halo-pulse {
+  animation: auth-halo 4s ease-in-out infinite;
+}
+
+@keyframes auth-halo {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.auth-icon-container {
+  width: 64px;
+  height: 64px;
+  position: relative;
+}
+
+.auth-icon-ring {
+  animation: auth-icon-spin 8s linear infinite;
+  border-radius: 20px;
+}
+
+@keyframes auth-icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.auth-icon-sparkle {
+  position: absolute;
+  font-size: 10px;
+  color: rgba(6, 182, 212, 0.5);
+  animation: auth-sparkle-float 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.auth-icon-sparkle-1 { top: -6px; right: -6px; animation-delay: 0s; }
+.auth-icon-sparkle-2 { bottom: -4px; left: -8px; animation-delay: 1s; }
+.auth-icon-sparkle-3 { top: 50%; right: -10px; animation-delay: 2s; }
+
+@keyframes auth-sparkle-float {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 1; transform: translateY(-5px) scale(1); }
+}
+
+.auth-submit-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-submit-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.auth-submit-btn:not(:disabled):active {
+  transform: translateY(0px) scale(0.99);
+}
+
+.auth-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: auth-spin 0.6s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   HEATMAP & CALENDAR STYLES
+   ========================================================================== */
+
+.react-calendar-heatmap text {
+  font-size: 10px;
+  fill: #94a3b8;
+}
+.react-calendar-heatmap .color-empty { fill: #1e293b; }
+.react-calendar-heatmap .color-scale-1 { fill: #0e7490; }
+.react-calendar-heatmap .color-scale-2 { fill: #06b6d4; }
+.react-calendar-heatmap .color-scale-3 { fill: #22d3ee; }
+.react-calendar-heatmap .color-scale-4 { fill: #67e8f9; }
+.react-calendar-heatmap rect { rx: 2; ry: 2; outline: none; }
+
+/* ==========================================================================
+   SKILL TREE ELEMENTAL & TIER BORDER ACTIVATION EFFECTS
+   ========================================================================== */
+
+/* Flame Animations */
+@keyframes flame-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.6), inset 0 0 6px rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(249, 115, 22, 0.85), inset 0 0 12px rgba(249, 115, 22, 0.4);
+    border-color: #f97316;
+  }
+}
+
+@keyframes flame-corona-spin {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(249, 115, 22, 0.85), 0 0 45px rgba(239, 68, 68, 0.4), inset 0 0 14px rgba(245, 158, 11, 0.4);
+    border-color: #f59e0b;
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(239, 68, 68, 1), 0 0 55px rgba(245, 158, 11, 0.55), inset 0 0 18px rgba(239, 68, 68, 0.5);
+    border-color: #ef4444;
+  }
+}
+
+@keyframes flame-ultimate-blaze {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.95), 0 0 65px rgba(249, 115, 22, 0.7), inset 0 0 20px rgba(254, 240, 138, 0.6);
+    border-color: #fef08a;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(249, 115, 22, 1), 0 0 85px rgba(239, 68, 68, 0.9), inset 0 0 26px rgba(254, 240, 138, 0.8);
+    border-color: #ffffff;
+    transform: scale(1.02);
+  }
+}
+
+/* Tempest Animations */
+@keyframes tempest-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.6), inset 0 0 6px rgba(6, 182, 212, 0.25);
+    border-color: #06b6d4;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.85), inset 0 0 12px rgba(34, 211, 238, 0.4);
+    border-color: #22d3ee;
+  }
+}
+
+@keyframes tempest-corona-spin {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.85), 0 0 45px rgba(6, 182, 212, 0.4), inset 0 0 14px rgba(103, 232, 249, 0.4);
+    border-color: #67e8f9;
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(6, 182, 212, 1), 0 0 55px rgba(103, 232, 249, 0.55), inset 0 0 18px rgba(6, 182, 212, 0.5);
+    border-color: #06b6d4;
+  }
+}
+
+@keyframes tempest-ultimate-storm {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.95), 0 0 65px rgba(6, 182, 212, 0.7), inset 0 0 20px rgba(207, 250, 254, 0.6);
+    border-color: #cffafe;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(6, 182, 212, 1), 0 0 85px rgba(34, 211, 238, 0.9), inset 0 0 26px rgba(207, 250, 254, 0.8);
+    border-color: #ffffff;
+    transform: scale(1.02);
+  }
+}
+
+/* Earth Animations */
+@keyframes earth-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(217, 119, 6, 0.6), inset 0 0 6px rgba(217, 119, 6, 0.25);
+    border-color: #d97706;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(245, 158, 11, 0.85), inset 0 0 12px rgba(245, 158, 11, 0.4);
+    border-color: #f59e0b;
+  }
+}
+
+@keyframes earth-corona-spin {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(245, 158, 11, 0.85), 0 0 45px rgba(217, 119, 6, 0.4), inset 0 0 14px rgba(251, 191, 36, 0.4);
+    border-color: #fbbf24;
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(217, 119, 6, 1), 0 0 55px rgba(251, 191, 36, 0.55), inset 0 0 18px rgba(217, 119, 6, 0.5);
+    border-color: #d97706;
+  }
+}
+
+@keyframes earth-ultimate-titan {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.95), 0 0 65px rgba(217, 119, 6, 0.7), inset 0 0 20px rgba(254, 240, 138, 0.6);
+    border-color: #fef08a;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(217, 119, 6, 1), 0 0 85px rgba(245, 158, 11, 0.9), inset 0 0 26px rgba(254, 240, 138, 0.8);
+    border-color: #ffffff;
+    transform: scale(1.02);
+  }
+}
+
+/* Tide Animations */
+@keyframes tide-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.6), inset 0 0 6px rgba(37, 99, 235, 0.25);
+    border-color: #2563eb;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(59, 130, 246, 0.85), inset 0 0 12px rgba(59, 130, 246, 0.4);
+    border-color: #3b82f6;
+  }
+}
+
+@keyframes tide-corona-spin {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(59, 130, 246, 0.85), 0 0 45px rgba(37, 99, 235, 0.4), inset 0 0 14px rgba(96, 165, 250, 0.4);
+    border-color: #60a5fa;
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(37, 99, 235, 1), 0 0 55px rgba(96, 165, 250, 0.55), inset 0 0 18px rgba(37, 99, 235, 0.5);
+    border-color: #2563eb;
+  }
+}
+
+@keyframes tide-ultimate-abyss {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.95), 0 0 65px rgba(37, 99, 235, 0.7), inset 0 0 20px rgba(191, 219, 254, 0.6);
+    border-color: #bfdbfe;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(37, 99, 235, 1), 0 0 85px rgba(59, 130, 246, 0.9), inset 0 0 26px rgba(191, 219, 254, 0.8);
+    border-color: #ffffff;
+    transform: scale(1.02);
+  }
+}
+
+/* Ascension Animations */
+@keyframes asc-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(147, 51, 234, 0.6), inset 0 0 6px rgba(147, 51, 234, 0.25);
+    border-color: #9333ea;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.85), inset 0 0 12px rgba(168, 85, 247, 0.4);
+    border-color: #a855f7;
+  }
+}
+
+@keyframes asc-corona-spin {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.85), 0 0 45px rgba(147, 51, 234, 0.4), inset 0 0 14px rgba(192, 132, 252, 0.4);
+    border-color: #c084fc;
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(147, 51, 234, 1), 0 0 55px rgba(192, 132, 252, 0.55), inset 0 0 18px rgba(147, 51, 234, 0.5);
+    border-color: #9333ea;
+  }
+}
+
+@keyframes asc-ultimate-monarch {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.95), 0 0 65px rgba(147, 51, 234, 0.7), inset 0 0 20px rgba(243, 232, 255, 0.6);
+    border-color: #f3e8ff;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(147, 51, 234, 1), 0 0 85px rgba(168, 85, 247, 0.9), inset 0 0 26px rgba(243, 232, 255, 0.8);
+    border-color: #ffffff;
+    transform: scale(1.02);
+  }
+}
+
+/* Tier Effect Utility Classes */
+.skill-tier-flame-1 { border: 2px solid #ea580c; box-shadow: 0 0 12px rgba(234, 88, 12, 0.45); }
+.skill-tier-flame-2 { animation: flame-pulse-glow 2.2s infinite ease-in-out; border-width: 2px; }
+.skill-tier-flame-3 { animation: flame-pulse-glow 1.6s infinite ease-in-out; border-width: 2px; }
+.skill-tier-flame-4 { animation: flame-corona-spin 2.5s infinite ease-in-out; border-width: 2.5px; }
+.skill-tier-flame-5 { animation: flame-ultimate-blaze 1.8s infinite ease-in-out; border-width: 3px; }
+
+.skill-tier-tempest-1 { border: 2px solid #0891b2; box-shadow: 0 0 12px rgba(8, 145, 178, 0.45); }
+.skill-tier-tempest-2 { animation: tempest-pulse-glow 2.2s infinite ease-in-out; border-width: 2px; }
+.skill-tier-tempest-3 { animation: tempest-pulse-glow 1.6s infinite ease-in-out; border-width: 2px; }
+.skill-tier-tempest-4 { animation: tempest-corona-spin 2.5s infinite ease-in-out; border-width: 2.5px; }
+.skill-tier-tempest-5 { animation: tempest-ultimate-storm 1.8s infinite ease-in-out; border-width: 3px; }
+
+.skill-tier-earth-1 { border: 2px solid #b45309; box-shadow: 0 0 12px rgba(180, 83, 9, 0.45); }
+.skill-tier-earth-2 { animation: earth-pulse-glow 2.2s infinite ease-in-out; border-width: 2px; }
+.skill-tier-earth-3 { animation: earth-pulse-glow 1.6s infinite ease-in-out; border-width: 2px; }
+.skill-tier-earth-4 { animation: earth-corona-spin 2.5s infinite ease-in-out; border-width: 2.5px; }
+.skill-tier-earth-5 { animation: earth-ultimate-titan 1.8s infinite ease-in-out; border-width: 3px; }
+
+.skill-tier-tide-1 { border: 2px solid #1d4ed8; box-shadow: 0 0 12px rgba(29, 78, 216, 0.45); }
+.skill-tier-tide-2 { animation: tide-pulse-glow 2.2s infinite ease-in-out; border-width: 2px; }
+.skill-tier-tide-3 { animation: tide-pulse-glow 1.6s infinite ease-in-out; border-width: 2px; }
+.skill-tier-tide-4 { animation: tide-corona-spin 2.5s infinite ease-in-out; border-width: 2.5px; }
+.skill-tier-tide-5 { animation: tide-ultimate-abyss 1.8s infinite ease-in-out; border-width: 3px; }
+
+.skill-tier-ascension-1 { border: 2px solid #7e22ce; box-shadow: 0 0 12px rgba(126, 34, 206, 0.45); }
+.skill-tier-ascension-2 { animation: asc-pulse-glow 2.2s infinite ease-in-out; border-width: 2px; }
+.skill-tier-ascension-3 { animation: asc-pulse-glow 1.6s infinite ease-in-out; border-width: 2px; }
+.skill-tier-ascension-4 { animation: asc-corona-spin 2.5s infinite ease-in-out; border-width: 2.5px; }
+.skill-tier-ascension-5 { animation: asc-ultimate-monarch 1.8s infinite ease-in-out; border-width: 3px; }
+
+/* Available Pulse Animation */
+@keyframes skill-ready-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5), inset 0 0 8px rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(52, 211, 153, 0.8), inset 0 0 12px rgba(52, 211, 153, 0.4);
+    border-color: #34d399;
+  }
+}
+
+.skill-ready-indicator {
+  animation: skill-ready-pulse 1.8s infinite ease-in-out;
+}
+
+

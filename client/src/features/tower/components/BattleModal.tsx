@@ -7,6 +7,7 @@ import { CheckCircle2, ShieldAlert, Sparkles, BrainCircuit } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { playUISound, playAIRASound } from "@/utils/audio";
 import { getEnemySpritePath, CHARACTER_AVATAR_PREVIEW } from "@/utils/sprites";
+import { CurrencyIcon } from "@/components/CurrencyDisplay";
 
 export function BattleModal() {
   const { combatLog, clearCombatLog, cielAnalysis, isAnalyzing, selectedFloor } = useTowerStore();
@@ -170,9 +171,10 @@ export function BattleModal() {
                 <h4 className="font-bold text-indigo-400 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
                   <Sparkles className="w-4 h-4"/> Loot Drops
                 </h4>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2.5">
                   {combatLog.rewards.gold > 0 && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-md">
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-md flex items-center gap-1.5">
+                      <CurrencyIcon type="GOLD" size="xs" />
                       <span className="text-yellow-500 font-bold">+{combatLog.rewards.gold} Gold</span>
                     </div>
                   )}
@@ -181,9 +183,21 @@ export function BattleModal() {
                       <span className="text-blue-400 font-bold">+{combatLog.rewards.exp} EXP</span>
                     </div>
                   )}
-                  {combatLog.rewards.items.map((item, i) => (
-                    <div key={i} className="bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-md">
-                      <span className="text-purple-400 font-bold">+{item}</span>
+                  {(combatLog.rewards.gems || 0) > 0 && (
+                    <div className="bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-md flex items-center gap-1.5">
+                      <CurrencyIcon type="GEMS" size="xs" />
+                      <span className="text-purple-400 font-bold">+{combatLog.rewards.gems} Gems</span>
+                    </div>
+                  )}
+                  {(combatLog.rewards.towerTokens || 0) > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-md flex items-center gap-1.5">
+                      <CurrencyIcon type="TOWER_TOKENS" size="xs" />
+                      <span className="text-amber-400 font-bold">+{combatLog.rewards.towerTokens} Tokens</span>
+                    </div>
+                  )}
+                  {combatLog.rewards.items?.map((item, i) => (
+                    <div key={i} className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md">
+                      <span className="text-emerald-400 font-bold">+{item}</span>
                     </div>
                   ))}
                 </div>

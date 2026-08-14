@@ -16,7 +16,9 @@ import {
   Lock,
   Loader2,
   Zap,
+  Crown,
 } from "lucide-react";
+import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
 
 interface TitleItem {
   id: string;
@@ -96,6 +98,9 @@ export default function CustomizePage() {
     <div className="space-y-6 font-sans">
       {/* HEADER BANNER */}
       <div className="p-6 rounded-[24px] bg-[#0B1020]/90 border border-purple-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+        {/* Floating Runes & Particles */}
+        <FloatingRuneField density="medium" />
+
         <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="space-y-1 z-10">
@@ -151,7 +156,7 @@ export default function CustomizePage() {
                     >
                       <CardHeader className="pb-2 bg-slate-900/40 border-b border-slate-800/80 flex flex-row items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <span className="text-xl">{t.icon || "👑"}</span>
+                          <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0" />
                           <CardTitle className="text-sm font-bold text-white">
                             {t.name}
                           </CardTitle>

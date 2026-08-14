@@ -22,7 +22,9 @@ export interface ShopItem {
   endurance?: number;
   recovery?: number;
   focus?: number;
+  discipline?: number;
   consistency?: number;
+  sellValue?: number;
 
   // Computed fields
   canAfford: boolean;

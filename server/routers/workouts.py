@@ -115,11 +115,21 @@ async def log_workout(data: WorkoutLogInput):
     exp_reward = len(data.sets) * 50
     gold_reward = len(data.sets) * 10
     
+    # Calculate PR bonuses
+    pr_count = sum(1 for r in results if r.get("isPr"))
+    pr_gems = pr_count * 10
+    pr_tokens = pr_count * 25
+    pr_gold = pr_count * 50
+
+    total_gold = gold_reward + pr_gold
+    
     await db.character.update(
         where={"id": data.characterId},
         data={
             "exp": {"increment": exp_reward},
-            "gold": {"increment": gold_reward},
+            "gold": {"increment": total_gold},
+            "gems": {"increment": pr_gems},
+            "towerTokens": {"increment": pr_tokens},
             "stats": {
                 "update": {
                     "strength": {"increment": max(1, strength_inc)},
@@ -131,6 +141,34 @@ async def log_workout(data: WorkoutLogInput):
             }
         }
     )
+
+    if pr_count > 0:
+        await db.economylog.create(
+            data={
+                "characterId": data.characterId,
+                "currency": "GEMS",
+                "amount": pr_gems,
+                "reason": f"New PR Achieved ({pr_count} PR sets)",
+                "source": "WORKOUT_PR"
+            }
+        )
+        await db.economylog.create(
+            data={
+                "characterId": data.characterId,
+                "currency": "TOWER_TOKENS",
+                "amount": pr_tokens,
+                "reason": f"New PR Achieved ({pr_count} PR sets)",
+                "source": "WORKOUT_PR"
+            }
+        )
+        await db.progresshistory.create(
+            data={
+                "characterId": data.characterId,
+                "type": "WORKOUT_PR",
+                "amount": pr_gems,
+                "description": f"🔥 New Personal Record! Earned +{pr_gold} Gold, +{pr_gems} Gems, +{pr_tokens} Tower Tokens!"
+            }
+        )
         
     return {
         "sessionId": session.id,

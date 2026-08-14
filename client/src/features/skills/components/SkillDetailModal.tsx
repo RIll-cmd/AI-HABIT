@@ -1,7 +1,9 @@
 import React from 'react';
 import { SkillDefinition, PlayerSkill } from '../types';
 import { SkillIcon } from './SkillIcon';
+import { getSkillLore } from '../data/skillLore';
 import { playUISound, playBuffSFX } from '@/utils/audio';
+import { BookOpen, Sparkles, Swords } from 'lucide-react';
 
 interface SkillDetailModalProps {
   skill: SkillDefinition;
@@ -22,6 +24,7 @@ export const SkillDetailModal: React.FC<SkillDetailModalProps> = ({
   onUnlock, 
   loading 
 }) => {
+  const loreData = getSkillLore(skill.id, skill.name);
   let reqs: Record<string, any> = {};
   try {
     reqs = JSON.parse(skill.statRequirements);
@@ -53,9 +56,27 @@ export const SkillDetailModal: React.FC<SkillDetailModalProps> = ({
 
         {/* Body */}
         <div className="p-4 space-y-4">
-          <p className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-slate-500 pl-3">
-            {skill.description}
-          </p>
+          {/* Combat Effect */}
+          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-700/80">
+            <span className="text-[10px] font-mono font-bold uppercase text-cyan-400 tracking-wider mb-1 flex items-center gap-1.5">
+              <Swords className="w-3.5 h-3.5 text-cyan-400" />
+              <span>COMBAT MASTERY EFFECT:</span>
+            </span>
+            <p className="text-xs text-slate-100 font-sans leading-relaxed">
+              {loreData.combatEffect || skill.description}
+            </p>
+          </div>
+
+          {/* Ancient Lore Chronicle */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#121A30] to-[#0A0E1A] border border-purple-500/40 relative overflow-hidden shadow-md">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-purple-300 uppercase tracking-wider mb-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+              <span>ANCIENT CHRONICLE LORE</span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed font-sans italic">
+              &ldquo;{loreData.lore}&rdquo;
+            </p>
+          </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm bg-slate-900/50 rounded-lg p-3 border border-slate-800">
             <div>

@@ -29,6 +29,13 @@ export interface CharacterStore {
   updateIdentity: (data: Partial<Character>) => void;
   gainExp: (amount: number, reason: string) => void;
   gainGold: (amount: number, reason: string) => void;
+  gainGems: (amount: number, reason: string) => void;
+  gainTowerTokens: (amount: number, reason: string) => void;
+  gainStreakFreeze: (amount: number, reason: string) => void;
+  gainCurrencies: (
+    currencies: { gold?: number; gems?: number; towerTokens?: number; exp?: number },
+    reason: string
+  ) => void;
   addStat: (statName: string, amount: number) => void;
 }
 
@@ -67,7 +74,7 @@ const defaultCharacter: Character = {
   gems: 50,
   towerTokens: 0,
   availableSP: 5,
-  createdAt: new Date().toISOString(),
+  createdAt: "2025-01-01T00:00:00.000Z",
   stats: defaultStats,
   history: [],
 };
@@ -174,6 +181,118 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         history: [...(character.history || []), historyEntry],
       },
     });
+  },
+
+  gainGems: (amount: number, reason: string) => {
+    const { character } = get();
+    if (!character) return;
+
+    const newGems = Math.max(0, (character.gems || 0) + amount);
+
+    if (amount > 0) {
+      toast.success(`+${amount} Gems`, { description: reason });
+    } else if (amount < 0) {
+      toast.info(`${amount} Gems`, { description: reason });
+    }
+
+    const historyEntry: ProgressHistory = {
+      id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      characterId: character.id,
+      type: "GEM_GAIN",
+      amount,
+      description: `${amount > 0 ? "Gained" : "Spent"} ${Math.abs(amount)} Gems: ${reason}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    set({
+      character: {
+        ...character,
+        gems: newGems,
+        history: [...(character.history || []), historyEntry],
+      },
+    });
+  },
+
+  gainTowerTokens: (amount: number, reason: string) => {
+    const { character } = get();
+    if (!character) return;
+
+    const newTokens = Math.max(0, (character.towerTokens || 0) + amount);
+
+    if (amount > 0) {
+      toast.success(`+${amount} Tower Tokens`, { description: reason });
+    } else if (amount < 0) {
+      toast.info(`${amount} Tower Tokens`, { description: reason });
+    }
+
+    const historyEntry: ProgressHistory = {
+      id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      characterId: character.id,
+      type: "TOKEN_GAIN",
+      amount,
+      description: `${amount > 0 ? "Gained" : "Spent"} ${Math.abs(amount)} Tower Tokens: ${reason}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    set({
+      character: {
+        ...character,
+        towerTokens: newTokens,
+        history: [...(character.history || []), historyEntry],
+      },
+    });
+  },
+
+  gainStreakFreeze: (amount: number, reason: string) => {
+    const { character } = get();
+    if (!character) return;
+
+    const newFreezes = Math.min(3, Math.max(0, (character.streakFreezes || 0) + amount));
+
+    if (amount > 0) {
+      toast.success(`+${amount} Streak Freeze Shield 🛡️`, { description: reason });
+    }
+
+    set({
+      character: {
+        ...character,
+        streakFreezes: newFreezes,
+      },
+    });
+  },
+
+  gainCurrencies: (
+    currencies: { gold?: number; gems?: number; towerTokens?: number; exp?: number },
+    reason: string
+  ) => {
+    const { character, gainExp } = get();
+    if (!character) return;
+
+    const newGold = (character.gold || 0) + (currencies.gold || 0);
+    const newGems = (character.gems || 0) + (currencies.gems || 0);
+    const newTokens = (character.towerTokens || 0) + (currencies.towerTokens || 0);
+
+    const parts = [];
+    if (currencies.gold) parts.push(`+${currencies.gold} Gold`);
+    if (currencies.gems) parts.push(`+${currencies.gems} Gems`);
+    if (currencies.towerTokens) parts.push(`+${currencies.towerTokens} Tokens`);
+
+    if (parts.length > 0) {
+      toast.success(parts.join(" • "), { description: reason });
+    }
+
+    set({
+      character: {
+        ...character,
+        gold: Math.max(0, newGold),
+        gems: Math.max(0, newGems),
+        towerTokens: Math.max(0, newTokens),
+      },
+    });
+
+    if (currencies.exp && currencies.exp > 0) {
+      gainExp(currencies.exp, reason);
+    }
   },
 
   addStat: (statName: string, amount: number) => {

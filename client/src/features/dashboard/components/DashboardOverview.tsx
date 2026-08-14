@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -38,7 +38,9 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useHabitStore } from "@/features/habits/store";
+import { useKanbanMissionStore } from "@/features/habits/store/useKanbanMissionStore";
 import { MissionCard } from "@/features/habits/components/MissionCard";
+import { DashboardQuestCard } from "@/features/habits/components/DashboardQuestCard";
 import { RadarChart } from "@/components/RadarChart";
 import { playSystemOpen } from "@/features/audio/useSystemAudio";
 import { PaperDoll } from "@/features/inventory/components";
@@ -46,7 +48,11 @@ import { useInventoryStore } from "@/features/inventory/store/useInventoryStore"
 import { useCombatStats } from "@/features/inventory/hooks/useCombatStats";
 import { useTowerStore } from "@/features/tower/store/useTowerStore";
 import { useBossStore } from "@/features/bosses/store/useBossStore";
+import { useBeastStore } from "@/features/beasts/store/useBeastStore";
+import { EquippedBeastDisplay } from "@/features/beasts/components/EquippedBeastDisplay";
 import { getEnemySpritePath } from "@/utils/sprites";
+import { SystemTooltip } from "@/components/ui/SystemTooltip";
+import { CURRENCY_LORE, STAT_LORE, ENEMY_LORE, getEnemyLore } from "@/features/lore/loreData";
 
 /* Rune glyphs for decorative accents */
 const RUNES = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ", "ᚺ", "ᚾ", "ᛁ", "ᛃ"];
@@ -122,6 +128,7 @@ export function DashboardOverview() {
 
   const { floors, fetchFloors, selectFloor } = useTowerStore();
   const { bosses, fetchBosses, isLoading: isBossesLoading } = useBossStore();
+  const { collection, fetchCollection } = useBeastStore();
 
   useEffect(() => {
     loadCharacter("char-id-123");
@@ -129,12 +136,38 @@ export function DashboardOverview() {
     fetchInventory("char-id-123");
     fetchFloors("char-id-123");
     fetchBosses("char-id-123");
-  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors, fetchBosses]);
+    fetchCollection("char-id-123");
+  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors, fetchBosses, fetchCollection]);
 
-  const totalMissionsCount = todayMissions.length;
-  const completedMissionsCount = todayMissions.filter(
+  const [missionViewFilter, setMissionViewFilter] = useState<"all" | "habits" | "missions">("all");
+  const { quests } = useKanbanMissionStore();
+
+  const totalHabitsCount = todayMissions.length;
+  const completedHabitsCount = todayMissions.filter(
     (m) => m.status === "COMPLETED"
   ).length;
+
+  const totalQuestsCount = quests.length;
+  const completedQuestsCount = quests.filter(
+    (q) => q.status === "Completed"
+  ).length;
+
+  const combinedTotalCount = totalHabitsCount + totalQuestsCount;
+  const combinedCompletedCount = completedHabitsCount + completedQuestsCount;
+
+  const currentTotalCount =
+    missionViewFilter === "all"
+      ? combinedTotalCount
+      : missionViewFilter === "habits"
+      ? totalHabitsCount
+      : totalQuestsCount;
+
+  const currentCompletedCount =
+    missionViewFilter === "all"
+      ? combinedCompletedCount
+      : missionViewFilter === "habits"
+      ? completedHabitsCount
+      : completedQuestsCount;
 
   const radarData = [
     { name: "Strength", value: Number(finalStats?.strength) || 1 },
@@ -226,6 +259,41 @@ export function DashboardOverview() {
               </div>
             </div>
 
+            {/* Active Familiar Companion Mini-Card */}
+            <div suppressHydrationWarning className="mt-3 p-2.5 rounded-xl bg-[#0a1024]/80 border border-cyan-500/20 flex items-center justify-between">
+              <div suppressHydrationWarning className="flex items-center gap-2.5">
+                {collection?.equippedBeast ? (
+                  <div suppressHydrationWarning className="w-8 h-8 rounded-lg bg-black/40 border border-cyan-500/30 flex items-center justify-center p-1">
+                    <img
+                      src={collection.equippedBeast.spritePath}
+                      alt={collection.equippedBeast.name}
+                      className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-float-slow"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  </div>
+                ) : (
+                  <div suppressHydrationWarning className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
+                    <Footprints className="w-4 h-4 text-cyan-400/60" />
+                  </div>
+                )}
+                <div>
+                  <span suppressHydrationWarning className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">
+                    FAMILIAR LINK
+                  </span>
+                  <span suppressHydrationWarning className="text-xs font-mono font-bold text-cyan-200">
+                    {collection?.equippedBeast ? collection.equippedBeast.name : "No Companion Linked"}
+                  </span>
+                </div>
+              </div>
+              <Link
+                href="/beasts"
+                suppressHydrationWarning
+                className="text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 px-2 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/30 hover:border-cyan-500/60 transition-all cursor-pointer"
+              >
+                {collection?.equippedBeast ? `+${collection.equippedBeast.statBonusValue}%` : "Incubate"}
+              </Link>
+            </div>
+
             {/* Attributes Matrix */}
             <div suppressHydrationWarning className="mt-4 pt-2">
               <h3 className="text-[10px] text-slate-600 font-mono uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
@@ -234,32 +302,50 @@ export function DashboardOverview() {
               </h3>
               <div suppressHydrationWarning className="grid grid-cols-2 gap-4">
                 
-                {/* Stats List — animated bars */}
+                {/* Stats List — animated bars with rich hover lore */}
                 <div suppressHydrationWarning className="space-y-3">
                   {radarData.map((stat, i) => {
                      const color = statColors[i];
+                     const statKey = stat.name.toLowerCase();
+                     const lore = STAT_LORE[statKey];
+
                      return (
-                      <motion.div
-                        key={stat.name}
-                        suppressHydrationWarning
-                        className="flex items-center gap-2 group/stat"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 + i * 0.06, duration: 0.3 }}
-                      >
-                        <div suppressHydrationWarning className={`w-1.5 h-1.5 rounded-full ${color.dot} shadow-sm ${color.glow}`} />
-                        <span className="text-[10px] text-slate-400 flex-1 group-hover/stat:text-slate-200 transition-colors">{stat.name}</span>
-                        <div suppressHydrationWarning className="w-14 h-1.5 bg-slate-800/60 rounded-full overflow-hidden border border-white/[0.03] relative">
-                          <motion.div
-                            suppressHydrationWarning
-                            className={`h-full ${color.bar} rounded-full shadow-sm bar-shimmer`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(stat.value, 100)}%` }}
-                            transition={{ delay: 0.6 + i * 0.08, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as const }}
-                          />
-                        </div>
-                        <span className={`text-xs font-mono font-bold w-5 text-right ${color.text}`}>{stat.value}</span>
-                      </motion.div>
+                       <SystemTooltip
+                         key={stat.name}
+                         title={`${stat.name} (${lore?.abbreviation || stat.name.slice(0, 3).toUpperCase()})`}
+                         category={lore?.category || "Character Attribute"}
+                         rarity={lore?.rarity || "RARE"}
+                         description={lore?.description}
+                         mechanics={`⚡ Impact: ${lore?.combatScaling || "Scales character combat efficiency."}`}
+                         lore={lore?.lore}
+                         stats={[
+                           { label: "Current Value", value: stat.value, color: "text-cyan-400" },
+                           { label: "Attribute Rank", value: stat.value >= 50 ? "Master" : stat.value >= 25 ? "Adept" : "Novice" }
+                         ]}
+                         tags={lore?.associatedSkills || ["Attribute", "Combat"]}
+                         className="w-full"
+                       >
+                        <motion.div
+                          suppressHydrationWarning
+                          className="flex items-center gap-2 group/stat w-full cursor-help py-0.5"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 + i * 0.06, duration: 0.3 }}
+                        >
+                          <div suppressHydrationWarning className={`w-1.5 h-1.5 rounded-full ${color.dot} shadow-sm ${color.glow}`} />
+                          <span className="text-[10px] text-slate-400 flex-1 group-hover/stat:text-cyan-300 transition-colors text-left">{stat.name}</span>
+                          <div suppressHydrationWarning className="w-14 h-1.5 bg-slate-800/60 rounded-full overflow-hidden border border-white/[0.03] relative">
+                            <motion.div
+                              suppressHydrationWarning
+                              className={`h-full ${color.bar} rounded-full shadow-sm bar-shimmer`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(stat.value, 100)}%` }}
+                              transition={{ delay: 0.6 + i * 0.08, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as const }}
+                            />
+                          </div>
+                          <span className={`text-xs font-mono font-bold w-5 text-right ${color.text}`}>{stat.value}</span>
+                        </motion.div>
+                       </SystemTooltip>
                      );
                   })}
                 </div>
@@ -286,78 +372,157 @@ export function DashboardOverview() {
         >
           
           {/* Today's Missions */}
-          <div suppressHydrationWarning className="glass-card p-5 flex flex-col h-[400px] relative">
+          <div suppressHydrationWarning className="glass-card p-5 flex flex-col h-[460px] relative">
             {/* Corner accent */}
             <div suppressHydrationWarning className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-500/[0.06] to-transparent rounded-bl-[60px] pointer-events-none" />
             
             {/* Rune accent */}
             <span suppressHydrationWarning className="rune-static text-indigo-400/15" style={{ top: '8%', right: '5%', fontSize: '13px', animationDelay: '1s' }}>ᚱ</span>
             
-            <div suppressHydrationWarning className="flex items-center justify-between mb-4 relative z-10">
-              <div suppressHydrationWarning className="flex items-center gap-2">
-                <div suppressHydrationWarning className="w-1.5 h-4 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] animate-pulse" />
-                <h2 className="text-sm font-bold text-indigo-200/80 font-heading tracking-[0.15em] uppercase">Today&apos;s Missions</h2>
+            {/* Card Header & Filter Toolbar */}
+            <div suppressHydrationWarning className="flex flex-col gap-2.5 mb-3.5 relative z-10">
+              <div className="flex items-center justify-between">
+                <div suppressHydrationWarning className="flex items-center gap-2">
+                  <div suppressHydrationWarning className="w-1.5 h-4 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] animate-pulse" />
+                  <h2 className="text-sm font-bold text-indigo-200/80 font-heading tracking-[0.15em] uppercase">Today&apos;s Missions</h2>
+                </div>
+                <div className="text-[10px] font-mono text-slate-300 font-bold bg-slate-900/80 px-2 py-0.5 rounded border border-white/5">
+                  {currentCompletedCount}/{currentTotalCount} CLEARED
+                </div>
               </div>
-              <div className="text-[10px] font-mono text-slate-500">
-                {completedMissionsCount}/{totalMissionsCount}
+
+              {/* Filter Tabs: ALL / HABITS / MISSIONS */}
+              <div className="flex items-center gap-1 bg-slate-950/80 border border-white/10 rounded-xl p-1 font-mono text-[10px] w-full">
+                <button
+                  onClick={() => setMissionViewFilter("all")}
+                  className={`flex-1 py-1 rounded-lg transition-all font-bold text-center ${
+                    missionViewFilter === "all"
+                      ? "bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  ALL ({combinedTotalCount})
+                </button>
+                <button
+                  onClick={() => setMissionViewFilter("habits")}
+                  className={`flex-1 py-1 rounded-lg transition-all font-bold text-center ${
+                    missionViewFilter === "habits"
+                      ? "bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  HABITS ({totalHabitsCount})
+                </button>
+                <button
+                  onClick={() => setMissionViewFilter("missions")}
+                  className={`flex-1 py-1 rounded-lg transition-all font-bold text-center ${
+                    missionViewFilter === "missions"
+                      ? "bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  MISSIONS ({totalQuestsCount})
+                </button>
               </div>
             </div>
              
-             <motion.div
-               suppressHydrationWarning
-               className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
-               variants={missionStagger}
-               initial="hidden"
-               animate="visible"
-             >
-               {isLoading ? (
-                  <div suppressHydrationWarning className="py-6 text-center text-xs text-slate-500 font-mono animate-pulse">Loading missions...</div>
-                ) : todayMissions.length > 0 ? (
-                  todayMissions.map((mission) => (
-                    <motion.div key={mission.id} variants={missionItem}>
-                      <MissionCard
-                        mission={mission}
-                        onComplete={(id, habit, completionType) =>
-                          executeMissionCompletion(id, habit, completionType)
-                        }
-                      />
-                    </motion.div>
-                  ))
-                ) : (
-                  <motion.div
-                    suppressHydrationWarning
-                    className="py-12 flex flex-col items-center justify-center text-center text-slate-500 space-y-3"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <div suppressHydrationWarning className="w-12 h-12 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-center animate-beacon">
-                      <Crosshair className="w-5 h-5 text-indigo-400/40" />
-                    </div>
-                    <p className="text-xs font-mono">No active missions for today.</p>
-                    <Button variant="outline" size="sm" asChild className="text-xs border-indigo-500/20 hover:border-indigo-400/40 hover:bg-indigo-500/10 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                      <Link href="/missions/create"><Plus className="w-3.5 h-3.5 mr-1" /> Add Mission</Link>
-                    </Button>
-                  </motion.div>
-                )}
-             </motion.div>
+            <motion.div
+              suppressHydrationWarning
+              className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+              variants={missionStagger}
+              initial="hidden"
+              animate="visible"
+            >
+              {isLoading ? (
+                <div suppressHydrationWarning className="py-6 text-center text-xs text-slate-500 font-mono animate-pulse">Loading missions & habits...</div>
+              ) : (
+                (() => {
+                  const displayHabits = (missionViewFilter === "all" || missionViewFilter === "habits") ? todayMissions : [];
+                  const displayQuests = (missionViewFilter === "all" || missionViewFilter === "missions") ? quests : [];
+                  const hasAny = displayHabits.length > 0 || displayQuests.length > 0;
 
-             {/* Daily Completion Progress */}
-             <div suppressHydrationWarning className="mt-4 pt-4 border-t border-cyan-500/[0.07]">
-                <div suppressHydrationWarning className="flex items-center justify-between text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-2">
-                  <span>DAILY COMPLETION</span>
-                  <div className="w-4 h-4 text-amber-500"><Package className="w-4 h-4"/></div>
-                </div>
-                <div suppressHydrationWarning className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden border border-white/[0.03] relative">
-                  <motion.div 
-                    suppressHydrationWarning
-                    className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.5)] bar-shimmer"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${totalMissionsCount > 0 ? (completedMissionsCount / totalMissionsCount) * 100 : 0}%` }}
-                    transition={{ delay: 0.5, duration: 1, ease: "easeOut" }}
-                  />
-                </div>
-             </div>
+                  if (!hasAny) {
+                    return (
+                      <motion.div
+                        suppressHydrationWarning
+                        className="py-12 flex flex-col items-center justify-center text-center text-slate-500 space-y-3"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <div suppressHydrationWarning className="w-12 h-12 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-center animate-beacon">
+                          <Crosshair className="w-5 h-5 text-indigo-400/40" />
+                        </div>
+                        <p className="text-xs font-mono">
+                          {missionViewFilter === "habits"
+                            ? "No active habits scheduled for today."
+                            : missionViewFilter === "missions"
+                            ? "No custom missions created yet."
+                            : "No active missions or habits for today."}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="text-xs border-indigo-500/20 hover:border-indigo-400/40 hover:bg-indigo-500/10 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+                        >
+                          <Link href={missionViewFilter === "habits" ? "/habits/create" : "/missions"}>
+                            <Plus className="w-3.5 h-3.5 mr-1" />
+                            {missionViewFilter === "habits" ? "Add Habit" : "Create Mission"}
+                          </Link>
+                        </Button>
+                      </motion.div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {/* Habit Mission Cards */}
+                      {displayHabits.map((mission) => (
+                        <motion.div key={`habit-${mission.id}`} variants={missionItem}>
+                          <MissionCard
+                            mission={mission}
+                            onComplete={(id, habit, completionType) =>
+                              executeMissionCompletion(id, habit, completionType)
+                            }
+                          />
+                        </motion.div>
+                      ))}
+
+                      {/* Custom Kanban Mission Cards */}
+                      {displayQuests.map((quest) => (
+                        <motion.div key={`quest-${quest.id}`} variants={missionItem}>
+                          <DashboardQuestCard quest={quest} />
+                        </motion.div>
+                      ))}
+                    </>
+                  );
+                })()
+              )}
+            </motion.div>
+
+            {/* Daily Completion Progress */}
+            <div suppressHydrationWarning className="mt-4 pt-4 border-t border-cyan-500/[0.07]">
+              <div suppressHydrationWarning className="flex items-center justify-between text-[10px] text-slate-400 font-mono uppercase tracking-widest mb-2">
+                <span>
+                  {missionViewFilter === "habits"
+                    ? "HABIT COMPLETION"
+                    : missionViewFilter === "missions"
+                    ? "MISSION COMPLETION"
+                    : "DAILY COMPLETION"}
+                </span>
+                <div className="w-4 h-4 text-amber-500"><Package className="w-4 h-4"/></div>
+              </div>
+              <div suppressHydrationWarning className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden border border-white/[0.03] relative">
+                <motion.div 
+                  suppressHydrationWarning
+                  className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.5)] bar-shimmer"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${currentTotalCount > 0 ? (currentCompletedCount / currentTotalCount) * 100 : 0}%` }}
+                  transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Current Boss */}
@@ -564,84 +729,186 @@ export function DashboardOverview() {
                     )}
 
                     {/* Active Floor (Current Challengeable Floor) */}
-                    <motion.div
-                      variants={floorItem}
-                      suppressHydrationWarning
-                      className="p-4 rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-indigo-900/15 shadow-[0_0_30px_rgba(168,85,247,0.12)] flex items-center gap-4 relative overflow-hidden group hover:shadow-[0_0_40px_rgba(168,85,247,0.25)] transition-all duration-400 animate-border-glow-purple"
-                    >
-                      {/* Pulse accent line */}
-                      <div suppressHydrationWarning className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
-                      
-                      <div suppressHydrationWarning className="w-16 h-16 rounded-xl bg-purple-950/40 border border-purple-500/20 flex items-center justify-center flex-shrink-0 p-1 group-hover:border-purple-400/40 transition-all duration-400 animate-energy-pulse-purple">
-                        <img
-                          src={getEnemySpritePath(activeFloor.enemy?.name || "", activeFloor.floorNumber, activeFloor.isBoss)}
-                          alt={activeFloor.enemy?.name || "Enemy"}
-                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]"
-                        />
-                      </div>
-                      <div suppressHydrationWarning className="flex-1">
-                        <div className="text-sm font-bold text-white font-heading">{`Floor ${activeFloor.floorNumber}`}</div>
-                        <div className="text-[10px] text-purple-300/70 font-mono mb-2">{activeFloor.enemy?.name || (activeFloor.isBoss ? "Tower Boss" : "Spiked Slime")}</div>
-                        <div className="text-[9px] text-slate-500 font-mono">
-                          Req. Power <span className="text-amber-400 ml-1 font-bold shimmer-text-gold">{activeFloor.requiredPower.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div suppressHydrationWarning className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            selectFloor(activeFloor);
-                            router.push("/tower");
-                          }}
-                          className="bg-purple-600/80 hover:bg-purple-500 text-white text-xs h-8 px-4 rounded-xl shadow-lg shadow-purple-600/30 hover:shadow-[0_0_25px_rgba(168,85,247,0.5)] transition-all active:scale-[0.96]"
-                        >
-                          Enter Floor
-                        </Button>
-                      </div>
-                    </motion.div>
+                    {(() => {
+                      const enemyInfo = getEnemyLore(activeFloor.enemy?.name, activeFloor.floorNumber, activeFloor.isBoss);
+                      const towerTokensReward = activeFloor.towerTokensReward || (activeFloor.floorNumber * 10 * (activeFloor.isBoss ? 3 : 1));
+                      const gemReward = activeFloor.gemReward || (activeFloor.isBoss ? 25 : activeFloor.floorNumber % 5 === 0 ? 5 : 0);
 
-                    {/* Previous Cleared/Attempted Floors */}
-                    {previousFloors.length > 0 ? (
-                      previousFloors.map((floor) => (
-                        <motion.div key={floor.id} variants={floorItem} suppressHydrationWarning className="py-2.5 px-4 flex items-center justify-between border-b border-white/[0.03] last:border-0 hover:bg-emerald-500/[0.03] transition-colors rounded-lg sweep-light">
-                          <div suppressHydrationWarning>
-                            <div className="text-[11px] font-mono text-slate-400 font-bold">Floor {floor.floorNumber}</div>
-                            <div className="text-[9px] font-mono text-emerald-500/80 uppercase mt-0.5 tracking-widest">
-                              {floor.status === "CLEARED" ? "✓ CLEARED" : floor.status}
+                      return (
+                        <>
+                          <motion.div
+                            variants={floorItem}
+                            suppressHydrationWarning
+                            className="p-4 rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-indigo-900/15 shadow-[0_0_30px_rgba(168,85,247,0.12)] flex items-center gap-4 relative overflow-visible group hover:shadow-[0_0_40px_rgba(168,85,247,0.25)] transition-all duration-400 animate-border-glow-purple w-full hover:z-30"
+                          >
+                            {/* Pulse accent line */}
+                            <div suppressHydrationWarning className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500/50 to-transparent pointer-events-none" />
+                            
+                            {/* Enemy Avatar with Scoped SystemTooltip */}
+                            <SystemTooltip
+                              title={enemyInfo.name}
+                              subtitle={`Floor ${activeFloor.floorNumber} Guardian • Power Req: ${activeFloor.requiredPower.toLocaleString()}`}
+                              category={enemyInfo.category}
+                              rarity={enemyInfo.rarity}
+                              description={enemyInfo.description}
+                              lore={enemyInfo.lore}
+                              mechanics={`⚡ Tactics & Weakness: ${enemyInfo.weakness}`}
+                              stats={[
+                                { label: "Floor Level", value: `Floor ${activeFloor.floorNumber}` },
+                                { label: "Required Power", value: activeFloor.requiredPower.toLocaleString(), color: "text-amber-400" },
+                                { label: "Threat Rating", value: enemyInfo.threatLevel, color: activeFloor.isBoss ? "text-red-400" : "text-cyan-400" }
+                              ]}
+                              tags={["Tower", "Combat", activeFloor.isBoss ? "Boss" : "Enemy"]}
+                            >
+                              <div suppressHydrationWarning className="w-16 h-16 rounded-xl bg-purple-950/40 border border-purple-500/20 flex items-center justify-center flex-shrink-0 p-1 group-hover:border-purple-400/40 transition-all duration-400 animate-energy-pulse-purple cursor-help">
+                                <img
+                                  src={getEnemySpritePath(activeFloor.enemy?.name || "", activeFloor.floorNumber, activeFloor.isBoss)}
+                                  alt={activeFloor.enemy?.name || "Enemy"}
+                                  className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]"
+                                />
+                              </div>
+                            </SystemTooltip>
+
+                            <div suppressHydrationWarning className="flex-1 text-left min-w-0">
+                              <div className="text-sm font-bold text-white font-heading">{`Floor ${activeFloor.floorNumber}`}</div>
+                              <SystemTooltip
+                                title={enemyInfo.name}
+                                category={enemyInfo.category}
+                                rarity={enemyInfo.rarity}
+                                description={enemyInfo.description}
+                                lore={enemyInfo.lore}
+                                mechanics={`⚡ Tactics: ${enemyInfo.weakness}`}
+                              >
+                                <div className="text-[10px] text-purple-300/80 font-mono mb-2 truncate cursor-help hover:text-cyan-300 transition-colors inline-block max-w-full">
+                                  {activeFloor.enemy?.name || (activeFloor.isBoss ? "Tower Boss" : "Spiked Slime")} ℹ️
+                                </div>
+                              </SystemTooltip>
+                              <div className="text-[9px] text-slate-500 font-mono">
+                                Req. Power <span className="text-amber-400 ml-1 font-bold shimmer-text-gold">{activeFloor.requiredPower.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            <div suppressHydrationWarning className="shrink-0 z-20">
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  selectFloor(activeFloor);
+                                  router.push("/tower");
+                                }}
+                                className="bg-purple-600/80 hover:bg-purple-500 text-white text-xs h-8 px-4 rounded-xl shadow-lg shadow-purple-600/30 hover:shadow-[0_0_25px_rgba(168,85,247,0.5)] transition-all active:scale-[0.96]"
+                              >
+                                Enter Floor
+                              </Button>
+                            </div>
+                          </motion.div>
+
+                          {/* Previous Cleared/Attempted Floors */}
+                          {previousFloors.length > 0 ? (
+                            previousFloors.map((floor) => (
+                              <motion.div key={floor.id} variants={floorItem} suppressHydrationWarning className="py-2.5 px-4 flex items-center justify-between border-b border-white/[0.03] last:border-0 hover:bg-emerald-500/[0.03] transition-colors rounded-lg sweep-light">
+                                <div suppressHydrationWarning>
+                                  <div className="text-[11px] font-mono text-slate-400 font-bold">Floor {floor.floorNumber}</div>
+                                  <div className="text-[9px] font-mono text-emerald-500/80 uppercase mt-0.5 tracking-widest">
+                                    {floor.status === "CLEARED" ? "✓ CLEARED" : floor.status}
+                                  </div>
+                                </div>
+                                <div suppressHydrationWarning className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                </div>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <motion.div variants={floorItem} suppressHydrationWarning className="py-3 text-center text-[10px] text-slate-600 font-mono">
+                              Begin your ascent on Floor 1!
+                            </motion.div>
+                          )}
+
+                          {/* Active Floor Rewards Footer with Real Coin/Asset Icons */}
+                          <div suppressHydrationWarning className="mt-6 pt-4 border-t border-purple-500/10 relative z-10">
+                            <h3 className="text-[10px] text-slate-500 font-mono tracking-[0.2em] uppercase mb-3 flex items-center gap-2">
+                              <div suppressHydrationWarning className="w-1 h-3 rounded-full bg-amber-500/60 shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
+                              FLOOR {activeFloor.floorNumber} REWARDS
+                            </h3>
+                            <div suppressHydrationWarning className="flex items-center justify-around gap-2 flex-wrap">
+                              {/* Gold Reward */}
+                              <SystemTooltip
+                                title={CURRENCY_LORE.gold.name}
+                                category={CURRENCY_LORE.gold.category}
+                                rarity={CURRENCY_LORE.gold.rarity}
+                                description={CURRENCY_LORE.gold.description}
+                                lore={CURRENCY_LORE.gold.lore}
+                                mechanics={CURRENCY_LORE.gold.mechanics}
+                                tags={CURRENCY_LORE.gold.tags}
+                              >
+                                <div suppressHydrationWarning className="flex flex-col items-center gap-1.5 cursor-help group/rew">
+                                  <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-amber-950/30 border border-amber-500/25 flex items-center justify-center p-1 hover:border-amber-400/60 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all animate-float-gentle" style={{ animationDelay: '0s' }}>
+                                    <img src="/coin icons/gold_icon.gif" alt="Gold" className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-amber-300 font-bold">{activeFloor.goldReward} Gold</span>
+                                </div>
+                              </SystemTooltip>
+
+                              {/* EXP Reward */}
+                              <SystemTooltip
+                                title={CURRENCY_LORE.exp.name}
+                                category={CURRENCY_LORE.exp.category}
+                                rarity={CURRENCY_LORE.exp.rarity}
+                                description={CURRENCY_LORE.exp.description}
+                                lore={CURRENCY_LORE.exp.lore}
+                                mechanics={CURRENCY_LORE.exp.mechanics}
+                                tags={CURRENCY_LORE.exp.tags}
+                              >
+                                <div suppressHydrationWarning className="flex flex-col items-center gap-1.5 cursor-help group/rew">
+                                  <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-purple-950/30 border border-purple-500/25 flex items-center justify-center p-1 hover:border-purple-400/60 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all animate-float-gentle" style={{ animationDelay: '-1.5s' }}>
+                                    <img src="/exp_icon/exp_icon.gif" alt="EXP" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-purple-300 font-bold">{activeFloor.expReward} EXP</span>
+                                </div>
+                              </SystemTooltip>
+
+                              {/* Tower Tokens Reward */}
+                              <SystemTooltip
+                                title={CURRENCY_LORE.towerTokens.name}
+                                category={CURRENCY_LORE.towerTokens.category}
+                                rarity={CURRENCY_LORE.towerTokens.rarity}
+                                description={CURRENCY_LORE.towerTokens.description}
+                                lore={CURRENCY_LORE.towerTokens.lore}
+                                mechanics={CURRENCY_LORE.towerTokens.mechanics}
+                                tags={CURRENCY_LORE.towerTokens.tags}
+                              >
+                                <div suppressHydrationWarning className="flex flex-col items-center gap-1.5 cursor-help group/rew">
+                                  <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-indigo-950/30 border border-indigo-500/25 flex items-center justify-center p-1 hover:border-indigo-400/60 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all animate-float-gentle" style={{ animationDelay: '-0.75s' }}>
+                                    <img src="/coin icons/3rd_currency.gif" alt="Tower Tokens" className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-indigo-300 font-bold">{towerTokensReward} Tokens</span>
+                                </div>
+                              </SystemTooltip>
+
+                              {/* Gems Reward (if milestone/boss) */}
+                              {gemReward > 0 && (
+                                <SystemTooltip
+                                  title={CURRENCY_LORE.gems.name}
+                                  category={CURRENCY_LORE.gems.category}
+                                  rarity={CURRENCY_LORE.gems.rarity}
+                                  description={CURRENCY_LORE.gems.description}
+                                  lore={CURRENCY_LORE.gems.lore}
+                                  mechanics={CURRENCY_LORE.gems.mechanics}
+                                  tags={CURRENCY_LORE.gems.tags}
+                                >
+                                  <div suppressHydrationWarning className="flex flex-col items-center gap-1.5 cursor-help group/rew">
+                                    <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-cyan-950/30 border border-cyan-500/25 flex items-center justify-center p-1 hover:border-cyan-400/60 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all animate-float-gentle" style={{ animationDelay: '-2.25s' }}>
+                                      <img src="/coin icons/gem_icon.gif" alt="Gems" className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
+                                    </div>
+                                    <span className="text-[9px] font-mono text-cyan-300 font-bold">{gemReward} Gems</span>
+                                  </div>
+                                </SystemTooltip>
+                              )}
                             </div>
                           </div>
-                          <div suppressHydrationWarning className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                            <Check className="w-3 h-3 text-emerald-400" />
-                          </div>
-                        </motion.div>
-                      ))
-                    ) : (
-                      <motion.div variants={floorItem} suppressHydrationWarning className="py-3 text-center text-[10px] text-slate-600 font-mono">
-                        Begin your ascent on Floor 1!
-                      </motion.div>
-                    )}
-
-                    {/* Active Floor Rewards Footer */}
-                    <div suppressHydrationWarning className="mt-6 pt-4 border-t border-purple-500/10 relative z-10">
-                      <h3 className="text-[10px] text-slate-600 font-mono tracking-[0.2em] uppercase mb-3 flex items-center gap-2">
-                        <div suppressHydrationWarning className="w-1 h-3 rounded-full bg-amber-500/60 shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
-                        FLOOR {activeFloor.floorNumber} REWARDS
-                      </h3>
-                      <div suppressHydrationWarning className="flex items-center justify-around gap-2">
-                        <div suppressHydrationWarning className="flex flex-col items-center gap-1.5">
-                          <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-amber-950/20 border border-amber-500/15 flex items-center justify-center hover:border-amber-400/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-all animate-float-gentle" style={{ animationDelay: '0s' }}>
-                            <Circle className="w-4 h-4 text-amber-400 fill-amber-400"/>
-                          </div>
-                          <span className="text-[9px] font-mono text-amber-300/60">{activeFloor.goldReward} Gold</span>
-                        </div>
-                        <div suppressHydrationWarning className="flex flex-col items-center gap-1.5">
-                          <div suppressHydrationWarning className="w-10 h-10 rounded-xl bg-purple-950/20 border border-purple-500/15 flex items-center justify-center transform rotate-45 hover:border-purple-400/40 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all animate-float-gentle" style={{ animationDelay: '-1.5s' }}>
-                            <Gem className="w-4 h-4 text-purple-400 -rotate-45"/>
-                          </div>
-                          <span className="text-[9px] font-mono text-purple-300/60">{activeFloor.expReward} EXP</span>
-                        </div>
-                      </div>
-                    </div>
+                        </>
+                      );
+                    })()}
                   </>
                 );
               })()}
