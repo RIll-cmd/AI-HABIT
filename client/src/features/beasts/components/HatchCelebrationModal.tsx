@@ -203,7 +203,7 @@ export const HatchCelebrationModal: React.FC<HatchCelebrationModalProps> = ({
               <div className={`w-36 h-36 rounded-full ${theme.glow} blur-2xl animate-pulse pointer-events-none`} />
               <div className="relative w-32 h-32 flex items-center justify-center bg-black/40 rounded-3xl border border-white/10 p-3 shadow-2xl group">
                 <img
-                  src={beast.spritePath}
+                  src={beast.spritePath ? beast.spritePath.replace('.png', '.gif') : '/beasts/beast_1.gif'}
                   alt={beast.name}
                   className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(6,182,212,0.8)] animate-float-slow select-none group-hover:scale-110 transition-transform"
                   style={{ imageRendering: "pixelated" }}
@@ -218,25 +218,31 @@ export const HatchCelebrationModal: React.FC<HatchCelebrationModalProps> = ({
               </p>
 
               {/* Passive Stat Card */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0C152F] via-[#091024] to-[#060B18] border border-cyan-500/30 flex items-center justify-between shadow-lg">
-                <div className="flex items-center gap-2.5 text-left">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-md">
-                    <Zap className="w-4 h-4" />
+              {(() => {
+                const buffType = beast.statBonusType || beast.passiveBuffType || "EXP_PERCENT";
+                const buffVal = beast.statBonusValue ?? beast.passiveBuffValue ?? 5;
+                const formattedType = buffType.replace("_PERCENT", "").replace("_BOOST", "").replace("_", " ");
+                return (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0C152F] via-[#091024] to-[#060B18] border border-cyan-500/30 flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-2.5 text-left">
+                      <div className="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-md">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                          Passive Stat Multiplier
+                        </span>
+                        <span className="text-xs font-mono font-bold text-white">
+                          {formattedType}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right font-mono font-black text-sm text-emerald-400">
+                      +{buffVal.toFixed(1)}% Multiplier
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-                      Passive Resonance Bonus
-                    </span>
-                    <span className="text-xs font-mono font-bold text-white">
-                      {beast.statBonusType.replace("_", " ")}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right font-mono font-black text-sm text-emerald-400">
-                  +{beast.statBonusValue}
-                  {beast.statBonusType.includes("BOOST") ? "%" : " SP"}
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
             {/* Action Buttons */}

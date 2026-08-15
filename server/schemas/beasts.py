@@ -38,6 +38,10 @@ class BeastResponse(BaseModel):
     passive_buff_value: Optional[float] = None
     description: Optional[str] = None
     lore: Optional[str] = None
+    level: int = 1
+    accumulatedSteps: int = 0
+    stepUpgradeReq: int = 5000
+    goldUpgradeReq: int = 1000
     isEquipped: bool = False
     is_equipped: Optional[bool] = None
     characterId: str
@@ -55,6 +59,10 @@ class BestiarySpeciesSummary(BaseModel):
     statBonusValue: float
     description: str
     lore: str
+    level: int = 1
+    accumulatedSteps: int = 0
+    stepUpgradeReq: int = 5000
+    goldUpgradeReq: int = 1000
     isUnlocked: bool
     unlockedCount: int
     beastInstanceId: Optional[str] = None
@@ -63,6 +71,8 @@ class BestiarySpeciesSummary(BaseModel):
 class BeastCollectionResponse(BaseModel):
     characterId: str
     user_id: Optional[str] = None
+    dailySteps: int = 0
+    dailyStepGoal: int = 10000
     activeEgg: Optional[EggResponse] = None
     ownedEggs: List[EggResponse] = []
     unlockedBeasts: List[BeastResponse] = []
@@ -85,16 +95,34 @@ class StepSyncRequest(BaseModel):
     step_count: Optional[int] = None
     source: Optional[str] = "PEDOMETER_SYNC"
 
+class SetDailyStepsRequest(BaseModel):
+    characterId: Optional[str] = None
+    user_id: Optional[str] = None
+    steps: int = 0
+    goal: Optional[int] = None
+
+class ModifyStepGoalRequest(BaseModel):
+    characterId: Optional[str] = None
+    user_id: Optional[str] = None
+    goal: int = 10000
+
 class StepSyncResponse(BaseModel):
     characterId: str
     stepsAdded: int
     currentSteps: int
     targetSteps: int
+    dailySteps: int = 0
+    dailyStepGoal: int = 10000
     isReadyToHatch: bool
     status: str
     progressPercent: int
     egg: Optional[EggResponse] = None
     message: str
+
+class UpgradeBeastRequest(BaseModel):
+    characterId: Optional[str] = None
+    user_id: Optional[str] = None
+    beastId: str
 
 class FeedEnergyRequest(BaseModel):
     characterId: Optional[str] = None

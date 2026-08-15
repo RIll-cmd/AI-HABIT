@@ -10,6 +10,9 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
+# Node modules & Prisma Engine Cache
+node_modules/
+
 # Local SQLite Databases & Logs
 *.db
 *.db-journal
@@ -17,6 +20,8 @@ __pycache__/
 *.sqlite3
 dev.db
 dev.db-journal
+prisma/dev.db
+prisma/dev.db-journal
 
 # Environment & Secret Files
 .env

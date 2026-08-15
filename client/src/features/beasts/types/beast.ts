@@ -39,6 +39,10 @@ export interface Beast {
   statBonusValue?: number;
   description?: string | null;
   lore?: string | null;
+  level?: number;
+  accumulatedSteps?: number;
+  stepUpgradeReq?: number;
+  goldUpgradeReq?: number;
   isEquipped: boolean;
   is_equipped?: boolean;
   characterId: string;
@@ -57,6 +61,10 @@ export interface BestiarySpeciesSummary {
   statBonusValue: number;
   description: string;
   lore: string;
+  level?: number;
+  accumulatedSteps?: number;
+  stepUpgradeReq?: number;
+  goldUpgradeReq?: number;
   isUnlocked: boolean;
   unlockedCount: number;
   beastInstanceId?: string | null;
@@ -66,6 +74,8 @@ export interface BestiarySpeciesSummary {
 export interface BeastCollectionData {
   characterId: string;
   user_id?: string;
+  dailySteps?: number;
+  dailyStepGoal?: number;
   activeEgg: Egg | null;
   ownedEggs: Egg[];
   unlockedBeasts: Beast[];
@@ -94,9 +104,11 @@ export interface StepSyncResult {
   stepsAdded: number;
   currentSteps: number;
   targetSteps: number;
+  dailySteps?: number;
+  dailyStepGoal?: number;
   isReadyToHatch: boolean;
   status: string;
   progressPercent: number;
   egg?: Egg | null;
-  message: string;
+  message?: string;
 }

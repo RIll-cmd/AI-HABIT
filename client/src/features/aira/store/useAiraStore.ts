@@ -19,7 +19,7 @@ export interface AiraStore {
   autoBriefingsEnabled: boolean;
   activePeriodicToast: PeriodicToast | null;
   toggleAutoBriefings: () => void;
-  showPeriodicToast: (text: string, category: string) => void;
+  showPeriodicToast: (text: string, category: string, mood?: string) => void;
   dismissPeriodicToast: () => void;
   loadDailyReport: (characterId?: string) => Promise<void>;
   sendPrompt: (prompt: string, characterId?: string) => Promise<void>;
@@ -60,13 +60,14 @@ export const useAiraStore = create<AiraStore>((set, get) => ({
     });
   },
 
-  showPeriodicToast: (text: string, category: string) => {
+  showPeriodicToast: (text: string, category: string, mood?: string) => {
     set({
       activePeriodicToast: {
         id: `toast-${Date.now()}`,
         text,
         category,
       },
+      currentMood: mood || "NEUTRAL",
     });
   },
 

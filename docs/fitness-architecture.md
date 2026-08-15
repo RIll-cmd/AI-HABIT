@@ -44,3 +44,27 @@ The engine uses the Brzycki formula for estimating 1 Rep Max:
 `1RM = Weight / (1.0278 - (0.0278 * Reps))`
 
 Based on this e1RM, the `evaluateRank` function checks performance against bodyweight/sex standards to assign a rank (E through SSS), which dictates the styling (color/glow) of the exercise badges.
+
+## 6. Interactive Body Muscle Heatmap & Real-Time Time-Decay Recovery Engine
+
+The Body Muscle Heatmap transforms physical workouts into an interactive bio-metric scanner visualizing anatomical fatigue and recovery in real-time.
+
+### 16 Canonical Muscle Groups
+- **Anterior (Front)**: `CHEST`, `FRONT_DELTS`, `SHOULDERS`, `BICEPS`, `FOREARMS`, `ABS`, `OBLIQUES`, `QUADS`, `CALVES`.
+- **Posterior (Back)**: `TRAPS`, `REAR_DELTS`, `LATS`, `LOWER_BACK`, `TRICEPS`, `GLUTES`, `HAMSTRINGS`, `CALVES`.
+
+### Mathematical Time-Decay Formula
+Muscle recovery is calculated on-the-fly when fetching `/api/workouts/muscle-status/{character_id}`:
+$$\text{elapsed\_hours} = \frac{\text{current\_utc\_timestamp} - \text{lastTrainedAt}}{3600}$$
+$$\text{current\_fatigue} = \max\left(0, \text{initialFatigue} \times \left(1 - \frac{\text{elapsed\_hours}}{\text{fullRecoveryHours}}\right)\right)$$
+$$\text{freshness} = 100 - \text{current\_fatigue}$$
+
+### Recovery Timetable
+- **Standard Muscles (48h)**: Chest, Arms (Biceps/Triceps/Forearms), Deltoids, Abs, Calves.
+- **Heavy Compound Muscles (72h)**: Quads, Latissimus Dorsi, Hamstrings, Glutes.
+
+### Cyberpunk Heatmap Shader
+- **$80\%\text{--}100\%$ Fresh (Optimal Readiness)**: Neon Cyan (`#06b6d4`)
+- **$40\%\text{--}79\%$ Recovering (Regeneration)**: Electric Amber (`#f59e0b`) / Solar Orange (`#fb923c`)
+- **$0\%\text{--}39\%$ Fatigued (Rest/Exhaustion)**: Crimson / Neon Red (`#ef4444`) with animated warning pulse.
+

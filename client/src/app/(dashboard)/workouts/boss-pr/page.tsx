@@ -349,7 +349,7 @@ export default function BossPRPage() {
               <span className="text-red-400 font-bold">3.</span>
               <span>
                 Damage accumulates throughout the week until expiration on{" "}
-                <strong className="text-amber-400">{new Date(boss.expiresAt).toLocaleDateString()}</strong>.
+                <strong suppressHydrationWarning className="text-amber-400">{new Date(boss.expiresAt).toLocaleDateString()}</strong>.
               </span>
             </p>
           </div>

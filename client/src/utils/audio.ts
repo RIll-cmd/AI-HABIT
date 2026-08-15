@@ -117,12 +117,13 @@ export function playBuffSFX(
  * Plays UI menu SFX (10_UI_Menu_SFX)
  */
 export function playUIMenuSFX(
-  type: 'hover' | 'confirm' | 'equip' | 'buy' | 'decline' = 'confirm',
+  type: 'hover' | 'confirm' | 'equip' | 'buy' | 'decline' | 'click' = 'confirm',
   volume: number = 0.5
 ) {
   const map: Record<string, string> = {
     hover: "/sounds/General/10_UI_Menu_SFX/001_Hover_01.wav",
     confirm: "/sounds/General/10_UI_Menu_SFX/013_Confirm_03.wav",
+    click: "/sounds/General/10_UI_Menu_SFX/013_Confirm_03.wav",
     equip: "/sounds/General/10_UI_Menu_SFX/070_Equip_10.wav",
     buy: "/sounds/General/10_UI_Menu_SFX/079_Buy_sell_01.wav",
     decline: "/sounds/General/10_UI_Menu_SFX/029_Decline_09.wav",

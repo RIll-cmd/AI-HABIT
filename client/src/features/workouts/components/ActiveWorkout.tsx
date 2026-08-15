@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useWorkoutStore, ExerciseDefinition } from "../store/useWorkoutStore";
 import { useUser } from "@/context/UserContext";
+import { useDailyBonusStore } from "@/store/useDailyBonusStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -239,6 +240,7 @@ export function ActiveWorkout() {
           toast.success(`New PRs Achieved! ${result.newPRs.length} PRs broken!`);
         }
         if (result.bossDefeated) {
+          useDailyBonusStore.getState().recordBossPrDefeat();
           confetti({
             particleCount: 150,
             spread: 100,
@@ -246,10 +248,13 @@ export function ActiveWorkout() {
             origin: { y: 0.5 },
           });
           playAIRASound("ABILITIES_IMPROVED");
-          toast.success("WEEKLY BOSS DEFEATED! Massive rewards earned!");
+          toast.success("WEEKLY BOSS DEFEATED! Weekly Quest Objective Cleared!");
         } else {
           toast.success("Workout session complete! Rewards applied.");
         }
+
+        // Apply 2X Workout Surge Boost if charge available
+        useDailyBonusStore.getState().consumeWorkoutCharge();
 
         await refetch();
         endWorkout();

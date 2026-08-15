@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { playBattleSFX, playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
+import { SystemTooltip } from "@/components/ui/SystemTooltip";
+import { EGG_LORE } from "@/features/lore/loreData";
 
 interface EggIncubatorCardProps {
   egg: Egg | null;
@@ -130,14 +132,38 @@ export const EggIncubatorCard: React.FC<EggIncubatorCardProps> = ({
       {/* Center Egg Stage with Dynamic Cracking */}
       <div className="relative z-10 flex flex-col items-center justify-center py-4 my-2">
         {/* Glow Pedestal */}
-        <div className="relative flex items-center justify-center">
-          <div className={`w-40 h-40 sm:w-48 sm:h-48 rounded-full flex items-center justify-center transition-all duration-700 ${
-            isReady
-              ? "bg-gradient-to-t from-amber-500/30 via-cyan-500/20 to-transparent shadow-[0_0_60px_rgba(245,158,11,0.5)] animate-pulse"
-              : "bg-cyan-500/10 shadow-[0_0_40px_rgba(6,182,212,0.2)]"
-          }`}>
-            {/* Egg Sprite with Cracking Progression */}
-            <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
+        {(() => {
+          const eggLore = EGG_LORE[egg.name] || {
+            origin: "Harvested from gate rifts.",
+            storyLore: "A dormant mystery egg undergoing biological bio-kinetic synthesis.",
+            incubationGuide: `Accumulate ${targetSteps.toLocaleString()} steps to crack and hatch.`
+          };
+
+          return (
+            <SystemTooltip
+              title={egg.name}
+              subtitle={`${egg.rarity} Mystery Egg • Phase ${crackStage}/4`}
+              category="Incubation Chamber"
+              rarity={egg.rarity as any}
+              description={`Incubation Energy: ${currentSteps.toLocaleString()} / ${targetSteps.toLocaleString()} steps (${progress}%).`}
+              lore={eggLore.storyLore}
+              mechanics={eggLore.incubationGuide}
+              howToImprove="Walk, jog, or perform cardio to generate kinetic energy and crack the outer shell."
+              stats={[
+                { label: "Energy Progress", value: `${progress}% (${currentSteps}/${targetSteps})`, color: "text-cyan-300" },
+                { label: "Crack Stage", value: `Phase ${crackStage} / 4`, color: "text-amber-300" }
+              ]}
+              tags={[egg.rarity, "Incubating"]}
+              delayMs={1000}
+            >
+              <div className="relative flex items-center justify-center cursor-pointer group">
+                <div className={`w-40 h-40 sm:w-48 sm:h-48 rounded-full flex items-center justify-center transition-all duration-700 ${
+                  isReady
+                    ? "bg-gradient-to-t from-amber-500/30 via-cyan-500/20 to-transparent shadow-[0_0_60px_rgba(245,158,11,0.5)] animate-pulse"
+                    : "bg-cyan-500/10 shadow-[0_0_40px_rgba(6,182,212,0.2)] group-hover:bg-cyan-500/20"
+                }`}>
+                  {/* Egg Sprite with Cracking Progression */}
+                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
               <img
                 src={egg.sprite || "/eggs/egg_1.png"}
                 alt={egg.name}
@@ -208,6 +234,9 @@ export const EggIncubatorCard: React.FC<EggIncubatorCardProps> = ({
             </div>
           </div>
         </div>
+      </SystemTooltip>
+    );
+  })()}
 
         {/* Energy Progress Meter */}
         <div className="w-full max-w-md mt-6 space-y-2">

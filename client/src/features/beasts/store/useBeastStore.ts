@@ -20,7 +20,7 @@ export const EGG_SHOP_ITEMS: EggShopItem[] = [
     rarity: "COMMON",
     targetSteps: 3000,
     targetEnergy: 3000,
-    goldPrice: 250,
+    goldPrice: 1250,
     gemPrice: 0,
     description: "A vibrant forest egg that pulses with natural vitality. Requires 3,000 real-world steps."
   },
@@ -32,8 +32,8 @@ export const EGG_SHOP_ITEMS: EggShopItem[] = [
     rarity: "RARE",
     targetSteps: 5000,
     targetEnergy: 5000,
-    goldPrice: 650,
-    gemPrice: 10,
+    goldPrice: 3500,
+    gemPrice: 35,
     description: "An icy crystalline egg enveloped in chilling focus. Requires 5,000 real-world steps."
   },
   {
@@ -44,8 +44,8 @@ export const EGG_SHOP_ITEMS: EggShopItem[] = [
     rarity: "EPIC",
     targetSteps: 8000,
     targetEnergy: 8000,
-    goldPrice: 1600,
-    gemPrice: 25,
+    goldPrice: 8500,
+    gemPrice: 85,
     description: "A fiery ember egg radiating intense thermic power. Requires 8,000 real-world steps."
   },
   {
@@ -56,8 +56,8 @@ export const EGG_SHOP_ITEMS: EggShopItem[] = [
     rarity: "LEGENDARY",
     targetSteps: 12000,
     targetEnergy: 12000,
-    goldPrice: 3800,
-    gemPrice: 60,
+    goldPrice: 22000,
+    gemPrice: 220,
     description: "An overclocked digital matrix egg. Requires 12,000 real-world steps."
   },
   {
@@ -68,8 +68,8 @@ export const EGG_SHOP_ITEMS: EggShopItem[] = [
     rarity: "HOLOGRAPHIC",
     targetSteps: 20000,
     targetEnergy: 20000,
-    goldPrice: 8500,
-    gemPrice: 150,
+    goldPrice: 50000,
+    gemPrice: 500,
     description: "A legendary prismatic egg holding darkstar essence. Requires 20,000 real-world steps."
   }
 ];
@@ -88,6 +88,7 @@ interface BeastState {
   isHatching: boolean;
   isEquipping: boolean;
   isBuying: boolean;
+  isUpgrading: boolean;
   celebrationModal: {
     isOpen: boolean;
     data: CelebrationPayload | null;
@@ -95,6 +96,9 @@ interface BeastState {
 
   fetchCollection: (characterId: string) => Promise<void>;
   syncSteps: (characterId: string, stepCount: number, source?: string) => Promise<boolean>;
+  setDailySteps: (characterId: string, steps: number, goal?: number) => Promise<boolean>;
+  setStepGoal: (characterId: string, goal: number) => Promise<boolean>;
+  upgradeBeast: (characterId: string, beastId: string) => Promise<boolean>;
   feedEnergy: (characterId: string, amount: number, source?: string) => Promise<boolean>;
   hatchEgg: (characterId: string, eggId: string) => Promise<boolean>;
   equipBeast: (characterId: string, beastId: string | null) => Promise<boolean>;
@@ -112,6 +116,7 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   isHatching: false,
   isEquipping: false,
   isBuying: false,
+  isUpgrading: false,
   celebrationModal: {
     isOpen: false,
     data: null
@@ -162,6 +167,80 @@ export const useBeastStore = create<BeastState>((set, get) => ({
       return false;
     } finally {
       set({ isSyncingSteps: false });
+    }
+  },
+
+  setDailySteps: async (characterId: string, steps: number, goal?: number) => {
+    if (!characterId) return false;
+    playUIMenuSFX("confirm");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/beasts/steps/set-daily`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ characterId, steps, goal }),
+      });
+      if (res.ok) {
+        playBuffSFX("buff");
+        toast.success(`Daily steps updated to ${steps.toLocaleString()} steps!`);
+        await get().fetchCollection(characterId);
+        return true;
+      } else {
+        toast.error("Failed to update daily steps");
+        return false;
+      }
+    } catch (err) {
+      toast.error("Network error updating daily steps");
+      return false;
+    }
+  },
+
+  setStepGoal: async (characterId: string, goal: number) => {
+    if (!characterId || goal <= 0) return false;
+    playUIMenuSFX("confirm");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/beasts/steps/goal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ characterId, goal }),
+      });
+      if (res.ok) {
+        toast.success(`Daily step goal set to ${goal.toLocaleString()} steps!`);
+        await get().fetchCollection(characterId);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      toast.error("Network error setting step goal");
+      return false;
+    }
+  },
+
+  upgradeBeast: async (characterId: string, beastId: string) => {
+    if (!characterId || !beastId) return false;
+    set({ isUpgrading: true });
+    playUIMenuSFX("confirm");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/beasts/upgrade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ characterId, beastId }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        playBuffSFX("levelup");
+        toast.success(result.message || "Companion Ascended!");
+        await get().fetchCollection(characterId);
+        return true;
+      } else {
+        const err = await res.json().catch(() => ({ detail: "Failed to upgrade beast" }));
+        toast.error(err.detail || "Failed to upgrade beast");
+        return false;
+      }
+    } catch (err) {
+      toast.error("Network error while upgrading beast");
+      return false;
+    } finally {
+      set({ isUpgrading: false });
     }
   },
 

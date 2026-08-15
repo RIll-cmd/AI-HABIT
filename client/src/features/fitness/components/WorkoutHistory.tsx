@@ -98,7 +98,7 @@ export const WorkoutHistory: React.FC = () => {
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-cyan-400" />
-                      <span className="text-sm font-bold text-slate-200">
+                      <span suppressHydrationWarning className="text-sm font-bold text-slate-200">
                         {formatDate(session.startedAt)}
                       </span>
                     </div>

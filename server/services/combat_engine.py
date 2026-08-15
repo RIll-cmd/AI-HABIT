@@ -41,26 +41,41 @@ async def simulate_combat(character_id: str, floor_number: int) -> CombatLog:
     base_focus = stats.focus if stats else 1
     base_discipline = stats.discipline if stats else 1
 
-    # Equipment Bonus
+    # Equipment Multipliers & Combat Stats
     equip_attack = 0
     equip_defense = 0
+    str_pct = 0
+    knw_pct = 0
+    end_pct = 0
+    rec_pct = 0
+    foc_pct = 0
+    dis_pct = 0
+
     for item in character.playerItems:
         if item.isEquipped and item.itemDefinition:
             equip_attack += item.itemDefinition.attack
             equip_defense += item.itemDefinition.defense
-            base_strength += item.itemDefinition.strength
-            base_knowledge += item.itemDefinition.knowledge
-            base_endurance += item.itemDefinition.endurance
-            base_recovery += item.itemDefinition.recovery
-            base_focus += item.itemDefinition.focus
-            base_discipline += item.itemDefinition.discipline
+            str_pct += item.itemDefinition.strength
+            knw_pct += item.itemDefinition.knowledge
+            end_pct += item.itemDefinition.endurance
+            rec_pct += item.itemDefinition.recovery
+            foc_pct += item.itemDefinition.focus
+            dis_pct += item.itemDefinition.discipline
+
+    # Effective stats scale organically with user's real-life base stats
+    eff_strength = base_strength + int(base_strength * (str_pct / 100.0))
+    eff_knowledge = base_knowledge + int(base_knowledge * (knw_pct / 100.0))
+    eff_endurance = base_endurance + int(base_endurance * (end_pct / 100.0))
+    eff_recovery = base_recovery + int(base_recovery * (rec_pct / 100.0))
+    eff_focus = base_focus + int(base_focus * (foc_pct / 100.0))
+    eff_discipline = base_discipline + int(base_discipline * (dis_pct / 100.0))
 
     # Final Combat Stats for Player
-    player_hp = base_endurance * 20
+    player_hp = eff_endurance * 20
     player_max_hp = player_hp
-    player_attack = (base_strength * 2) + equip_attack
-    player_defense = (base_endurance * 1) + equip_defense
-    player_speed = base_focus * 2
+    player_attack = (eff_strength * 2) + equip_attack
+    player_defense = (eff_endurance * 1) + equip_defense
+    player_speed = eff_focus * 2
     
     # Skills
     skills = []

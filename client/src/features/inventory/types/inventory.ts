@@ -31,6 +31,7 @@ export interface ItemDefinition {
   endurance: number;
   recovery: number;
   passive: string | null;
+  lore?: string | null;
 }
 
 export interface PlayerItem {

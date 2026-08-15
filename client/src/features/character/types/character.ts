@@ -54,6 +54,8 @@ export interface Character {
   activeTitleId?: string | null;
   specializationId?: string | null;
   specialization?: ClassSpecialization | null;
+  dailySteps?: number;
+  dailyStepGoal?: number;
   createdAt: string | Date;
   stats?: CharacterStats | null;
   history?: ProgressHistory[];

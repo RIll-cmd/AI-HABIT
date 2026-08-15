@@ -104,6 +104,8 @@ export interface StatLoreEntry {
   combatScaling: string;
   lore: string;
   associatedSkills: string[];
+  howToImproveSummary: string;
+  howToImprove: string[];
 }
 
 export const STAT_LORE: Record<string, StatLoreEntry> = {
@@ -117,6 +119,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Directly increases physical strike damage in Tower battles, allows wielding heavy colosseum weaponry, and breaks enemy armor barriers.",
     lore: "The foundation of all physical monarchs. True strength is not merely mass—it is the neural coordination of billions of myofibrils firing in unison to overcome resistance.",
     associatedSkills: ["Crushing Strike", "Titan Slam", "Heavy Armor Mastery"],
+    howToImproveSummary: "Execute progressive overload in heavy compound lifts and high-intensity resistance training in the Workout Logger.",
+    howToImprove: [
+      "Log Barbell Back Squats & Deadlifts (85%+ 1RM for central nervous system recruitment)",
+      "Perform Barbell Bench Press, Overhead Press (OHP), and Incline Dumbbell Presses",
+      "Incorporate Weighted Pull-ups, Dips, and Heavy Romanian Deadlifts (RDLs)",
+      "Log new 1RM Personal Records (PRs) in the Weekly Boss PR encounter",
+      "Consume 1.6g-2.2g protein per kg bodyweight to accelerate myofibrillar repair"
+    ],
   },
   knowledge: {
     name: "Knowledge",
@@ -128,6 +138,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Scales elemental spell amplification, speeds up Mana regeneration, and unlocks arcane mastery passives.",
     lore: "Knowledge is the blueprint through which mana is woven. Sages who master the mathematical laws of dimensional rifts reshape entropy at command.",
     associatedSkills: ["Aether Mastery", "Mana Weaving", "Dimensional Insight"],
+    howToImproveSummary: "Complete daily reading, technical skill practice, academic coursework, and deep intellectual studies.",
+    howToImprove: [
+      "Complete 30-45 minutes of daily non-fiction reading (science, engineering, philosophy)",
+      "Practice coding, software architecture, algorithm design, or foreign languages",
+      "Review academic lectures, scientific papers, and high-level educational curricula",
+      "Synthesize conceptual notes and write summaries using the Feynman Technique",
+      "Create and fulfill daily 'Study & Learning' tagged habit missions"
+    ],
   },
   discipline: {
     name: "Discipline",
@@ -139,6 +157,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Provides status ailment resistance, shields against cognitive debuffs, and reduces habit friction damage.",
     lore: "Motivation is a fleeting spark; discipline is the eternal thermonuclear engine. The warrior who commands their own mind commands the battlefield.",
     associatedSkills: ["Iron Will", "Friction Ward", "Unshakable Focus"],
+    howToImproveSummary: "Complete daily scheduled missions without skipping and protect consecutive habit streak momentum.",
+    howToImprove: [
+      "Execute scheduled morning habits immediately upon waking without hitting snooze",
+      "Fulfill 100% of your daily habit quests across easy, medium, and hard tiers",
+      "Maintain active habit streaks across 7, 14, 30, and 60+ consecutive days",
+      "Resist impulse browsing, social media dopamine scrolling, and instant distractions",
+      "Take cold showers, practice delayed gratification, and finish difficult tasks first"
+    ],
   },
   focus: {
     name: "Focus",
@@ -150,6 +176,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Directly multiplies Critical Strike Chance, reveals enemy anatomical weakspots, and enhances evasive reaction speed.",
     lore: "When focus narrows to a singular point, time dilates. The assassin's dagger and the scholar's pen both strike with fatal precision.",
     associatedSkills: ["Lethal Precision", "Flow State Resonance", "Weakpoint Analysis"],
+    howToImproveSummary: "Log undistracted 60-90 minute Deep Work blocks, Pomodoro focus cycles, and mindfulness meditation.",
+    howToImprove: [
+      "Conduct uninterrupted 90-minute Deep Work blocks with all phone notifications disabled",
+      "Utilize Pomodoro cycles (50 min work / 10 min break) for intense technical tasks",
+      "Practice 10-15 minutes of daily breathwork, mindfulness, or open-monitoring meditation",
+      "Work in dedicated distraction-free environments with binaural alpha/theta audio",
+      "Track and complete daily 'Deep Focus / Project Execution' habit missions"
+    ],
   },
   endurance: {
     name: "Endurance",
@@ -161,6 +195,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Directly scales maximum Character HP in Tower battles, granting immense survival against boss ultimate phases.",
     lore: "The marathon of ascension belongs to those whose hearts beat with the steady rhythm of tectonic plates. They outlast every storm.",
     associatedSkills: ["Mitochondrial Surge", "Second Wind", "Titan Fortitude"],
+    howToImproveSummary: "Log running, cycling, rowing, daily step targets (10,000+), and high-volume aerobic conditioning.",
+    howToImprove: [
+      "Achieve 8,000 to 12,000+ daily steps to feed and incubate Dragon eggs",
+      "Perform Zone 2 cardio (45-60 mins of steady jogging, cycling, or incline walking at 60-70% max HR)",
+      "Execute high-intensity interval training (HIIT) sprints and kettlebell complexes",
+      "Incorporate high-rep metabolic resistance sets (15-25 reps per set) in workouts",
+      "Practice nasal breathing during steady-state aerobic runs to optimize CO2 tolerance"
+    ],
   },
   recovery: {
     name: "Recovery",
@@ -172,6 +214,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Increases out-of-combat HP regeneration, accelerates daily recovery cooldowns, and enhances elixir potency.",
     lore: "Growth does not occur in the furnace of battle, but in the quiet restoration that follows. True power honors the restorative cycle of the moon.",
     associatedSkills: ["Cellular Rebirth", "Parasympathetic Calm", "Rapid Mending"],
+    howToImproveSummary: "Log 7.5-9 hours of consistent circadian sleep, schedule scheduled rest days, and follow biometric heatmap fatigue alerts.",
+    howToImprove: [
+      "Maintain a strict circadian sleep schedule (sleep and wake within 30 mins every day)",
+      "Ensure 7.5 to 9 hours of sleep with a cool, pitch-dark, quiet bedroom environment",
+      "Allow fatigued muscle groups (<50% freshness on the Body Heatmap) 48-72h of full rest",
+      "Practice post-workout stretching, foam rolling, sauna sessions, or cold plunges",
+      "Avoid screens, blue light, and heavy meals within 2 hours of bedtime"
+    ],
   },
   consistency: {
     name: "Consistency",
@@ -183,6 +233,14 @@ export const STAT_LORE: Record<string, StatLoreEntry> = {
     combatScaling: "Permanently scales passive EXP and Gold multipliers, unlocks Sovereign milestone titles, and amplifies all class buffs.",
     lore: "The drop of water that hollows the stone does so not by force, but by falling again and again without fail.",
     associatedSkills: ["Temporal Flow", "Sovereign Momentum", "Eternal Routine"],
+    howToImproveSummary: "Achieve 100% Daily All-Clear habit completions, log check-ins daily, and avoid zero-progress days.",
+    howToImprove: [
+      "Achieve 100% completion of all daily habit missions for the Daily All-Clear bonus",
+      "Check in and sync your activity with Ascend OS daily to maintain calendar heatmap cadence",
+      "Utilize the 2-Minute Rule for habits when energy is low rather than skipping entirely",
+      "Equip and manage Streak Freeze Shields to safeguard long-term momentum during emergencies",
+      "Stack new positive habits immediately after existing established daily rituals"
+    ],
   },
 };
 
@@ -458,3 +516,433 @@ export function getEnemyLore(name?: string, floorNumber: number = 1, isBoss: boo
     dropLore: "Leaves behind Imperial Gold, EXP Essence, and Tower Tokens.",
   };
 }
+
+// =======================================================================
+// 🥚 EGG STORY LORE REGISTRY
+// =======================================================================
+export interface EggLoreEntry {
+  name: string;
+  element: string;
+  rarity: "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
+  origin: string;
+  storyLore: string;
+  incubationGuide: string;
+  potentialBeasts: string[];
+}
+
+export const EGG_LORE: Record<string, EggLoreEntry> = {
+  "Woodland Earth Egg": {
+    name: "Woodland Earth Egg",
+    element: "Nature / Earth",
+    rarity: "COMMON",
+    origin: "Harvested from glowing moss nests in the verdant outskirts of beginner dimensional rifts.",
+    storyLore: "Pulsing with gentle earthen mana and biological vitality. Juvenile woodland wyrms curl inside, absorbing the kinetic vibrations of the hunter's daily walking footsteps until their shell cracks with verdant light.",
+    incubationGuide: "Accumulate 3,000 steps through daily walks, light errands, or steady movement to crack the outer moss shell.",
+    potentialBeasts: ["Florian (Verdant Sylva)", "Nyx (Shadow Drake)", "Bramble (Thornwood Dragon)"],
+  },
+  "Glacial Cryo Egg": {
+    name: "Glacial Cryo Egg",
+    element: "Frost / Ice",
+    rarity: "RARE",
+    origin: "Chiseled from the thousand-year ice spire of Mount Ymir in the frozen Abyss.",
+    storyLore: "Encased in eternal sub-zero permafrost that never melts. The cryogenic dragon inside channels absolute zero temperature, focusing the hunter's mind into diamond-hard concentration.",
+    incubationGuide: "Accumulate 5,000 steps to generate enough internal friction heat to awaken the cryo-drake.",
+    potentialBeasts: ["Ymir (Glacial Frost Dragon)", "Thalassa (Abyssal Tide Dragon)", "Borealis (Aurora Frost Wyrm)"],
+  },
+  "Solar Flare Egg": {
+    name: "Solar Flare Egg",
+    element: "Solar / Fire",
+    rarity: "EPIC",
+    origin: "Forged at the solar zenith of the Imperial Pyre in the celestial dragon realm.",
+    storyLore: "Its crimson-gold crystalline shell radiates miniature solar flares and thermic heat. The embryonic solar dragon within feeds on workout intensity and unbroken daily consistency, yearning to ignite the skies.",
+    incubationGuide: "Requires 8,000 steps and high-volume workout sessions to reach thermal fusion temperature and hatch the radiant dragon.",
+    potentialBeasts: ["Ignis (Solar Flame Dragon)", "Volcanus (Magma Core Wyrm)", "Crimson (Blood Wyrm)"],
+  },
+  "Neon Cyber Egg": {
+    name: "Neon Cyber Egg",
+    element: "Cyber / Tech",
+    rarity: "LEGENDARY",
+    origin: "Excavated from subterranean server monoliths beneath the lost Neon Metropolis.",
+    storyLore: "Encased in brushed carbon-titanium alloy and micro-circuit wiring. A synthetic bio-dragon core calculates real-time step acceleration metrics, converting raw human kinetic steps into computational power.",
+    incubationGuide: "Accumulate 12,000 steps to calibrate the cybernetic shell's quantum capacitors and initiate system hatching.",
+    potentialBeasts: ["Cyberion (Synthetic Neon Wyrm)", "Chrono (Temporal Spark Drake)", "Zephyrus (Tempest Storm Drake)"],
+  },
+  "Cosmic Void Egg": {
+    name: "Cosmic Void Egg",
+    element: "Void / Darkness",
+    rarity: "MYTHIC",
+    origin: "Recovered from the singularity event horizon of collapsed S-Rank Gate rifts.",
+    storyLore: "Hovering slightly above its pedestal, this obsidian egg absorbs ambient darkness and radiates a chilling gravitational pulse. Within lies an ancient void monarch waiting for an Ascendant of unbroken discipline.",
+    incubationGuide: "Channel 20,000 physical steps and intense workout energy to overcome its dark gravity well and shatter the outer shell.",
+    potentialBeasts: ["Erebos (Void Star Dragon)", "Aurelius (Golden Celestial Wyrm)", "Aether (Prismatic Astral Wyrm)"],
+  },
+  "Common Elemental Egg": {
+    name: "Common Elemental Egg",
+    element: "Nature / Earth",
+    rarity: "COMMON",
+    origin: "Harvested from glowing moss nests in the verdant outskirts of beginner dimensional rifts.",
+    storyLore: "Pulsing with gentle earthen mana and biological vitality. Juvenile woodland wyrms curl inside, absorbing the kinetic vibrations of the hunter's daily walking footsteps until their shell cracks with verdant light.",
+    incubationGuide: "Accumulate 3,000 steps through daily walks, light errands, or steady movement to crack the outer moss shell.",
+    potentialBeasts: ["Florian (Verdant Sylva)", "Nyx (Shadow Drake)", "Aero (Gale Whelp)"],
+  },
+  "Rare Cybernetic Egg": {
+    name: "Rare Cybernetic Egg",
+    element: "Cyber / Tech",
+    rarity: "RARE",
+    origin: "Excavated from subterranean server monoliths beneath the lost Neon Metropolis.",
+    storyLore: "Encased in brushed carbon-titanium alloy and micro-circuit wiring. A synthetic bio-dragon core calculates real-time step acceleration metrics, converting raw human kinetic steps into computational power.",
+    incubationGuide: "Accumulate 6,000 steps to calibrate the cybernetic shell's quantum capacitors and initiate system hatching.",
+    potentialBeasts: ["Vesperis (Void Drake)", "Ymir (Glacial Frost Dragon)", "Glitch (Cyber Mecha Drake)"],
+  },
+  "Epic Void Core Egg": {
+    name: "Epic Void Core Egg",
+    element: "Void / Darkness",
+    rarity: "EPIC",
+    origin: "Recovered from the singularity event horizon of collapsed S-Rank Gate rifts.",
+    storyLore: "Hovering slightly above its pedestal, this obsidian egg absorbs ambient darkness and radiates a chilling gravitational pulse. Within lies an ancient void monarch waiting for an Ascendant of unbroken discipline.",
+    incubationGuide: "Channel 10,000 physical steps and intense workout energy to overcome its dark gravity well and shatter the outer shell.",
+    potentialBeasts: ["Morvath (Amethyst Wyrm)", "Ignis (Solar Flame Dragon)", "Shadowfang (Void Colossus)"],
+  },
+  "Legendary Solar Flare Egg": {
+    name: "Legendary Solar Flare Egg",
+    element: "Solar / Fire",
+    rarity: "LEGENDARY",
+    origin: "Forged at the solar zenith of the Imperial Pyre in the celestial dragon realm.",
+    storyLore: "Its crimson-gold crystalline shell radiates miniature solar flares and thermic heat. The embryonic solar dragon within feeds on workout intensity and unbroken daily consistency, yearning to ignite the skies.",
+    incubationGuide: "Requires 15,000 steps and high-volume workout sessions to reach thermal fusion temperature and hatch the radiant dragon.",
+    potentialBeasts: ["Aurelius (Golden Sun Drake)", "Ignis (Solar Flame Lord)", "Volcanis (Magma Wyrm)"],
+  },
+  "Mythic Astral Celestial Egg": {
+    name: "Mythic Astral Celestial Egg",
+    element: "Astral / Starlight",
+    rarity: "MYTHIC",
+    origin: "Summoned from the alignment of the 7 Ascendant Constellations across the outer cosmos.",
+    storyLore: "A transcendent celestial relic woven from stardust, cosmic nebulae, and pure primordial mana. Its shell contains the heartbeat of a cosmic celestial monarch capable of bending spacetime and granting sovereign buffs.",
+    incubationGuide: "Demands 20,000 steps of relentless human endurance and flawless habit mastery to awaken the celestial sovereign.",
+    potentialBeasts: ["Chronos (Time Weaver Dragon)", "Astraea (Cosmic Sovereign Wyrm)", "Solaria (Starlight Drake)"],
+  },
+  "Glacial Permafrost Egg": {
+    name: "Glacial Permafrost Egg",
+    element: "Frost / Ice",
+    rarity: "RARE",
+    origin: "Chiseled from the thousand-year ice spire of Mount Ymir in the frozen Abyss.",
+    storyLore: "Encased in eternal sub-zero permafrost that never melts. The cryogenic dragon inside channels absolute zero temperature, focusing the hunter's mind into diamond-hard concentration.",
+    incubationGuide: "Accumulate 6,000 steps to generate enough internal friction heat to awaken the cryo-drake.",
+    potentialBeasts: ["Ymir (Frost Wyrm)", "Blizzard (Arctic Drake)", "Hailstorm (Glacial Sovereign)"],
+  },
+};
+
+// =======================================================================
+// 🏆 ACHIEVEMENT STORY LORE REGISTRY
+// =======================================================================
+export interface AchievementLoreEntry {
+  title: string;
+  storyLore: string;
+  historicalContext: string;
+  unlockWisdom: string;
+}
+
+export const ACHIEVEMENT_LORE: Record<string, AchievementLoreEntry> = {
+  "First Step of Greatness": {
+    title: "First Step of Greatness",
+    storyLore: "The grand monolith of the System does not record the intentions of men, only their actions. The first completed habit is the chisel that strikes the stone of destiny.",
+    historicalContext: "In the First Age of Awakening, the ancient monarchs realized that power was not inherited—it was forged one sunrise at a time.",
+    unlockWisdom: "A single routine executed today is worth ten thousand planned for tomorrow.",
+  },
+  "Unbroken Streak": {
+    title: "Unbroken Streak",
+    storyLore: "Seven consecutive sunrises. Seven victories over the neurological friction of hesitation. The neural pathways of habit have begun their irreversible crystallization.",
+    historicalContext: "The Order of Seven Sunrises was an ancient brotherhood of hunters who never broke cadence, surviving every siege through momentum.",
+    unlockWisdom: "Momentum is a multiplier that compounds willpower into effortless execution.",
+  },
+  "Consistency Sovereign": {
+    title: "Consistency Sovereign",
+    storyLore: "Fifty daily quests fulfilled. The basal ganglia now fires without emotional resistance. The hunter has transitioned from novice struggle to sovereign automaticity.",
+    historicalContext: "Etched into the obelisk at the Tower entrance: 'He who conquers fifty days without wavering shall never again fear the abyss.'",
+    unlockWisdom: "You do not rise to the level of your goals; you fall to the level of your daily consistency.",
+  },
+  "Iron Will": {
+    title: "Iron Will",
+    storyLore: "Thirty days of unbroken daily execution. Neuroplastic adaptation is complete. The prefrontal cortex now commands the physical body with absolute authority.",
+    historicalContext: "Awarded only to Ascendants whose resolve weathered storms, emergencies, and fatigue without breaking their sacred covenant.",
+    unlockWisdom: "True iron is not forged in comfort; it is tempered in the quiet decisions made when no one is watching.",
+  },
+  "Novice Lifter": {
+    title: "Novice Lifter",
+    storyLore: "The cold barbell rests across your shoulders. Gravitational resistance meets human will. The muscle fibers tear microscopically, only to rebuild stronger.",
+    historicalContext: "The Colosseum of Iron was the proving ground where earthborn hunters transformed fragile biology into living kinetic armor.",
+    unlockWisdom: "Every rep against gravity is a vote for the person you are becoming.",
+  },
+  "Iron Disciple": {
+    title: "Iron Disciple",
+    storyLore: "Ten completed workout sessions. Your central nervous system now recruits motor units with explosive efficiency. The biometric heatmap burns with righteous effort.",
+    historicalContext: "Disciplines of the Iron Path were renowned for walking into dungeon rifts with nothing but bare fists and unwavering kinetic conditioning.",
+    unlockWisdom: "Physical strength is the anchor that keeps mental focus from drifting in the wind.",
+  },
+  "Centurion of Iron": {
+    title: "Centurion of Iron",
+    storyLore: "One hundred workout sessions logged. Hundreds of thousands of kilograms hoisted against the earth's gravity. A physical titan walking among mortals.",
+    historicalContext: "Centurions were the vanguard who shattered the obsidian walls of S-Rank gate guardians through pure unyielding physical volume.",
+    unlockWisdom: "You have built a temple of muscle and bone that no storm can dismantle.",
+  },
+  "Tower Initiate": {
+    title: "Tower Initiate",
+    storyLore: "The heavy runic doors of Floor 1 grind open. The ancient guardians awaken from centuries of slumber. Your climb up the Tower of Ascension has begun.",
+    historicalContext: "The Tower was raised in the celestial era to test if human willpower could reach the heights of the ancient cosmic sovereigns.",
+    unlockWisdom: "The highest summit is conquered one floor at a time.",
+  },
+  "Guardian Slayer": {
+    title: "Guardian Slayer",
+    storyLore: "Floor 5 clears with a thunderous roar as the Shadow Overlord falls to dust. The first milestone boss of the spire has recognized your sovereign power.",
+    historicalContext: "The Shadow Overlord held the 5th floor seal for four centuries until an Ascendant of true attribute balance broke his dark sword.",
+    unlockWisdom: "No barrier is insurmountable when physical power, knowledge, and focus strike in unison.",
+  },
+  "Tower Conqueror": {
+    title: "Tower Conqueror",
+    storyLore: "Floor 10 conquered! The midway guardian of the spire falls to your blade. Dimensional rift tokens shower the arena as your name echoes across the leaderboard.",
+    historicalContext: "Only the top 1% of registered hunters possess the combat power and equipment synergy required to survive Floor 10.",
+    unlockWisdom: "When preparation meets opportunity, victory is the only mathematical outcome.",
+  },
+};
+
+// =========================================================================
+// 🐉 DRAGON STORY LORE & COMPANION CHRONICLES
+// =========================================================================
+
+export interface DragonLoreEntry {
+  speciesId: number;
+  name: string;
+  species: string;
+  element: "FIRE" | "FROST" | "VOID" | "CYBER" | "NATURE" | "HOLY" | "STORM";
+  rarity: "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "HOLOGRAPHIC";
+  storyLore: string;
+  biologicalResonance: string;
+  statBonusLabel: string;
+  statBonusPercent: number;
+}
+
+export const DRAGON_LORE: Record<number, DragonLoreEntry> = {
+  1: {
+    speciesId: 1,
+    name: "Vesperis",
+    species: "Void Drake",
+    element: "VOID",
+    rarity: "RARE",
+    storyLore: "Born in the abyssal silence between shattered dimensional rifts. Vesperis glides on weightless ethereal wings woven from cosmic dark matter, leaving trails of starlit violet embers in its wake.",
+    biologicalResonance: "Synchronizes with the hunter's agile kinetic movements, converting brisk daily walking strides into a localized gravity reduction field.",
+    statBonusLabel: "+8.0% Movement & Agility Multiplier",
+    statBonusPercent: 8.0,
+  },
+  2: {
+    speciesId: 2,
+    name: "Morvath",
+    species: "Amethyst Wyrm",
+    element: "VOID",
+    rarity: "EPIC",
+    storyLore: "Ancient psychic dragon carved from crystallized mana geocores. Its translucent violet scales vibrate at harmonic frequencies that awaken dormant cognitive potential.",
+    biologicalResonance: "Channels high-frequency astral frequencies into the hunter's prefrontal cortex, enhancing focus during study and deep reading blocks.",
+    statBonusLabel: "+12.0% Knowledge (KNO) Multiplier",
+    statBonusPercent: 12.0,
+  },
+  3: {
+    speciesId: 3,
+    name: "Florian",
+    species: "Verdant Sylva Wyrm",
+    element: "NATURE",
+    rarity: "COMMON",
+    storyLore: "A gentle woodland dragon that nests in the ancient canopies of the World Tree. Its breath carries the scent of petrichor and flowering moss.",
+    biologicalResonance: "Absorbs environmental solar energy and releases restorative phytocides, accelerating cellular EXP synthesis on morning strolls.",
+    statBonusLabel: "+6.0% Total EXP Multiplier",
+    statBonusPercent: 6.0,
+  },
+  4: {
+    speciesId: 4,
+    name: "Ymir",
+    species: "Glacial Frost Dragon",
+    element: "FROST",
+    rarity: "RARE",
+    storyLore: "Hatched in the eye of a perpetual sub-zero blizzard. Ymir's crystalline scales radiate a calm, sub-zero aura that freezes distractions and doubts in their tracks.",
+    biologicalResonance: "Reduces neurological noise and thermal stress, lowering heart rate variability for laser-sharp focus and stoic discipline.",
+    statBonusLabel: "+10.0% Focus (FOC) Multiplier",
+    statBonusPercent: 10.0,
+  },
+  5: {
+    speciesId: 5,
+    name: "Nyx",
+    species: "Obsidian Shadow Drake",
+    element: "VOID",
+    rarity: "COMMON",
+    storyLore: "Woven from cooling volcanic basalt and forgotten dungeon shadows. Nyx clings silently to the hunter's shoulder, feeding on fatigue and exhaling determination.",
+    biologicalResonance: "Fortifies core muscular contraction and postural endurance by reinforcing kinetic feedback during heavy compound lifts.",
+    statBonusLabel: "+5.0% Base Strength (STR) Multiplier",
+    statBonusPercent: 5.0,
+  },
+  6: {
+    speciesId: 6,
+    name: "Ignis",
+    species: "Solar Flame Dragon",
+    element: "FIRE",
+    rarity: "EPIC",
+    storyLore: "Its draconic heart beats with the nuclear fury of an adolescent star. When Ignis roars, the surrounding air shimmers with thermic shockwaves.",
+    biologicalResonance: "Ignites cellular ATP replenishment and neuromuscular power output, supercharging heavy barbell presses and explosive sprint sets.",
+    statBonusLabel: "+15.0% Base Strength (STR) Multiplier",
+    statBonusPercent: 15.0,
+  },
+  7: {
+    speciesId: 7,
+    name: "Aurelius",
+    species: "Golden Celestial Wyrm",
+    element: "HOLY",
+    rarity: "LEGENDARY",
+    storyLore: "An exalted dragon clad in impenetrable solar gold. Inscribed with sacred runes by ancient sky kings, Aurelius is the herald of sovereign prosperity.",
+    biologicalResonance: "Radiates an auric magnetic resonance field that multiplies gold and relic bounty drops from all completed quests and tower monoliths.",
+    statBonusLabel: "+30.0% Gold & Economy Multiplier",
+    statBonusPercent: 30.0,
+  },
+  8: {
+    speciesId: 8,
+    name: "Thalassa",
+    species: "Abyssal Tide Dragon",
+    element: "FROST",
+    rarity: "RARE",
+    storyLore: "Glides seamlessly through oceanic jet streams and vapor currents. Thalassa's serpentine sapphire body moves with the effortless power of the deep ocean swells.",
+    biologicalResonance: "Enhances pulmonary efficiency and aerobic VO2 capacity, stabilizing breath rhythm during continuous distance walking and endurance training.",
+    statBonusLabel: "+10.0% Endurance (END) Multiplier",
+    statBonusPercent: 10.0,
+  },
+  9: {
+    speciesId: 9,
+    name: "Zephyrus",
+    species: "Tempest Storm Drake",
+    element: "STORM",
+    rarity: "COMMON",
+    storyLore: "Sparks with azure static electricity as it darts across the sky. Zephyrus embodies the sudden fury and exhilarating velocity of summer squalls.",
+    biologicalResonance: "Infuses rapid motor neuron recruitment into leg muscles, turning regular daily steps into high-cadence kinetic progress.",
+    statBonusLabel: "+6.0% Agility Multiplier",
+    statBonusPercent: 6.0,
+  },
+  10: {
+    speciesId: 10,
+    name: "Volcanus",
+    species: "Magma Core Wyrm",
+    element: "FIRE",
+    rarity: "RARE",
+    storyLore: "Forged in the molten depths of the Earth's mantle. Volcanus carries molten obsidian plates that glow with incandescent geothermal power.",
+    biologicalResonance: "Boosts heat-shock protein synthesis and blood flow, providing resilience and explosive power for heavy back and leg workouts.",
+    statBonusLabel: "+10.0% Base Strength (STR) Multiplier",
+    statBonusPercent: 10.0,
+  },
+  11: {
+    speciesId: 11,
+    name: "Bramble",
+    species: "Thornwood Dragon",
+    element: "NATURE",
+    rarity: "COMMON",
+    storyLore: "Entangled in evergreen vines and sharp ironthorn briars. Bramble stands guardian over secluded forest clearings where ancient druids rested.",
+    biologicalResonance: "Accelerates soft-tissue healing and reduces delayed onset muscle soreness (DOMS) after grueling physical training sessions.",
+    statBonusLabel: "+7.0% Recovery (REC) Multiplier",
+    statBonusPercent: 7.0,
+  },
+  12: {
+    speciesId: 12,
+    name: "Borealis",
+    species: "Aurora Frost Wyrm",
+    element: "FROST",
+    rarity: "EPIC",
+    storyLore: "Shimmers with breathtaking curtains of iridescent emerald, cyan, and magenta geomagnetic light. Manifests only beneath clear midnight skies.",
+    biologicalResonance: "Synthesizes magnetic auroral currents into the hunter's aura, substantially boosting experience yield across every habit logged.",
+    statBonusLabel: "+18.0% Total EXP Multiplier",
+    statBonusPercent: 18.0,
+  },
+  13: {
+    speciesId: 13,
+    name: "Erebos",
+    species: "Void Star Dragon",
+    element: "VOID",
+    rarity: "HOLOGRAPHIC",
+    storyLore: "A mythic primordial entity born from the singularity of a collapsed star. Erebos bends light and spacetime, glitching reality with chromatic holographic brilliance.",
+    biologicalResonance: "Transmutes every micro-action of real-world discipline into massive astronomical EXP growth, elevating your ascension rate to sovereign heights.",
+    statBonusLabel: "+40.0% Sovereign EXP Multiplier",
+    statBonusPercent: 40.0,
+  },
+  14: {
+    speciesId: 14,
+    name: "Solarius",
+    species: "Dawn Light Drake",
+    element: "HOLY",
+    rarity: "COMMON",
+    storyLore: "Emits a pure harmonic chime at the first ray of dawn. Solarius is the patron companion of early risers and dedicated morning practitioners.",
+    biologicalResonance: "Reinforces circadian cortisol rhythm and willpower alignment, ensuring morning habits are completed with unwavering resolve.",
+    statBonusLabel: "+7.0% Discipline (DIS) Multiplier",
+    statBonusPercent: 7.0,
+  },
+  15: {
+    speciesId: 15,
+    name: "Cyberion",
+    species: "Synthetic Neon Wyrm",
+    element: "CYBER",
+    rarity: "LEGENDARY",
+    storyLore: "Engineered in neo-cybernetic laboratories with carbon nanotube muscles and glowing fiber-optic telemetry conduits. An overclocked biomechanical marvel.",
+    biologicalResonance: "Hooks directly into your biological telemetry, providing real-time biomechanical optimization for maximum speed and step cadence.",
+    statBonusLabel: "+25.0% Agility & Speed Multiplier",
+    statBonusPercent: 25.0,
+  },
+  16: {
+    speciesId: 16,
+    name: "Gladius",
+    species: "Iron Scale Dragon",
+    element: "FIRE",
+    rarity: "COMMON",
+    storyLore: "Its scales ring like struck steel anvils. Gladius has witnessed thousands of historic battles, absorbing the martial spirit of victorious warriors.",
+    biologicalResonance: "Channels dense kinetic shock absorption, shielding the hunter's tendons during maximal effort lifts and intense PR attempts.",
+    statBonusLabel: "+7.0% Base Strength (STR) Multiplier",
+    statBonusPercent: 7.0,
+  },
+  17: {
+    speciesId: 17,
+    name: "Terra",
+    species: "Ancient Mountain Drake",
+    element: "NATURE",
+    rarity: "RARE",
+    storyLore: "Carries a miniature mountain range on its rocky carapace. Terra moves with the unstoppable momentum of continental tectonic plates.",
+    biologicalResonance: "Anchors cardiovascular stamina and mental grit, preventing fatigue from derailing multi-kilometer daily treks and long work sessions.",
+    statBonusLabel: "+12.0% Endurance (END) Multiplier",
+    statBonusPercent: 12.0,
+  },
+  18: {
+    speciesId: 18,
+    name: "Aether",
+    species: "Prismatic Astral Wyrm",
+    element: "VOID",
+    rarity: "LEGENDARY",
+    storyLore: "Woven from pure higher-dimensional starlight. Aether floats through gravitational planes without friction, warping the fabric of space itself.",
+    biologicalResonance: "Expands neural processing bandwidth and abstract problem-solving capacity, amplifying Knowledge and analytical mastery.",
+    statBonusLabel: "+28.0% Knowledge (KNO) Multiplier",
+    statBonusPercent: 28.0,
+  },
+  19: {
+    speciesId: 19,
+    name: "Crimson",
+    species: "Blood Wyrm",
+    element: "FIRE",
+    rarity: "EPIC",
+    storyLore: "Ignites in incandescent crimson fire whenever battle reaches its peak. Crimson feeds on adrenaline and the thrill of surpassing limits.",
+    biologicalResonance: "Surges blood nitric oxide levels and muscular vasodilation, unlocking monstrous pumps and strength gains in the gym.",
+    statBonusLabel: "+18.0% Base Strength (STR) Multiplier",
+    statBonusPercent: 18.0,
+  },
+  20: {
+    speciesId: 20,
+    name: "Chrono",
+    species: "Temporal Spark Drake",
+    element: "CYBER",
+    rarity: "HOLOGRAPHIC",
+    storyLore: "A holographic dragon that flickers in and out of the timeline. Chrono sees all past iterations and future timelines of the Ascendant's destiny.",
+    biologicalResonance: "Bends the laws of probability and compound growth, delivering monumental economic bounties to hunters who maintain unbroken streaks.",
+    statBonusLabel: "+50.0% Sovereign Gold Multiplier",
+    statBonusPercent: 50.0,
+  },
+};
+
+
+

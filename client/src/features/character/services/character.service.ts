@@ -2,10 +2,11 @@ import { API_BASE_URL } from "@/constants";
 import { Character } from "@/features/character/types/character";
 
 export interface ProgressionSyncPayload {
-  total_exp: number;
-  level: number;
-  power: number;
-  rank: string;
+  total_exp?: number;
+  level?: number;
+  power?: number;
+  rank?: string;
+  stats?: Record<string, number>;
   history_entry?: {
     amount: number;
     type: string;

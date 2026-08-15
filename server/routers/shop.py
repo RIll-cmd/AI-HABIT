@@ -256,10 +256,30 @@ async def buy_item(character_id: str, request: ShopItemBuyRequest):
 import random
 
 @router.post("/{character_id}/refresh", response_model=List[ShopItemDetailSchema])
-async def refresh_shop_items(character_id: str):
+async def refresh_shop_items(character_id: str, cost: int = 0):
     character = await db.character.find_unique(where={"id": character_id})
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
+
+    if cost > 0:
+        if character.gold < cost:
+            raise HTTPException(status_code=400, detail=f"Insufficient Gold for Shop Refresh. Requires {cost} Gold.")
+        await db.character.update(
+            where={"id": character_id},
+            data={"gold": {"decrement": cost}}
+        )
+        try:
+            await db.economylog.create(
+                data={
+                    "characterId": character_id,
+                    "currency": "GOLD",
+                    "amount": -cost,
+                    "reason": "Shop Stock Refresh",
+                    "source": "SHOP"
+                }
+            )
+        except Exception as e:
+            print("EconomyLog error:", e)
 
     all_item_defs = await db.itemdefinition.find_many()
     if not all_item_defs:

@@ -2,6 +2,7 @@ import { eventBus, MissionCompletedPayload } from "./EventBus";
 import { calculateFinalReward, BaseReward } from "../../habits/utils";
 import { CompletionType } from "../../habits/types";
 import { useCharacterStore } from "../../../store/useCharacterStore";
+import { useDailyBonusStore } from "../../../store/useDailyBonusStore";
 
 export class ProgressionEngine {
   private static instance: ProgressionEngine;
@@ -37,20 +38,24 @@ export class ProgressionEngine {
     const habitName = habit?.name || "Habit";
     const primaryStat = habit?.primaryStat || "strength";
 
+    // Check for 2x Daily Double Boost Charge
+    const isDoubleBoosted = useDailyBonusStore.getState().consumeHabitCharge();
+    const multiplier = isDoubleBoosted ? 2 : 1;
+
     if (finalReward.stat > 0) {
-      useCharacterStore.getState().addStat(primaryStat, finalReward.stat);
+      useCharacterStore.getState().addStat(primaryStat, finalReward.stat * multiplier);
     }
 
     if (finalReward.gold > 0) {
       useCharacterStore
         .getState()
-        .gainGold(finalReward.gold, `Completed Mission: ${habitName}`);
+        .gainGold(finalReward.gold * multiplier, isDoubleBoosted ? `⚡ [2X BOOST] ${habitName}` : `Completed Mission: ${habitName}`);
     }
 
     if (finalReward.exp > 0) {
       useCharacterStore
         .getState()
-        .gainExp(finalReward.exp, `Completed Mission: ${habitName}`);
+        .gainExp(finalReward.exp * multiplier, isDoubleBoosted ? `⚡ [2X BOOST] ${habitName}` : `Completed Mission: ${habitName}`);
     }
   }
 }

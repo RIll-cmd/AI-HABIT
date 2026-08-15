@@ -136,7 +136,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         {s.label}
                       </span>
                       <span className="font-bold text-white text-xs font-mono">
-                        +{s.value}
+                        +{s.value}{s.isPercentage ? "%" : ""}
                       </span>
                     </div>
                   );

@@ -64,7 +64,7 @@ export const EquippedBeastDisplay: React.FC<EquippedBeastDisplayProps> = ({
         {/* Dragon Sprite with Floating Physics */}
         <div className={`relative ${sizeClasses[size]} flex items-center justify-center`}>
           <img
-            src={beast.spritePath}
+            src={beast.spritePath ? beast.spritePath.replace('.png', '.gif') : '/beasts/beast_1.gif'}
             alt={beast.name}
             className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.8)] animate-float-slow"
             style={{ imageRendering: "pixelated" }}

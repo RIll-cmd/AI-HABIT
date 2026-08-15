@@ -102,7 +102,7 @@ export const RecentPRsWidget: React.FC = () => {
               <Award className="w-4 h-4 text-amber-400 shrink-0" />
               {recentPR.exercise?.name || "Exercise"}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div suppressHydrationWarning className="text-[11px] text-slate-400 mt-0.5">
               {new Date(recentPR.date).toLocaleDateString()}
             </div>
           </div>

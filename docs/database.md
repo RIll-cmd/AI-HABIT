@@ -103,3 +103,63 @@ Daily generated execution instance derived from a Habit template.
 - `expEarned` (Int, Optional)
 - `statsEarned` (Int, Optional)
 - `completedAt` (DateTime, Optional)
+
+### MuscleRecoveryState
+Tracks real-time dynamic time-decay muscle fatigue and recovery for each canonical muscle group.
+- `id` (String, PK, UUID)
+- `characterId` (String, FK -> Character.id, Cascade Delete)
+- `muscleGroup` (String, e.g. 'CHEST', 'QUADS', 'LATS', 'BICEPS')
+- `initialFatigue` (Float, 0.0 - 100.0)
+- `lastTrainedAt` (DateTime, timestamp of last workout affecting this muscle)
+- `fullRecoveryHours` (Float, 48.0 for standard, 72.0 for heavy compound muscles)
+- `createdAt` (DateTime)
+- `updatedAt` (DateTime)
+
+### Egg (Incubator System)
+Represents collectible mystery elemental eggs incubated through physical step counts and workouts.
+- `id` (String, PK, UUID)
+- `characterId` (String, FK -> Character.id, Cascade Delete)
+- `name` (String)
+- `eggType` (String, 'ELEMENTAL' | 'CYBER' | 'VOID' | 'SOLAR' | 'ASTRAL' | 'GLACIAL' | 'FROST' | 'INFERNAL')
+- `rarity` (String, 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'HOLOGRAPHIC')
+- `sprite` (String, path to egg PNG asset)
+- `targetEnergy` (Int, target step count / energy units)
+- `currentEnergy` (Int, accumulated step count)
+- `status` (String, 'INCUBATING' | 'READY_TO_HATCH' | 'HATCHED' | 'STORED')
+- `hatchedBeastId` (String, Optional, FK -> Beast.id)
+- `hatchedAt` (DateTime, Optional)
+- `createdAt` (DateTime)
+
+### Beast (Dragon Companion)
+Hatched animated dragon companions granting passive RPG stat bonuses.
+- `id` (String, PK, UUID)
+- `characterId` (String, FK -> Character.id, Cascade Delete)
+- `name` (String)
+- `species` (String, e.g. 'Pyrodraco', 'Frostwing', 'Voidstalker')
+- `element` (String, 'FIRE' | 'FROST' | 'VOID' | 'CYBER' | 'NATURE' | 'HOLY' | 'STORM')
+- `rarity` (String, 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'HOLOGRAPHIC')
+- `sprite` (String, path to animated GIF asset)
+- `level` (Int, Default: 1)
+- `bondExp` (Int, Default: 0)
+- `isEquipped` (Boolean, Default: false)
+- `statBonusType` (String, e.g. 'STRENGTH', 'ENDURANCE', 'RECOVERY')
+- `statBonusValue` (Float, percentage boost e.g. 5.0%)
+- `hatchedFromEggId` (String, Optional)
+- `createdAt` (DateTime)
+
+### ExerciseDefinition
+Master catalog of strength movements with primary and secondary anatomical muscle mappings.
+- `id` (String, PK)
+- `name` (String)
+- `primaryMuscle` (String, canonical muscle group)
+- `secondaryMuscles` (String, JSON string array of assisting muscles)
+- `category` (String, 'STRENGTH' | 'HYPERTROPHY' | 'ENDURANCE')
+- `instructions` (String, Optional)
+- `equipment` (String)
+- `trackingMetrics` (String)
+
+### ItemDefinition & PlayerItem
+Global item master database and player inventory instances.
+- **`ItemDefinition`**: `id`, `name`, `type` (WEAPON, ARMOR, HELMET, BOOTS, GLOVES, RING, NECKLACE, ARTIFACT, RELIC, CONSUMABLE, MATERIAL), `rarity`, `description`, `icon`, `statBonuses`, `tier`, `buyPrice`, `sellPrice`.
+- **`PlayerItem`**: `id`, `characterId`, `itemDefinitionId`, `quantity`, `isEquipped`, `isLocked`, `isFavorite`, `enhancementLevel`, `acquiredAt`.
+

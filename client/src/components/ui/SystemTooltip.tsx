@@ -31,6 +31,7 @@ export interface SystemTooltipProps {
   lore?: string;
   description?: string;
   mechanics?: string;
+  howToImprove?: string[] | string;
   stats?: SystemTooltipStat[];
   tags?: string[];
   rarity?: "COMMON" | "UNCOMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
@@ -62,7 +63,7 @@ const RARITY_BORDERS: Record<string, string> = {
 };
 
 interface TabSection {
-  id: "overview" | "lore" | "mechanics" | "stats";
+  id: "overview" | "lore" | "mechanics" | "improve" | "stats";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
@@ -74,6 +75,7 @@ export function SystemTooltip({
   lore,
   description,
   mechanics,
+  howToImprove,
   stats = [],
   tags = [],
   rarity = "RARE",
@@ -83,7 +85,7 @@ export function SystemTooltip({
   children,
   className = "",
   widthClass = "w-[340px] sm:w-[380px] max-w-[92vw]",
-  delayMs = 800,
+  delayMs = 1000,
 }: SystemTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -110,6 +112,9 @@ export function SystemTooltip({
   const availableTabs: TabSection[] = [];
   if (description) {
     availableTabs.push({ id: "overview", label: "Overview", icon: Info });
+  }
+  if (howToImprove && (Array.isArray(howToImprove) ? howToImprove.length > 0 : Boolean(howToImprove))) {
+    availableTabs.push({ id: "improve", label: "How to Improve", icon: Dumbbell });
   }
   if (lore) {
     availableTabs.push({ id: "lore", label: "Lore", icon: BookOpen });
@@ -375,6 +380,29 @@ export function SystemTooltip({
             {currentTab?.id === "overview" && description && (
               <div className="text-xs text-slate-200/95 font-sans leading-relaxed whitespace-pre-line break-words bg-slate-900/60 p-3 rounded-xl border border-white/5 min-h-[72px]">
                 {description}
+              </div>
+            )}
+
+            {currentTab?.id === "improve" && howToImprove && (
+              <div className="p-3 rounded-xl bg-gradient-to-br from-[#0c1830] to-[#070f20] border border-cyan-500/30 text-xs text-slate-200 space-y-2 min-h-[72px]">
+                <div className="flex items-center gap-1.5 text-[9.5px] font-mono font-bold text-cyan-300 uppercase tracking-widest pb-1 border-b border-cyan-500/20">
+                  <Dumbbell className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                  <span>ACTIONABLE REAL-WORLD PROTOCOLS</span>
+                </div>
+                {Array.isArray(howToImprove) ? (
+                  <ul className="space-y-1.5 pt-0.5">
+                    {howToImprove.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 font-sans leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0 shadow-[0_0_6px_rgba(6,182,212,0.8)]" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                    {howToImprove}
+                  </p>
+                )}
               </div>
             )}
 

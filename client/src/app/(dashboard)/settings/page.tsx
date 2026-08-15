@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useThemeStore, ThemeMode } from "@/store/useThemeStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useAiraStore } from "@/features/aira/store";
+import { API_BASE_URL } from "@/constants";
 import {
   Card,
   CardContent,
@@ -23,6 +25,7 @@ import {
   Shield,
   Save,
   Check,
+  X,
   Moon,
   Swords,
   Crown,
@@ -37,9 +40,14 @@ import {
   RotateCcw,
   Eye,
   Flame,
+  Mail,
+  KeyRound,
+  Send,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { playUISound, playAIRASound, playBuffSFX } from "@/utils/audio";
+import { playUISound, playAIRASound, playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 
 const TITLE_OPTIONS = [
   "Wanderer",
@@ -151,7 +159,23 @@ export default function SettingsPage() {
     resetAllSettings,
   } = useSettingsStore();
 
-  const [name, setName] = useState(character?.name || "Shadow Monarch");
+  const { user, token, updateUserProfile } = useAuthStore();
+
+  // Custom Username State
+  const [newUsername, setNewUsername] = useState(user?.username || "");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+
+  // Link Email State
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkOtp, setLinkOtp] = useState("");
+  const [isSendingLinkOtp, setIsSendingLinkOtp] = useState(false);
+  const [isVerifyingLinkOtp, setIsVerifyingLinkOtp] = useState(false);
+  const [linkOtpSent, setLinkOtpSent] = useState(false);
+  const [linkOtpCooldown, setLinkOtpCooldown] = useState(0);
+
+  const [name, setName] = useState(character?.name || user?.username || "Shadow Monarch");
   const [title, setTitle] = useState(character?.title || "Shadow Seeker");
   const [accentTheme, setAccentTheme] = useState(
     character?.theme || "dark-rpg"
@@ -161,13 +185,173 @@ export default function SettingsPage() {
   );
 
   useEffect(() => {
+    if (user?.username) {
+      setNewUsername(user.username);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (linkOtpCooldown > 0) {
+      const timer = setTimeout(() => setLinkOtpCooldown(linkOtpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [linkOtpCooldown]);
+
+  // Debounced Username Availability Check
+  useEffect(() => {
+    if (!newUsername.trim() || newUsername.trim().toLowerCase() === user?.username?.toLowerCase()) {
+      setUsernameStatus("idle");
+      setUsernameError(null);
+      return;
+    }
+
+    if (newUsername.length < 3 || newUsername.length > 20) {
+      setUsernameStatus("taken");
+      setUsernameError("Must be 3–20 characters");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+      setUsernameStatus("taken");
+      setUsernameError("Alphanumeric and underscores only");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/check-availability`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: newUsername }),
+        });
+        const data = await res.json();
+        if (data.usernameAvailable) {
+          setUsernameStatus("available");
+          setUsernameError(null);
+        } else {
+          setUsernameStatus("taken");
+          setUsernameError(data.usernameError || "Username is taken");
+        }
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [newUsername, user?.username]);
+
+  const handleUpdateUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUsername.trim() || usernameStatus === "taken" || newUsername.trim() === user?.username) return;
+
+    setIsUpdatingUsername(true);
+    playUIMenuSFX("confirm");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/update-username`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ username: newUsername.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.detail || "Failed to update handle.");
+        setIsUpdatingUsername(false);
+        return;
+      }
+      updateUserProfile({ username: data.username });
+      setName(data.username);
+      playBuffSFX("levelup");
+      toast.success("Hunter handle successfully synchronized!");
+      setUsernameStatus("idle");
+    } catch {
+      toast.error("Network error updating username.");
+    } finally {
+      setIsUpdatingUsername(false);
+    }
+  };
+
+  const handleRequestLinkOtp = async () => {
+    if (!linkEmail.trim() || !/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.test(linkEmail.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setIsSendingLinkOtp(true);
+    playUIMenuSFX("confirm");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/link-email/request-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ email: linkEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.detail || "Failed to dispatch verification code.");
+        setIsSendingLinkOtp(false);
+        return;
+      }
+      setLinkOtpSent(true);
+      setLinkOtpCooldown(60);
+      playBuffSFX("buff");
+      toast.success(`Verification cipher dispatched to ${linkEmail}.`);
+    } catch {
+      toast.error("Network error requesting verification code.");
+    } finally {
+      setIsSendingLinkOtp(false);
+    }
+  };
+
+  const handleVerifyLinkOtp = async () => {
+    if (!linkOtp.trim() || linkOtp.trim().length !== 6) {
+      toast.error("Please enter the 6-digit verification code.");
+      return;
+    }
+    setIsVerifyingLinkOtp(true);
+    playUIMenuSFX("confirm");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/link-email/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ email: linkEmail.trim(), otp: linkOtp.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.detail || "Verification failed.");
+        setIsVerifyingLinkOtp(false);
+        return;
+      }
+      updateUserProfile({ email: data.email, isEmailVerified: true });
+      playBuffSFX("levelup");
+      toast.success("Neural email link verified & permanently linked!");
+      setLinkOtpSent(false);
+      setLinkEmail("");
+      setLinkOtp("");
+    } catch {
+      toast.error("Network error verifying code.");
+    } finally {
+      setIsVerifyingLinkOtp(false);
+    }
+  };
+
+  useEffect(() => {
     if (character) {
-      setName(character.name || "Shadow Monarch");
+      setName(character.name || user?.username || "Shadow Monarch");
       setTitle(character.title || "Shadow Seeker");
       setAccentTheme(character.theme || "dark-rpg");
       setAvatar(character.avatar || "/avatars/shadow-monarch.png");
     }
-  }, [character]);
+  }, [character, user]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,6 +405,143 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
+
+      {/* 0. ACCOUNT CREDENTIALS & NEURAL LINK */}
+      <Card className="bg-[#151C33] border-cyan-500/40 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500" />
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-bold flex items-center gap-2 text-white">
+              <Shield className="w-4 h-4 text-cyan-400" />
+              <span>Account Credentials & Neural Link</span>
+            </CardTitle>
+            <Badge className="bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-[10px]">
+              SECURITY CLEARANCE ACTIVE
+            </Badge>
+          </div>
+          <CardDescription className="text-xs text-slate-400 font-sans">
+            Customize your unique hunter handle and manage your verified email link for dual-identifier login.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* USERNAME SECTION */}
+          <div className="p-4 rounded-xl bg-[#0B1020] border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 font-mono flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-cyan-400" />
+                Hunter Identifier (Username)
+              </label>
+              <div className="flex items-center gap-2">
+                {usernameStatus === "checking" && (
+                  <span className="text-[10px] font-mono text-cyan-400 animate-pulse">Checking...</span>
+                )}
+                {usernameStatus === "available" && (
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Available
+                  </span>
+                )}
+                {usernameStatus === "taken" && (
+                  <span className="text-[10px] font-mono text-red-400 font-bold flex items-center gap-1">
+                    <X className="w-3 h-3" /> {usernameError || "Taken"}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value.trim())}
+                placeholder="Custom Hunter Handle"
+                className="h-10 bg-black/60 border-white/10 text-white font-mono text-xs rounded-xl flex-1 focus:border-cyan-500"
+              />
+              <Button
+                type="button"
+                onClick={handleUpdateUsername}
+                disabled={isUpdatingUsername || usernameStatus === "taken" || newUsername === user?.username || !newUsername.trim()}
+                className="h-10 px-4 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold font-mono text-xs rounded-xl disabled:opacity-40 cursor-pointer"
+              >
+                {isUpdatingUsername ? "Updating..." : "Update Handle"}
+              </Button>
+            </div>
+          </div>
+
+          {/* EMAIL LINKING SECTION */}
+          <div className="p-4 rounded-xl bg-[#0B1020] border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 font-mono flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                Verified Neural Link (Email Address)
+              </label>
+              {user?.email && user?.isEmailVerified ? (
+                <Badge className="bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 font-mono text-[10px] font-bold">
+                  VERIFIED NEURAL LINK
+                </Badge>
+              ) : (
+                <Badge className="bg-amber-950/80 border border-amber-500/50 text-amber-400 font-mono text-[10px]">
+                  UNVERIFIED / UNLINKED
+                </Badge>
+              )}
+            </div>
+
+            {user?.email && user?.isEmailVerified ? (
+              <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between font-mono text-xs text-emerald-300">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>{user.email}</span>
+                </span>
+                <span className="text-[10px] text-slate-400">Linked to Account</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={linkEmail}
+                    onChange={(e) => setLinkEmail(e.target.value.trim())}
+                    placeholder="Enter email to link"
+                    className="h-10 bg-black/60 border-white/10 text-white font-mono text-xs rounded-xl flex-1 focus:border-cyan-500"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleRequestLinkOtp}
+                    disabled={isSendingLinkOtp || !linkEmail.trim() || linkOtpCooldown > 0}
+                    className="h-10 px-4 bg-violet-600 hover:bg-violet-500 text-white font-bold font-mono text-xs rounded-xl disabled:opacity-40 shrink-0 cursor-pointer"
+                  >
+                    {isSendingLinkOtp ? "Sending..." : linkOtpCooldown > 0 ? `${linkOtpCooldown}s` : linkOtpSent ? "Resend OTP" : "Send OTP"}
+                  </Button>
+                </div>
+
+                {linkOtpSent && (
+                  <div className="p-3 bg-violet-950/30 border border-violet-500/30 rounded-xl space-y-2 animate-in fade-in duration-300">
+                    <span className="text-[11px] font-mono text-violet-300 block font-bold">
+                      Enter 6-Digit Verification Cipher:
+                    </span>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        maxLength={6}
+                        value={linkOtp}
+                        onChange={(e) => setLinkOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="123456"
+                        className="h-10 text-center font-mono text-base font-black tracking-[0.3em] bg-black/60 border-violet-500/40 text-cyan-300 rounded-lg flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleVerifyLinkOtp}
+                        disabled={isVerifyingLinkOtp || linkOtp.length !== 6}
+                        className="h-10 px-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold font-mono text-xs rounded-lg disabled:opacity-40 cursor-pointer"
+                      >
+                        {isVerifyingLinkOtp ? "Verifying..." : "Verify & Link"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* PREVIEW HERO CARD */}

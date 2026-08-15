@@ -370,3 +370,120 @@ Toggles the equipped state of an item. Automatically unequips any item currently
   "equip": true
 }
 ```
+
+## Workout & Muscle Recovery Engine Routes (`/api/workouts`)
+
+### `GET /api/workouts/muscle-status/{character_id}`
+Dynamically calculates real-time time-decay muscle recovery telemetry for all 16 canonical muscle groups.
+
+**Response**:
+```json
+{
+  "muscles": {
+    "CHEST": {
+      "id": "CHEST",
+      "name": "Chest (Pectorals)",
+      "view": "front",
+      "category": "UPPER_PUSH",
+      "freshness": 44.0,
+      "fatigue": 56.0,
+      "hoursRemaining": 26.8,
+      "status": "RECOVERING",
+      "lastTrainedAt": "2026-08-15T04:24:53Z",
+      "fullRecoveryHours": 48.0
+    }
+  },
+  "summary": {
+    "freshCount": 11,
+    "recoveringCount": 5,
+    "fatiguedCount": 0,
+    "totalCount": 16,
+    "overallFreshness": 80.5,
+    "daysSinceLastWorkout": 0,
+    "lastWorkoutDate": "2026-08-15T04:24:53Z"
+  }
+}
+```
+
+### `POST /api/workouts/log`
+Logs multi-set workout sessions, calculates muscle fatigue (+35%–60% primary, +15%–35% secondary), resets timestamps, updates character STR/END/EXP stats, advances achievements, and damages active bosses.
+
+**Request Body**:
+```json
+{
+  "characterId": "char-123",
+  "durationSeconds": 2400,
+  "sets": [
+    {
+      "exerciseId": "ex1",
+      "weight": 100.0,
+      "reps": 8,
+      "rpe": 8.5
+    }
+  ],
+  "bodyweight": 75.0,
+  "sex": "M"
+}
+```
+
+### `POST /api/workouts/reset-recovery/{character_id}`
+Resets all 16 muscle groups to 100% Fresh for testing and simulation.
+
+### `GET /api/workouts/exercises`
+Returns all enriched exercise definitions with primary & secondary muscle mappings and equipment.
+
+### `GET /api/workouts/ranks/{character_id}`
+Calculates estimated 1-Rep Max (e1RM) PR ranks (E through SSS) and tier progress bars.
+
+---
+
+## Beasts & Dragon Companion Routes (`/api/beasts`)
+
+### `GET /api/beasts/collection/{character_id}`
+Fetches character's bestiary collection, discovered species count, owned eggs, active incubating egg, and currently equipped dragon companion.
+
+### `POST /api/beasts/sync-steps`
+Syncs physical daily step counts, converting step energy directly into egg incubation progress.
+
+**Request Body**:
+```json
+{
+  "characterId": "char-123",
+  "stepCount": 2500
+}
+```
+
+### `POST /api/beasts/feed-energy`
+Manually converts workout intensity / habit energy into incubation progress.
+
+### `POST /api/beasts/hatch`
+Cracks and hatches a `READY_TO_HATCH` egg into an animated dragon pet (`.gif`), auto-equipping the new companion.
+
+**Request Body**:
+```json
+{
+  "characterId": "char-123",
+  "eggId": "egg-456"
+}
+```
+
+### `POST /api/beasts/equip`
+Equips or unequips a hatched dragon pet to activate passive stat multipliers (+Strength, +Endurance, +Recovery).
+
+**Request Body**:
+```json
+{
+  "characterId": "char-123",
+  "beastId": "beast-789"
+}
+```
+
+### `POST /api/beasts/buy-egg`
+Purchases mystery elemental eggs (Common, Rare, Epic, Legendary, Holographic) from the Egg Shop using Gold or Gems.
+
+### `POST /api/beasts/incubate`
+Places an owned egg into the active incubation pedestal.
+
+### `GET /api/beasts/catalog`
+Returns master Bestiary catalog and Egg Shop pricing tables.
+

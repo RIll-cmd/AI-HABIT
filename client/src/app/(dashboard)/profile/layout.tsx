@@ -50,16 +50,14 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
       name: "Stat Matrix",
       href: "/profile/stats",
       icon: Sliders,
-      badgeText: character?.availableSP ? `${character.availableSP} SP` : undefined,
-      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/50",
       activeColor: "border-cyan-500 text-cyan-300 bg-cyan-950/60 shadow-[0_0_20px_rgba(6,182,212,0.25)]",
     },
     {
       name: "Skill Tree",
       href: "/profile/skills",
       icon: TreePine,
-      badgeText: character?.specialization?.name || undefined,
-      badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/50",
+      badgeText: character?.availableSP ? `${character.availableSP} SP` : character?.specialization?.name || undefined,
+      badgeColor: character?.availableSP ? "bg-amber-500/20 text-amber-300 border-amber-500/50" : "bg-purple-500/20 text-purple-300 border-purple-500/50",
       activeColor: "border-purple-500 text-purple-300 bg-purple-950/60 shadow-[0_0_20px_rgba(168,85,247,0.25)]",
     },
     {
@@ -114,6 +112,9 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
                 <img
                   src={character?.avatar || CHARACTER_AVATAR_SPRITE}
                   alt={name}
+                  onError={(e) => {
+                    e.currentTarget.src = CHARACTER_AVATAR_SPRITE;
+                  }}
                   className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_12px_rgba(6,182,212,0.5)] group-hover:scale-110 transition-transform duration-500"
                   style={{ imageRendering: "pixelated" }}
                 />
@@ -144,12 +145,14 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
                   <span>{rank}-Rank Sovereign</span>
                 </span>
 
-                {/* Unallocated Stat Points Alert */}
+                {/* Available Skill Points for Skill Tree */}
                 {character?.availableSP && character.availableSP > 0 ? (
-                  <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/60 font-mono font-bold text-xs uppercase px-2.5 py-1 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.4)] flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span>{character.availableSP} SP UNALLOCATED</span>
-                  </Badge>
+                  <Link href="/profile/skills">
+                    <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/60 font-mono font-bold text-xs uppercase px-2.5 py-1 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.4)] flex items-center gap-1.5 hover:bg-amber-500/30 transition-all cursor-pointer">
+                      <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                      <span>{character.availableSP} SP READY FOR SKILL TREE</span>
+                    </Badge>
+                  </Link>
                 ) : null}
               </div>
 

@@ -13,6 +13,9 @@ from schemas.beasts import (
     FeedEnergyRequest,
     StepSyncRequest,
     StepSyncResponse,
+    SetDailyStepsRequest,
+    ModifyStepGoalRequest,
+    UpgradeBeastRequest,
     HatchEggRequest,
     EquipBeastRequest,
     BuyEggRequest
@@ -30,11 +33,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Void Drake",
         "element": "VOID",
         "rarity": "RARE",
-        "spritePath": "/beasts/beast_1.png",
-        "statBonusType": "AGI_BOOST",
-        "statBonusValue": 6.0,
-        "description": "A celestial dragon infused with pure dark energy that quickens movement and footwork.",
-        "lore": "Hatched from subterranean rift fissures near F-Rank spatial gates."
+        "spritePath": "/beasts/beast_1.gif",
+        "statBonusType": "AGILITY_PERCENT",
+        "statBonusValue": 8.0,
+        "description": "Born in the abyssal silence between shattered dimensional rifts. Glides on weightless ethereal dark-matter wings.",
+        "lore": "Synchronizes with the hunter's agile kinetic movements, converting brisk daily walking strides into a localized gravity reduction field."
     },
     {
         "speciesId": 2,
@@ -42,11 +45,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Amethyst Wyrm",
         "element": "VOID",
         "rarity": "EPIC",
-        "spritePath": "/beasts/beast_2.png",
-        "statBonusType": "INT_BOOST",
-        "statBonusValue": 10.0,
-        "description": "Revered in ancient ruins for radiating resonant psychic waves.",
-        "lore": "Channels high-frequency astral frequencies into the hunter's consciousness."
+        "spritePath": "/beasts/beast_2.gif",
+        "statBonusType": "KNOWLEDGE_PERCENT",
+        "statBonusValue": 12.0,
+        "description": "Ancient psychic dragon carved from crystallized mana geocores. Scales vibrate at harmonic neural frequencies.",
+        "lore": "Channels high-frequency astral frequencies into the hunter's prefrontal cortex, enhancing focus during study and deep reading blocks."
     },
     {
         "speciesId": 3,
@@ -54,11 +57,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Verdant Sylva Wyrm",
         "element": "NATURE",
         "rarity": "COMMON",
-        "spritePath": "/beasts/beast_3.png",
-        "statBonusType": "EXP_BOOST",
-        "statBonusValue": 5.0,
-        "description": "A gentle juvenile woodland drake that accelerates stamina and journey mastery.",
-        "lore": "Gathers morning dew and floral mana to soothe tired muscles during long walks."
+        "spritePath": "/beasts/beast_3.gif",
+        "statBonusType": "EXP_PERCENT",
+        "statBonusValue": 6.0,
+        "description": "A gentle woodland dragon that nests in the ancient canopies of the World Tree.",
+        "lore": "Absorbs environmental solar energy and releases restorative phytocides, accelerating cellular EXP synthesis on morning strolls."
     },
     {
         "speciesId": 4,
@@ -66,11 +69,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Glacial Frost Dragon",
         "element": "FROST",
         "rarity": "RARE",
-        "spritePath": "/beasts/beast_4.png",
-        "statBonusType": "FOCUS",
-        "statBonusValue": 7.0,
-        "description": "Its cryogenic scales maintain chilling mental clarity during heavy daily steps.",
-        "lore": "Found nestled in the highest peaks of permafrost dungeons."
+        "spritePath": "/beasts/beast_4.gif",
+        "statBonusType": "FOCUS_PERCENT",
+        "statBonusValue": 10.0,
+        "description": "Hatched in the eye of a perpetual sub-zero blizzard. Radiates a calm aura that freezes away distractions.",
+        "lore": "Reduces neurological noise and thermal stress, lowering heart rate variability for laser-sharp focus and stoic discipline."
     },
     {
         "speciesId": 5,
@@ -78,11 +81,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Obsidian Shadow Drake",
         "element": "VOID",
         "rarity": "COMMON",
-        "spritePath": "/beasts/beast_5.png",
-        "statBonusType": "STR_BOOST",
-        "statBonusValue": 4.0,
-        "description": "Born from cooling subterranean magma; moves silently in the hunter's shadow.",
-        "lore": "Feeds on fatigue and replaces it with quiet stoic determination."
+        "spritePath": "/beasts/beast_5.gif",
+        "statBonusType": "STRENGTH_PERCENT",
+        "statBonusValue": 5.0,
+        "description": "Woven from cooling volcanic basalt and dungeon shadows; clings silently to the hunter's shoulder.",
+        "lore": "Fortifies core muscular contraction and postural endurance by reinforcing kinetic feedback during heavy compound lifts."
     },
     {
         "speciesId": 6,
@@ -90,11 +93,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Solar Flame Dragon",
         "element": "FIRE",
         "rarity": "EPIC",
-        "spritePath": "/beasts/beast_6.png",
-        "statBonusType": "STR_BOOST",
-        "statBonusValue": 12.0,
-        "description": "Radiates relentless thermic energy that surges neuromuscular power.",
-        "lore": "Its heart beats with the nuclear fusion of an adolescent miniature star."
+        "spritePath": "/beasts/beast_6.gif",
+        "statBonusType": "STRENGTH_PERCENT",
+        "statBonusValue": 15.0,
+        "description": "Its draconic heart beats with the nuclear fury of an adolescent star, radiating thermic shockwaves.",
+        "lore": "Ignites cellular ATP replenishment and neuromuscular power output, supercharging heavy barbell presses and explosive sprint sets."
     },
     {
         "speciesId": 7,
@@ -102,11 +105,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Golden Celestial Wyrm",
         "element": "HOLY",
         "rarity": "LEGENDARY",
-        "spritePath": "/beasts/beast_7.png",
-        "statBonusType": "GOLD_BOOST",
-        "statBonusValue": 25.0,
-        "description": "An exalted sun dragon covered in pure auric plating that magnetizes treasure.",
-        "lore": "Guardians of the highest spires of the Celestial Tower."
+        "spritePath": "/beasts/beast_7.gif",
+        "statBonusType": "GOLD_PERCENT",
+        "statBonusValue": 30.0,
+        "description": "An exalted dragon clad in impenetrable solar gold. The herald of sovereign prosperity.",
+        "lore": "Radiates an auric magnetic resonance field that multiplies gold and relic bounty drops from all completed quests and tower monoliths."
     },
     {
         "speciesId": 8,
@@ -114,11 +117,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Abyssal Tide Dragon",
         "element": "FROST",
         "rarity": "RARE",
-        "spritePath": "/beasts/beast_8.png",
-        "statBonusType": "ENDURANCE",
-        "statBonusValue": 8.0,
+        "spritePath": "/beasts/beast_8.gif",
+        "statBonusType": "ENDURANCE_PERCENT",
+        "statBonusValue": 10.0,
         "description": "Glides through oceanic air currents, granting deep rhythmic cardiovascular rhythm.",
-        "lore": "Awakened when hunters conquer deep oceanic distance trials."
+        "lore": "Enhances pulmonary efficiency and aerobic VO2 capacity, stabilizing breath rhythm during continuous distance walking and endurance training."
     },
     {
         "speciesId": 9,
@@ -126,11 +129,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Tempest Storm Drake",
         "element": "STORM",
         "rarity": "COMMON",
-        "spritePath": "/beasts/beast_9.png",
-        "statBonusType": "AGI_BOOST",
-        "statBonusValue": 5.0,
-        "description": "Crackle of kinetic lightning surrounds its nimble wings with every stride.",
-        "lore": "Dances in summer thunderstorm downdrafts."
+        "spritePath": "/beasts/beast_9.gif",
+        "statBonusType": "AGILITY_PERCENT",
+        "statBonusValue": 6.0,
+        "description": "Sparks with azure static electricity as it darts across the sky in summer thunderstorm downdrafts.",
+        "lore": "Infuses rapid motor neuron recruitment into leg muscles, turning regular daily steps into high-cadence kinetic progress."
     },
     {
         "speciesId": 10,
@@ -138,11 +141,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Magma Core Wyrm",
         "element": "FIRE",
         "rarity": "RARE",
-        "spritePath": "/beasts/beast_10.png",
-        "statBonusType": "STR_BOOST",
-        "statBonusValue": 8.0,
-        "description": "Armored in volcanic obsidian basalt with glowing molten lava veins.",
-        "lore": "Forged in the deepest geothermal vents beneath the World Engine."
+        "spritePath": "/beasts/beast_10.gif",
+        "statBonusType": "STRENGTH_PERCENT",
+        "statBonusValue": 10.0,
+        "description": "Armored in volcanic obsidian basalt with glowing molten lava veins from geothermal vents.",
+        "lore": "Boosts heat-shock protein synthesis and blood flow, providing resilience and explosive power for heavy back and leg workouts."
     },
     {
         "speciesId": 11,
@@ -150,11 +153,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Thornwood Dragon",
         "element": "NATURE",
         "rarity": "COMMON",
-        "spritePath": "/beasts/beast_11.png",
-        "statBonusType": "RECOVERY",
-        "statBonusValue": 4.0,
-        "description": "Camouflaged among thorny briars; grants natural biological resilience.",
-        "lore": "Protects ancient grove seed sanctuaries from corruption."
+        "spritePath": "/beasts/beast_11.gif",
+        "statBonusType": "RECOVERY_PERCENT",
+        "statBonusValue": 7.0,
+        "description": "Entangled in evergreen vines and sharp ironthorn briars over ancient grove sanctuaries.",
+        "lore": "Accelerates soft-tissue healing and reduces delayed onset muscle soreness (DOMS) after grueling physical training sessions."
     },
     {
         "speciesId": 12,
@@ -162,11 +165,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Aurora Frost Wyrm",
         "element": "FROST",
         "rarity": "EPIC",
-        "spritePath": "/beasts/beast_12.png",
-        "statBonusType": "EXP_BOOST",
-        "statBonusValue": 15.0,
-        "description": "Shimmers with iridescent emerald and violet auroral light ribbons.",
-        "lore": "Manifests only when the polar magnetic fields align with the hunter's streak."
+        "spritePath": "/beasts/beast_12.gif",
+        "statBonusType": "EXP_PERCENT",
+        "statBonusValue": 18.0,
+        "description": "Shimmers with iridescent emerald and violet auroral ribbons beneath polar midnight skies.",
+        "lore": "Synthesizes magnetic auroral currents into the hunter's aura, substantially boosting experience yield across every habit logged."
     },
     {
         "speciesId": 13,
@@ -174,11 +177,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Void Star Dragon",
         "element": "VOID",
         "rarity": "HOLOGRAPHIC",
-        "spritePath": "/beasts/beast_13.png",
-        "statBonusType": "EXP_BOOST",
-        "statBonusValue": 35.0,
-        "description": "A mythic holographic entity woven from the dark matter of an event horizon.",
-        "lore": "The rarest of all familiars. Glitches reality with rainbow prismatic chromatic aberration."
+        "spritePath": "/beasts/beast_13.gif",
+        "statBonusType": "EXP_PERCENT",
+        "statBonusValue": 40.0,
+        "description": "A mythic holographic entity woven from the singularity of a collapsed star; glitches reality with prismatic brilliance.",
+        "lore": "Transmutes every micro-action of real-world discipline into massive astronomical EXP growth, elevating your ascension rate to sovereign heights."
     },
     {
         "speciesId": 14,
@@ -186,11 +189,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Dawn Light Drake",
         "element": "HOLY",
         "rarity": "COMMON",
-        "spritePath": "/beasts/beast_14.png",
-        "statBonusType": "DISCIPLINE",
-        "statBonusValue": 5.0,
-        "description": "Greets the morning horizon with a bright chime, reinforcing dawn walking habits.",
-        "lore": "Known by nomadic hunters as the Beacon of First Light."
+        "spritePath": "/beasts/beast_14.gif",
+        "statBonusType": "DISCIPLINE_PERCENT",
+        "statBonusValue": 7.0,
+        "description": "Greets the morning horizon with a bright chime, reinforcing dawn walking and morning routines.",
+        "lore": "Reinforces circadian cortisol rhythm and willpower alignment, ensuring morning habits are completed with unwavering resolve."
     },
     {
         "speciesId": 15,
@@ -198,11 +201,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Synthetic Neon Wyrm",
         "element": "CYBER",
         "rarity": "LEGENDARY",
-        "spritePath": "/beasts/beast_15.png",
-        "statBonusType": "AGI_BOOST",
-        "statBonusValue": 20.0,
-        "description": "An overclocked cybernetic biomechanical familiar laced with fiber-optic veins.",
-        "lore": "Synthesized in high-tech neo-laboratories to sync bio-kinetic telemetry."
+        "spritePath": "/beasts/beast_15.gif",
+        "statBonusType": "AGILITY_PERCENT",
+        "statBonusValue": 25.0,
+        "description": "An overclocked cybernetic biomechanical familiar laced with glowing fiber-optic telemetry conduits.",
+        "lore": "Hooks directly into your biological telemetry, providing real-time biomechanical optimization for maximum speed and step cadence."
     },
     {
         "speciesId": 16,
@@ -210,11 +213,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Iron Scale Dragon",
         "element": "FIRE",
         "rarity": "COMMON",
-        "spritePath": "/beasts/beast_16.png",
-        "statBonusType": "STR_BOOST",
-        "statBonusValue": 5.0,
-        "description": "Hardened metallic scales provide impenetrable armor and kinetic feedback.",
-        "lore": "Frequents old battlegrounds to absorb fallen warriors' fighting spirits."
+        "spritePath": "/beasts/beast_16.gif",
+        "statBonusType": "STRENGTH_PERCENT",
+        "statBonusValue": 7.0,
+        "description": "Hardened metallic scales provide impenetrable armor, absorbing the martial spirit of battlegrounds.",
+        "lore": "Channels dense kinetic shock absorption, shielding the hunter's tendons during maximal effort lifts and intense PR attempts."
     },
     {
         "speciesId": 17,
@@ -222,11 +225,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Ancient Mountain Drake",
         "element": "NATURE",
         "rarity": "RARE",
-        "spritePath": "/beasts/beast_17.png",
-        "statBonusType": "ENDURANCE",
-        "statBonusValue": 9.0,
-        "description": "Its slow, steady breath echoes the timeless tectonic shifts of the earth.",
-        "lore": "Rests undisturbed for centuries beneath granite peaks."
+        "spritePath": "/beasts/beast_17.gif",
+        "statBonusType": "ENDURANCE_PERCENT",
+        "statBonusValue": 12.0,
+        "description": "Carries a rocky tectonic carapace, moving with the unstoppable momentum of continental plates.",
+        "lore": "Anchors cardiovascular stamina and mental grit, preventing fatigue from derailing multi-kilometer daily treks and long work sessions."
     },
     {
         "speciesId": 18,
@@ -234,11 +237,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Prismatic Astral Wyrm",
         "element": "VOID",
         "rarity": "LEGENDARY",
-        "spritePath": "/beasts/beast_18.png",
-        "statBonusType": "INT_BOOST",
-        "statBonusValue": 22.0,
-        "description": "Reflects pure starlight and bends gravitational fields around the hunter.",
-        "lore": "Born in the interdimensional nexus where time and space converge."
+        "spritePath": "/beasts/beast_18.gif",
+        "statBonusType": "KNOWLEDGE_PERCENT",
+        "statBonusValue": 28.0,
+        "description": "Reflects pure starlight and floats through gravitational planes without friction.",
+        "lore": "Expands neural processing bandwidth and abstract problem-solving capacity, amplifying Knowledge and analytical mastery."
     },
     {
         "speciesId": 19,
@@ -246,11 +249,11 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Blood Wyrm",
         "element": "FIRE",
         "rarity": "EPIC",
-        "spritePath": "/beasts/beast_19.png",
-        "statBonusType": "STR_BOOST",
-        "statBonusValue": 14.0,
-        "description": "Pulses with fiery crimson adrenaline whenever the hunter pushes to exhaustion.",
-        "lore": "Ignites in flames during high-intensity intervals and boss encounters."
+        "spritePath": "/beasts/beast_19.gif",
+        "statBonusType": "STRENGTH_PERCENT",
+        "statBonusValue": 18.0,
+        "description": "Ignites in incandescent crimson fire whenever battle reaches its peak, feeding on adrenaline.",
+        "lore": "Surges blood nitric oxide levels and muscular vasodilation, unlocking monstrous pumps and strength gains in the gym."
     },
     {
         "speciesId": 20,
@@ -258,18 +261,18 @@ BESTIARY_CATALOG: List[Dict[str, Any]] = [
         "species": "Temporal Spark Drake",
         "element": "CYBER",
         "rarity": "HOLOGRAPHIC",
-        "spritePath": "/beasts/beast_20.png",
-        "statBonusType": "GOLD_BOOST",
-        "statBonusValue": 40.0,
-        "description": "Manipulates the flow of time and luck, granting staggering economic windfalls.",
-        "lore": "Appears only to hunters who walk consistent steps across unrelenting daily streaks."
+        "spritePath": "/beasts/beast_20.gif",
+        "statBonusType": "GOLD_PERCENT",
+        "statBonusValue": 50.0,
+        "description": "A holographic dragon that flickers through timelines, seeing all past and future iterations.",
+        "lore": "Bends the laws of probability and compound growth, delivering monumental economic bounties to hunters who maintain unbroken streaks."
     }
 ]
 
 # Map Species ID to Catalog Item
 SPECIES_BY_ID = {item["speciesId"]: item for item in BESTIARY_CATALOG}
 
-# Mystery Egg Shop Catalog
+# Mystery Egg Shop Catalog (Upgraded & Rebalanced Economy)
 EGG_SHOP_CATALOG = {
     "WOODLAND": {
         "name": "Woodland Earth Egg",
@@ -278,7 +281,7 @@ EGG_SHOP_CATALOG = {
         "rarity": "COMMON",
         "targetSteps": 3000,
         "targetEnergy": 3000,
-        "goldPrice": 250,
+        "goldPrice": 1250,
         "gemPrice": 0,
         "pool": [3, 11, 14, 17]
     },
@@ -289,8 +292,8 @@ EGG_SHOP_CATALOG = {
         "rarity": "RARE",
         "targetSteps": 5000,
         "targetEnergy": 5000,
-        "goldPrice": 650,
-        "gemPrice": 10,
+        "goldPrice": 3500,
+        "gemPrice": 35,
         "pool": [4, 8, 12, 1]
     },
     "SOLAR": {
@@ -300,8 +303,8 @@ EGG_SHOP_CATALOG = {
         "rarity": "EPIC",
         "targetSteps": 8000,
         "targetEnergy": 8000,
-        "goldPrice": 1600,
-        "gemPrice": 25,
+        "goldPrice": 8500,
+        "gemPrice": 85,
         "pool": [6, 10, 16, 19]
     },
     "CYBER": {
@@ -311,8 +314,8 @@ EGG_SHOP_CATALOG = {
         "rarity": "LEGENDARY",
         "targetSteps": 12000,
         "targetEnergy": 12000,
-        "goldPrice": 3800,
-        "gemPrice": 60,
+        "goldPrice": 22000,
+        "gemPrice": 220,
         "pool": [15, 7, 2, 9]
     },
     "COSMIC": {
@@ -322,8 +325,8 @@ EGG_SHOP_CATALOG = {
         "rarity": "HOLOGRAPHIC",
         "targetSteps": 20000,
         "targetEnergy": 20000,
-        "goldPrice": 8500,
-        "gemPrice": 150,
+        "goldPrice": 50000,
+        "gemPrice": 500,
         "pool": [13, 18, 20, 2, 7]
     }
 }
@@ -332,9 +335,6 @@ EGG_SHOP_CATALOG = {
 # 🎲 WEIGHTED DROP & HATCHING LOGIC
 # =======================================================================
 def roll_hatch_beast(egg_type: str, egg_rarity: str) -> Dict[str, Any]:
-    """
-    Selects a beast based on egg type and rarity weightings.
-    """
     matching_candidates = []
     for beast in BESTIARY_CATALOG:
         if egg_type == "ELEMENTAL" or beast["element"] == egg_type:
@@ -362,9 +362,6 @@ def roll_hatch_beast(egg_type: str, egg_rarity: str) -> Dict[str, Any]:
     return chosen
 
 async def calculate_passive_buffs(character_id: str) -> Dict[str, float]:
-    """
-    Calculates total passive bonuses from equipped and unlocked beasts.
-    """
     equipped_beast = await db.beast.find_first(
         where={"characterId": character_id, "isEquipped": True}
     )
@@ -387,7 +384,6 @@ async def calculate_passive_buffs(character_id: str) -> Dict[str, float]:
         b_val = getattr(equipped_beast, "passiveBuffValue", None) or getattr(equipped_beast, "statBonusValue", 5.0)
         buffs[b_type] = buffs.get(b_type, 0.0) + float(b_val)
 
-    # Add small collection mastery synergy (+1% EXP & Gold per 2 unique unlocked species)
     unlocked_species = await db.beast.find_many(where={"characterId": character_id})
     unique_count = len(set(b.species for b in unlocked_species))
     collection_bonus = float(unique_count // 2)
@@ -407,10 +403,6 @@ async def get_beast_collection(
     characterId: Optional[str] = Query(None),
     user_id: Optional[str] = Query(None)
 ):
-    """
-    Retrieves player's active egg, owned eggs, unlocked beasts, bestiary discovery matrix, and passive bonuses.
-    Auto-initializes a starter egg if the user has zero beasts and zero eggs.
-    """
     target_id = character_id or characterId or user_id
     if not target_id:
         raise HTTPException(status_code=400, detail="character_id or user_id required")
@@ -418,19 +410,16 @@ async def get_beast_collection(
     character = await ensure_character_exists(target_id)
     char_id = character.id
 
-    # 1. Fetch owned eggs
     owned_eggs = await db.egg.find_many(
         where={"characterId": char_id},
         order={"createdAt": "desc"}
     )
 
-    # 2. Fetch unlocked beasts
     unlocked_beasts = await db.beast.find_many(
         where={"characterId": char_id},
         order={"unlockedAt": "desc"}
     )
 
-    # 3. If zero eggs & zero beasts, seed a Free Starter Egg
     if len(owned_eggs) == 0 and len(unlocked_beasts) == 0:
         starter_egg = await db.egg.create(
             data={
@@ -448,11 +437,9 @@ async def get_beast_collection(
         )
         owned_eggs = [starter_egg]
 
-    # Find currently active incubator egg
     active_egg = next((e for e in owned_eggs if e.status in ["INCUBATING", "READY_TO_HATCH"]), None)
     equipped_beast = next((b for b in unlocked_beasts if b.isEquipped), None)
 
-    # Build 20-species Bestiary discovery summaries
     unlocked_map = {}
     for b in unlocked_beasts:
         if b.species not in unlocked_map:
@@ -466,6 +453,12 @@ async def get_beast_collection(
         active_inst = instances[0] if is_unlocked else None
         is_eq = any(inst.isEquipped for inst in instances) if is_unlocked else False
 
+        b_level = getattr(active_inst, "level", 1) if active_inst else 1
+        b_accum = getattr(active_inst, "accumulatedSteps", 0) if active_inst else 0
+        b_step_req = getattr(active_inst, "stepUpgradeReq", 5000) if active_inst else 5000
+        b_gold_req = getattr(active_inst, "goldUpgradeReq", 1000) if active_inst else 1000
+        b_bonus_val = getattr(active_inst, "statBonusValue", spec["statBonusValue"]) if active_inst else spec["statBonusValue"]
+
         bestiary_summary.append(
             BestiarySpeciesSummary(
                 speciesId=spec["speciesId"],
@@ -475,9 +468,13 @@ async def get_beast_collection(
                 rarity=spec["rarity"],
                 spritePath=spec["spritePath"],
                 statBonusType=spec["statBonusType"],
-                statBonusValue=spec["statBonusValue"],
+                statBonusValue=float(b_bonus_val),
                 description=spec["description"],
                 lore=spec["lore"],
+                level=b_level,
+                accumulatedSteps=b_accum,
+                stepUpgradeReq=b_step_req,
+                goldUpgradeReq=b_gold_req,
                 isUnlocked=is_unlocked,
                 unlockedCount=len(instances),
                 beastInstanceId=active_inst.id if active_inst else None,
@@ -491,7 +488,7 @@ async def get_beast_collection(
     def to_egg_resp(e) -> EggResponse:
         t_steps = getattr(e, "targetSteps", None) or getattr(e, "targetEnergy", 5000) or 5000
         c_steps = getattr(e, "currentSteps", None) or getattr(e, "currentEnergy", 0) or 0
-        d = e.dict()
+        d = e.dict() if hasattr(e, "dict") else dict(e)
         d["targetSteps"] = t_steps
         d["currentSteps"] = c_steps
         d["target_steps"] = t_steps
@@ -502,7 +499,7 @@ async def get_beast_collection(
         return EggResponse(**d)
 
     def to_beast_resp(b) -> BeastResponse:
-        d = b.dict()
+        d = b.dict() if hasattr(b, "dict") else dict(b)
         b_type = getattr(b, "passiveBuffType", None) or getattr(b, "statBonusType", "EXP_BOOST")
         b_val = getattr(b, "passiveBuffValue", None) or getattr(b, "statBonusValue", 5.0)
         d["passiveBuffType"] = b_type
@@ -511,14 +508,23 @@ async def get_beast_collection(
         d["passive_buff_value"] = b_val
         d["statBonusType"] = b_type
         d["statBonusValue"] = b_val
-        d["sprite_path"] = b.spritePath
-        d["is_equipped"] = b.isEquipped
-        d["user_id"] = b.characterId
+        d["sprite_path"] = getattr(b, "spritePath", "/beasts/beast_1.gif")
+        d["is_equipped"] = getattr(b, "isEquipped", False)
+        d["level"] = getattr(b, "level", 1) or 1
+        d["accumulatedSteps"] = getattr(b, "accumulatedSteps", 0) or 0
+        d["stepUpgradeReq"] = getattr(b, "stepUpgradeReq", 5000) or 5000
+        d["goldUpgradeReq"] = getattr(b, "goldUpgradeReq", 1000) or 1000
+        d["user_id"] = getattr(b, "characterId", char_id)
         return BeastResponse(**d)
+
+    daily_steps = getattr(character, "dailySteps", 0) or 0
+    daily_goal = getattr(character, "dailyStepGoal", 10000) or 10000
 
     return BeastCollectionResponse(
         characterId=char_id,
         user_id=char_id,
+        dailySteps=daily_steps,
+        dailyStepGoal=daily_goal,
         activeEgg=to_egg_resp(active_egg) if active_egg else None,
         ownedEggs=[to_egg_resp(e) for e in owned_eggs],
         unlockedBeasts=[to_beast_resp(b) for b in unlocked_beasts],
@@ -530,14 +536,10 @@ async def get_beast_collection(
     )
 
 # =======================================================================
-# 🚶 PEDOMETER STEP SYNC ENDPOINT
+# 🚶 PEDOMETER STEP SYNC & MODIFICATION ENDPOINTS
 # =======================================================================
 @router.post("/steps/sync", response_model=StepSyncResponse)
 async def sync_steps(req: StepSyncRequest):
-    """
-    Pure walking/pedometer step sync.
-    Increments active Egg.currentSteps, logs to DailyStepLog, and transitions status to READY_TO_HATCH.
-    """
     char_id = req.characterId or req.user_id
     if not char_id:
         raise HTTPException(status_code=400, detail="characterId or user_id required")
@@ -548,7 +550,15 @@ async def sync_steps(req: StepSyncRequest):
 
     character = await ensure_character_exists(char_id)
 
-    # 1. Record in DailyStepLog
+    # 1. Update character dailySteps
+    cur_daily = getattr(character, "dailySteps", 0) or 0
+    new_daily = cur_daily + steps
+    await db.character.update(
+        where={"id": character.id},
+        data={"dailySteps": new_daily}
+    )
+
+    # 2. Record in DailyStepLog
     try:
         await db.dailysteplog.create(
             data={
@@ -558,57 +568,42 @@ async def sync_steps(req: StepSyncRequest):
             }
         )
     except Exception as e:
-        print("DailyStepLog logging error:", e)
+        print("DailyStepLog error:", e)
 
-    # 2. Find active incubating egg
+    # 3. Increment steps on equipped beast
+    equipped_beast = await db.beast.find_first(
+        where={"characterId": character.id, "isEquipped": True}
+    )
+    if equipped_beast:
+        old_b_steps = getattr(equipped_beast, "accumulatedSteps", 0) or 0
+        await db.beast.update(
+            where={"id": equipped_beast.id},
+            data={"accumulatedSteps": old_b_steps + steps}
+        )
+
+    # 4. Find active incubating egg
     active_egg = await db.egg.find_first(
-        where={
-            "characterId": character.id,
-            "status": "INCUBATING"
-        }
+        where={"characterId": character.id, "status": "INCUBATING"}
     )
 
     if not active_egg:
-        # Check if already ready to hatch
         ready_egg = await db.egg.find_first(
             where={"characterId": character.id, "status": "READY_TO_HATCH"}
         )
-        if ready_egg:
-            t_steps = getattr(ready_egg, "targetSteps", 5000) or getattr(ready_egg, "targetEnergy", 5000) or 5000
-            c_steps = getattr(ready_egg, "currentSteps", 0) or getattr(ready_egg, "currentEnergy", 0) or 0
-            d = ready_egg.dict()
-            d["targetSteps"] = t_steps
-            d["currentSteps"] = c_steps
-            d["target_steps"] = t_steps
-            d["current_steps"] = c_steps
-            d["targetEnergy"] = t_steps
-            d["currentEnergy"] = c_steps
-            d["user_id"] = ready_egg.characterId
-            return StepSyncResponse(
-                characterId=character.id,
-                stepsAdded=steps,
-                currentSteps=c_steps,
-                targetSteps=t_steps,
-                isReadyToHatch=True,
-                status="READY_TO_HATCH",
-                progressPercent=100,
-                egg=EggResponse(**d),
-                message="Your active egg is already fully incubated and ready to hatch!"
-            )
-        # Auto-create starter egg if user has none
-        active_egg = await db.egg.create(
-            data={
-                "name": "Verdant Core Egg",
-                "eggType": "NATURE",
-                "sprite": "/eggs/egg_1.png",
-                "rarity": "COMMON",
-                "targetSteps": 3000,
-                "currentSteps": 0,
-                "targetEnergy": 3000,
-                "currentEnergy": 0,
-                "status": "INCUBATING",
-                "characterId": character.id
-            }
+        t_steps = getattr(ready_egg, "targetSteps", 5000) if ready_egg else 5000
+        c_steps = getattr(ready_egg, "currentSteps", 0) if ready_egg else 0
+        return StepSyncResponse(
+            characterId=character.id,
+            stepsAdded=steps,
+            currentSteps=c_steps,
+            targetSteps=t_steps,
+            dailySteps=new_daily,
+            dailyStepGoal=getattr(character, "dailyStepGoal", 10000) or 10000,
+            isReadyToHatch=ready_egg is not None,
+            status="READY_TO_HATCH" if ready_egg else "IDLE",
+            progressPercent=100 if ready_egg else 0,
+            egg=None,
+            message="Steps successfully synchronized to your neural core & companion!"
         )
 
     t_steps = getattr(active_egg, "targetSteps", 5000) or getattr(active_egg, "targetEnergy", 5000) or 5000
@@ -627,7 +622,7 @@ async def sync_steps(req: StepSyncRequest):
 
     progress_pct = min(100, int((new_steps / t_steps) * 100))
 
-    d = updated.dict()
+    d = updated.dict() if hasattr(updated, "dict") else dict(updated)
     d["targetSteps"] = t_steps
     d["currentSteps"] = new_steps
     d["target_steps"] = t_steps
@@ -641,6 +636,8 @@ async def sync_steps(req: StepSyncRequest):
         stepsAdded=steps,
         currentSteps=new_steps,
         targetSteps=t_steps,
+        dailySteps=new_daily,
+        dailyStepGoal=getattr(character, "dailyStepGoal", 10000) or 10000,
         isReadyToHatch=new_status == "READY_TO_HATCH",
         status=new_status,
         progressPercent=progress_pct,
@@ -648,11 +645,58 @@ async def sync_steps(req: StepSyncRequest):
         message=f"Synced +{steps:,} steps! Progress: {progress_pct}%" if new_status == "INCUBATING" else "⚡ EGG READY TO HATCH! The shell is bursting with light!"
     )
 
+@router.post("/steps/set-daily")
+async def set_daily_steps(req: SetDailyStepsRequest):
+    char_id = req.characterId or req.user_id
+    if not char_id:
+        raise HTTPException(status_code=400, detail="characterId required")
+
+    character = await ensure_character_exists(char_id)
+    steps_val = max(0, req.steps)
+    goal_val = req.goal if (req.goal and req.goal > 0) else getattr(character, "dailyStepGoal", 10000) or 10000
+
+    await db.character.update(
+        where={"id": character.id},
+        data={
+            "dailySteps": steps_val,
+            "dailyStepGoal": goal_val
+        }
+    )
+
+    try:
+        await db.dailysteplog.create(
+            data={
+                "characterId": character.id,
+                "stepCount": steps_val,
+                "date": datetime.utcnow()
+            }
+        )
+    except Exception as e:
+        print("DailyStepLog error:", e)
+
+    return {
+        "success": True,
+        "dailySteps": steps_val,
+        "dailyStepGoal": goal_val,
+        "message": f"Daily step counter updated to {steps_val:,} steps (Goal: {goal_val:,})!"
+    }
+
+@router.post("/steps/goal")
+async def modify_step_goal(req: ModifyStepGoalRequest):
+    char_id = req.characterId or req.user_id
+    if not char_id:
+        raise HTTPException(status_code=400, detail="characterId required")
+
+    character = await ensure_character_exists(char_id)
+    goal = max(1000, req.goal)
+    await db.character.update(
+        where={"id": character.id},
+        data={"dailyStepGoal": goal}
+    )
+    return {"success": True, "dailyStepGoal": goal, "message": f"Daily step target set to {goal:,} steps!"}
+
 @router.post("/eggs/feed-energy")
 async def feed_energy(req: FeedEnergyRequest):
-    """
-    Alias / compatibility endpoint for step sync.
-    """
     char_id = req.characterId or req.user_id
     steps = req.energyAmount or req.stepCount or req.step_count or 1000
     return await sync_steps(StepSyncRequest(characterId=char_id, stepCount=steps, source=req.source))
@@ -662,9 +706,6 @@ async def feed_energy(req: FeedEnergyRequest):
 # =======================================================================
 @router.post("/eggs/hatch")
 async def hatch_egg(req: HatchEggRequest):
-    """
-    Cracks open a ready egg, rolls weighted drop table, mints collectible Beast, and links to character.
-    """
     char_id = req.characterId or req.user_id
     egg_id = req.eggId or req.egg_id
     if not char_id or not egg_id:
@@ -682,16 +723,13 @@ async def hatch_egg(req: HatchEggRequest):
     if c_steps < t_steps and egg.status != "READY_TO_HATCH":
         raise HTTPException(status_code=400, detail=f"Egg requires {t_steps - c_steps:,} more steps to hatch")
 
-    # Roll drop table
     beast_spec = roll_hatch_beast(egg.eggType, egg.rarity)
 
-    # Check if character already has an equipped beast
     current_equipped = await db.beast.find_first(
         where={"characterId": char_id, "isEquipped": True}
     )
     should_auto_equip = current_equipped is None
 
-    # Create new Beast instance in DB
     new_beast = await db.beast.create(
         data={
             "name": beast_spec["name"],
@@ -705,12 +743,15 @@ async def hatch_egg(req: HatchEggRequest):
             "statBonusValue": float(beast_spec["statBonusValue"]),
             "description": beast_spec["description"],
             "lore": beast_spec["lore"],
+            "level": 1,
+            "accumulatedSteps": 0,
+            "stepUpgradeReq": 5000,
+            "goldUpgradeReq": 1000,
             "isEquipped": should_auto_equip,
             "characterId": char_id
         }
     )
 
-    # Update egg state
     updated_egg = await db.egg.update(
         where={"id": egg.id},
         data={
@@ -726,14 +767,18 @@ async def hatch_egg(req: HatchEggRequest):
             data={"equippedBeastId": new_beast.id}
         )
 
-    b_dict = new_beast.dict()
+    b_dict = new_beast.dict() if hasattr(new_beast, "dict") else dict(new_beast)
     b_dict["passive_buff_type"] = new_beast.passiveBuffType
     b_dict["passive_buff_value"] = new_beast.passiveBuffValue
     b_dict["sprite_path"] = new_beast.spritePath
     b_dict["is_equipped"] = new_beast.isEquipped
+    b_dict["level"] = 1
+    b_dict["accumulatedSteps"] = 0
+    b_dict["stepUpgradeReq"] = 5000
+    b_dict["goldUpgradeReq"] = 1000
     b_dict["user_id"] = char_id
 
-    e_dict = updated_egg.dict()
+    e_dict = updated_egg.dict() if hasattr(updated_egg, "dict") else dict(updated_egg)
     e_dict["target_steps"] = t_steps
     e_dict["current_steps"] = c_steps
     e_dict["user_id"] = char_id
@@ -751,9 +796,6 @@ async def hatch_egg(req: HatchEggRequest):
 # =======================================================================
 @router.post("/equip")
 async def equip_beast(req: EquipBeastRequest):
-    """
-    Equips or unequips a companion beast.
-    """
     char_id = req.characterId or req.user_id
     beast_id = req.beastId or req.beast_id
     if not char_id:
@@ -768,13 +810,11 @@ async def equip_beast(req: EquipBeastRequest):
         if not beast or beast.characterId != char_id:
             raise HTTPException(status_code=404, detail="Beast not found in user collection")
 
-        # Unequip all others
         await db.beast.update_many(
             where={"characterId": char_id},
             data={"isEquipped": False}
         )
 
-        # Equip selected
         updated_beast = await db.beast.update(
             where={"id": beast_id},
             data={"isEquipped": True}
@@ -785,11 +825,15 @@ async def equip_beast(req: EquipBeastRequest):
             data={"equippedBeastId": beast_id}
         )
 
-        b_dict = updated_beast.dict()
+        b_dict = updated_beast.dict() if hasattr(updated_beast, "dict") else dict(updated_beast)
         b_dict["passive_buff_type"] = updated_beast.passiveBuffType
         b_dict["passive_buff_value"] = updated_beast.passiveBuffValue
         b_dict["sprite_path"] = updated_beast.spritePath
         b_dict["is_equipped"] = True
+        b_dict["level"] = getattr(updated_beast, "level", 1) or 1
+        b_dict["accumulatedSteps"] = getattr(updated_beast, "accumulatedSteps", 0) or 0
+        b_dict["stepUpgradeReq"] = getattr(updated_beast, "stepUpgradeReq", 5000) or 5000
+        b_dict["goldUpgradeReq"] = getattr(updated_beast, "goldUpgradeReq", 1000) or 1000
         b_dict["user_id"] = char_id
 
         return {
@@ -798,7 +842,6 @@ async def equip_beast(req: EquipBeastRequest):
             "equippedBeast": BeastResponse(**b_dict)
         }
     else:
-        # Unequip
         await db.beast.update_many(
             where={"characterId": char_id},
             data={"isEquipped": False}
@@ -810,13 +853,101 @@ async def equip_beast(req: EquipBeastRequest):
         return {"success": True, "message": "Companion unequipped", "equippedBeast": None}
 
 # =======================================================================
+# ⚡ BEAST UPGRADE & ASCENSION ENDPOINT
+# =======================================================================
+@router.post("/upgrade")
+async def upgrade_beast(req: UpgradeBeastRequest):
+    char_id = req.characterId or req.user_id
+    if not char_id or not req.beastId:
+        raise HTTPException(status_code=400, detail="characterId and beastId required")
+
+    character = await ensure_character_exists(char_id)
+    beast = await db.beast.find_unique(where={"id": req.beastId})
+    if not beast or beast.characterId != character.id:
+        raise HTTPException(status_code=404, detail="Beast not found in your collection")
+
+    cur_level = getattr(beast, "level", 1) or 1
+    if cur_level >= 10:
+        raise HTTPException(status_code=400, detail=f"{beast.name} has already reached maximum Ascension Level 10!")
+
+    step_req = getattr(beast, "stepUpgradeReq", cur_level * 5000) or (cur_level * 5000)
+    gold_req = getattr(beast, "goldUpgradeReq", cur_level * 1000) or (cur_level * 1000)
+    accum_steps = getattr(beast, "accumulatedSteps", 0) or 0
+    daily_steps = getattr(character, "dailySteps", 0) or 0
+
+    effective_steps = max(accum_steps, daily_steps)
+    if effective_steps < step_req:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient steps. Requires {step_req - effective_steps:,} more steps to level up ({step_req:,} required)."
+        )
+
+    if character.gold < gold_req:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient gold. Requires {gold_req - character.gold:,} more gold ({gold_req:,} Gold required)."
+        )
+
+    new_level = cur_level + 1
+    old_bonus = getattr(beast, "statBonusValue", 5.0) or 5.0
+    new_bonus = round(old_bonus * 1.2 + 2.0, 1)
+    new_step_req = new_level * 5000
+    new_gold_req = new_level * 1000
+    new_accum_steps = max(0, accum_steps - step_req)
+
+    await db.character.update(
+        where={"id": character.id},
+        data={"gold": character.gold - gold_req}
+    )
+
+    updated_beast = await db.beast.update(
+        where={"id": beast.id},
+        data={
+            "level": new_level,
+            "accumulatedSteps": new_accum_steps,
+            "stepUpgradeReq": new_step_req,
+            "goldUpgradeReq": new_gold_req,
+            "statBonusValue": new_bonus,
+            "passiveBuffValue": new_bonus
+        }
+    )
+
+    try:
+        await db.economylog.create(
+            data={
+                "characterId": character.id,
+                "currency": "GOLD",
+                "amount": -gold_req,
+                "reason": f"Ascended {beast.name} to Level {new_level}",
+                "source": "BEAST_UPGRADE"
+            }
+        )
+    except Exception as e:
+        print("EconomyLog error:", e)
+
+    b_dict = updated_beast.dict() if hasattr(updated_beast, "dict") else dict(updated_beast)
+    b_dict["passive_buff_type"] = updated_beast.passiveBuffType
+    b_dict["passive_buff_value"] = updated_beast.passiveBuffValue
+    b_dict["sprite_path"] = updated_beast.spritePath
+    b_dict["is_equipped"] = updated_beast.isEquipped
+    b_dict["level"] = new_level
+    b_dict["accumulatedSteps"] = new_accum_steps
+    b_dict["stepUpgradeReq"] = new_step_req
+    b_dict["goldUpgradeReq"] = new_gold_req
+    b_dict["user_id"] = character.id
+
+    return {
+        "success": True,
+        "message": f"⚡ {beast.name} ascended to Level {new_level}! Passive bonus surged to +{new_bonus}%!",
+        "beast": BeastResponse(**b_dict),
+        "characterGold": character.gold - gold_req
+    }
+
+# =======================================================================
 # 🏪 EGG MARKET & STORAGE ENDPOINTS
 # =======================================================================
 @router.post("/eggs/buy")
 async def buy_egg(req: BuyEggRequest):
-    """
-    Purchases a mystery egg with Gold or Gems.
-    """
     char_id = req.characterId or req.user_id
     egg_type = (req.eggType or req.egg_type or "").upper()
     if not char_id or not egg_type:
@@ -848,7 +979,6 @@ async def buy_egg(req: BuyEggRequest):
             data={"gold": character.gold - cost}
         )
 
-    # Check if there is already an incubating egg
     existing_incubating = await db.egg.find_first(
         where={"characterId": char_id, "status": "INCUBATING"}
     )
@@ -869,7 +999,6 @@ async def buy_egg(req: BuyEggRequest):
         }
     )
 
-    # Record Economy Log
     try:
         await db.economylog.create(
             data={
@@ -891,9 +1020,6 @@ async def buy_egg(req: BuyEggRequest):
 
 @router.post("/eggs/incubate")
 async def incubate_egg(req: IncubateEggRequest):
-    """
-    Select an owned egg to place into the incubator.
-    """
     char_id = req.characterId or req.user_id
     egg_id = req.eggId or req.egg_id
     if not char_id or not egg_id:
@@ -913,3 +1039,57 @@ async def incubate_egg(req: IncubateEggRequest):
         data={"status": "READY_TO_HATCH" if c_steps >= t_steps else "INCUBATING"}
     )
     return {"message": "Egg placed in active incubator", "egg": updated_egg}
+
+# =======================================================================
+# 🎁 DAILY SCALED FREE MYSTERY EGG CLAIM
+# =======================================================================
+from pydantic import BaseModel as PyBaseModel
+
+class ClaimDailyEggInput(PyBaseModel):
+    characterId: Optional[str] = None
+    user_id: Optional[str] = None
+    level: Optional[int] = 1
+
+@router.post("/eggs/claim-daily")
+async def claim_daily_egg(req: ClaimDailyEggInput):
+    char_id = req.characterId or req.user_id
+    if not char_id:
+        raise HTTPException(status_code=400, detail="characterId required")
+
+    character = await ensure_character_exists(char_id)
+    char_level = req.level or getattr(character, "level", 1) or 1
+
+    if char_level >= 71:
+        egg_type = "COSMIC"
+    elif char_level >= 46:
+        egg_type = "CYBER"
+    elif char_level >= 26:
+        egg_type = "SOLAR"
+    elif char_level >= 11:
+        egg_type = "FROST"
+    else:
+        egg_type = "WOODLAND"
+
+    egg_config = EGG_SHOP_CATALOG[egg_type]
+
+    new_egg = await db.egg.create(
+        data={
+            "name": f"Daily {egg_config['name']}",
+            "eggType": egg_config["eggType"],
+            "sprite": egg_config["sprite"],
+            "rarity": egg_config["rarity"],
+            "targetSteps": egg_config["targetSteps"],
+            "currentSteps": 0,
+            "targetEnergy": egg_config["targetSteps"],
+            "currentEnergy": 0,
+            "status": "INCUBATING",
+            "characterId": character.id
+        }
+    )
+
+    return {
+        "success": True,
+        "message": f"Claimed Daily Free {egg_config['name']} ({egg_config['rarity']} Tier)!",
+        "egg": new_egg
+    }
+

@@ -24,6 +24,8 @@ import {
   Radio,
   Hammer,
   User,
+  Moon,
+  Brain,
 } from "lucide-react";
 
 import { playSystemOpen } from "@/features/audio/useSystemAudio";
@@ -62,6 +64,8 @@ export function Sidebar() {
     { name: "Profile", href: "/profile", icon: User },
     { name: "Missions", href: "/missions", icon: Target },
     { name: "Habits", href: "/habits", icon: CheckCircle2 },
+    { name: "Sleep & Rest", href: "/sleep", icon: Moon },
+    { name: "Learning & Focus", href: "/learning", icon: Brain },
     { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Workouts", href: "/workouts", icon: Dumbbell },
     { name: "Boss PR", href: "/workouts/boss-pr", icon: Swords },

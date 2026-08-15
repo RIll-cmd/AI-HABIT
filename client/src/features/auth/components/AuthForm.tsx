@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -17,51 +16,246 @@ import {
   EyeOff,
   Zap,
   Shield,
-  Swords,
+  Mail,
+  KeyRound,
+  RotateCcw,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Send,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/useAuthStore";
 import { API_BASE_URL } from "@/constants";
+import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 
 interface AuthFormProps {
   mode: "login" | "register" | "guest";
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode: initialMode }: AuthFormProps) {
   const router = useRouter();
+  const [currentMode, setCurrentMode] = useState<"login" | "register" | "guest">(initialMode);
+  const [regOption, setRegOption] = useState<"username" | "email">("username");
 
-  // Form State
+  // Input states
+  const [identifier, setIdentifier] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Username & Password Validation Rules
-  const hasMinLength = username.length >= 3;
-  const hasMaxLength = username.length <= 20;
-  const isAlphanumeric = /^[a-zA-Z0-9_]*$/.test(username);
-  const isValidUsername = hasMinLength && hasMaxLength && isAlphanumeric;
-  const hasPasswordMinLength = password.length >= 6;
+  // Status & Feedback
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Pre-Validation Availability States
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Validation Rules
+  const hasMinLength = (currentMode === "register" && regOption === "username" ? username : identifier).length >= 3;
+  const hasValidFormat = /^[a-zA-Z0-9_]{3,20}$/.test(username);
+  
+  const hasPassLength = password.length >= 8;
+  const hasPassNumber = /[0-9]/.test(password);
+  const hasPassSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  const isPasswordStrong = hasPassLength && hasPassNumber && hasPassSpecial;
+
+  const isEmailValid = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.test(email.trim());
+
+  // OTP Timer countdown
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
+
+  // Debounced Username Availability Check
+  useEffect(() => {
+    if (currentMode !== "register" || regOption !== "username" || !username.trim()) {
+      setUsernameStatus("idle");
+      setUsernameError(null);
+      return;
+    }
+
+    if (username.length < 3) {
+      setUsernameStatus("taken");
+      setUsernameError("Must be at least 3 characters");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameStatus("taken");
+      setUsernameError("Letters, numbers, and underscores only");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/check-availability`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username }),
+        });
+        const data = await res.json();
+        if (data.usernameAvailable) {
+          setUsernameStatus("available");
+          setUsernameError(null);
+        } else {
+          setUsernameStatus("taken");
+          setUsernameError(data.usernameError || "Username is already taken");
+        }
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [username, currentMode, regOption]);
+
+  // Debounced Email Availability Check
+  useEffect(() => {
+    if (currentMode !== "register" || regOption !== "email" || !email.trim()) {
+      setEmailStatus("idle");
+      setEmailError(null);
+      return;
+    }
+
+    if (!isEmailValid) {
+      setEmailStatus("idle");
+      setEmailError("Invalid email format");
+      return;
+    }
+
+    setEmailStatus("checking");
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/check-availability`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (data.emailAvailable) {
+          setEmailStatus("available");
+          setEmailError(null);
+        } else {
+          setEmailStatus("taken");
+          setEmailError(data.emailError || "Email is already registered");
+        }
+      } catch {
+        setEmailStatus("idle");
+      }
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [email, currentMode, regOption, isEmailValid]);
+
+  const handleTabSwitch = (newMode: "login" | "register" | "guest") => {
+    playUIMenuSFX("confirm");
+    setCurrentMode(newMode);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  };
+
+  const handleSendOtp = async () => {
+    if (!isEmailValid || emailStatus === "taken") return;
+    setIsSendingOtp(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    playUIMenuSFX("confirm");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, context: "Registration" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.detail || "Failed to dispatch verification code.");
+        setIsSendingOtp(false);
+        return;
+      }
+      setOtpSent(true);
+      setOtpCooldown(60);
+      setSuccessMsg(`Verification cipher transmitted to ${email}. Valid for 5 minutes.`);
+      setIsSendingOtp(false);
+    } catch (err) {
+      setErrorMsg("Network error: Unable to connect to authentication server.");
+      setIsSendingOtp(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "register" && (!isValidUsername || !hasPasswordMinLength)) return;
-    if (mode === "login" && (!username || !password)) return;
-    
     setErrorMsg(null);
+    setSuccessMsg(null);
+
+    // Validate login
+    if (currentMode === "login") {
+      if (!identifier || !password) {
+        setErrorMsg("Please enter your identifier and access cipher.");
+        return;
+      }
+    }
+
+    // Validate registration
+    if (currentMode === "register") {
+      if (!isPasswordStrong) {
+        setErrorMsg("Please satisfy all password security requirements.");
+        return;
+      }
+      if (regOption === "username" && (usernameStatus === "taken" || !hasValidFormat)) {
+        setErrorMsg(usernameError || "Please choose a valid and available username.");
+        return;
+      }
+      if (regOption === "email") {
+        if (!isEmailValid || emailStatus === "taken") {
+          setErrorMsg(emailError || "Please provide a valid, unregistered email.");
+          return;
+        }
+        if (!otp || otp.trim().length !== 6) {
+          setErrorMsg("Please enter the 6-digit verification code sent to your email.");
+          return;
+        }
+      }
+    }
+
     setIsLoading(true);
+    playUIMenuSFX("confirm");
 
     try {
-      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const url = `${API_BASE_URL}${endpoint}`;
-      const res = await fetch(url, {
+      let endpoint = "";
+      let payload: any = {};
+
+      if (currentMode === "login") {
+        endpoint = "/api/auth/login";
+        payload = { identifier, password };
+      } else {
+        endpoint = "/api/auth/register";
+        if (regOption === "username") {
+          payload = { username, password };
+        } else {
+          payload = { email, password, otp: otp.trim() };
+        }
+      }
+
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(payload),
       });
 
       let data: any = {};
@@ -70,7 +264,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       } catch {
         data = {};
       }
-      
+
       if (!res.ok) {
         setErrorMsg(data.detail || data.message || `Authentication failed (${res.status}).`);
         setIsLoading(false);
@@ -78,21 +272,22 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
 
       // Success
-      const charId = data.characterId || (data.user && data.user.id) || username;
+      playBuffSFX("levelup");
+      const charId = data.characterId || (data.user && data.user.id) || data.username;
       try {
         localStorage.setItem("ascend_character_id", charId);
       } catch {}
 
-      if (data.token && (data.user || data.username)) {
-        useAuthStore.getState().setAuth(data.user || { id: charId, username }, data.token);
+      if (data.token && data.user) {
+        useAuthStore.getState().setAuth(data.user, data.token);
       } else {
         await useAuthStore.getState().checkAuth();
       }
-      
+
       router.push("/dashboard");
     } catch (err) {
-      console.warn("Auth request failed:", err);
-      setErrorMsg("Network error: Unable to connect to the backend server. Please verify the backend is running on port 8000.");
+      console.warn("Auth submission error:", err);
+      setErrorMsg("Network error: Unable to connect to backend server. Ensure backend is running on port 8000.");
       setIsLoading(false);
     }
   };
@@ -100,9 +295,10 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handleGuestGenerate = async () => {
     setIsLoading(true);
     setErrorMsg(null);
+    playBuffSFX("levelup");
+
     try {
-      const url = `${API_BASE_URL}/api/auth/guest`;
-      const res = await fetch(url, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/guest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -113,7 +309,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       } catch {
         data = {};
       }
-      
+
       if (!res.ok) {
         setErrorMsg(data.detail || data.message || `Guest login failed (${res.status}).`);
         setIsLoading(false);
@@ -125,16 +321,16 @@ export function AuthForm({ mode }: AuthFormProps) {
         localStorage.setItem("ascend_character_id", charId);
       } catch {}
 
-      if (data.token && (data.user || data.username)) {
-        useAuthStore.getState().setAuth(data.user || { id: charId, username: data.username }, data.token);
+      if (data.token && data.user) {
+        useAuthStore.getState().setAuth(data.user, data.token);
       } else {
         await useAuthStore.getState().checkAuth();
       }
-      
+
       router.push("/dashboard");
     } catch (err) {
-      console.warn("Guest generation network error:", err);
-      setErrorMsg("Network error: Unable to connect to the backend server. Please verify the backend is running on port 8000.");
+      console.warn("Guest login error:", err);
+      setErrorMsg("Network error: Unable to connect to backend server.");
       setIsLoading(false);
     }
   };
@@ -143,256 +339,450 @@ export function AuthForm({ mode }: AuthFormProps) {
     login: {
       icon: <ShieldCheck className="w-7 h-7" />,
       title: "Welcome Back, Ascendant",
-      subtitle: "Enter your credentials to access your RPG progression",
+      subtitle: "Authenticate neural link with Username or Email",
       accentFrom: "from-cyan-400",
-      accentTo: "to-blue-500",
-      glowColor: "rgba(6, 182, 212, 0.15)",
-      borderColor: "border-cyan-500/20",
-      ringColor: "ring-cyan-500/30",
+      accentTo: "to-blue-600",
+      glowColor: "rgba(6, 182, 212, 0.25)",
+      borderColor: "border-cyan-500/30",
     },
     register: {
       icon: <UserPlus className="w-7 h-7" />,
-      title: "Create Your Account",
-      subtitle: "Initialize your character profile & attribute matrix",
+      title: "Initiate Ascendant Protocol",
+      subtitle: "Forge your permanent hunter profile with Username or Email",
       accentFrom: "from-violet-400",
-      accentTo: "to-indigo-500",
-      glowColor: "rgba(139, 92, 246, 0.15)",
-      borderColor: "border-violet-500/20",
-      ringColor: "ring-violet-500/30",
+      accentTo: "to-indigo-600",
+      glowColor: "rgba(139, 92, 246, 0.25)",
+      borderColor: "border-violet-500/30",
     },
     guest: {
       icon: <UserCheck className="w-7 h-7" />,
-      title: "Enter Guest Sandbox",
-      subtitle: "Explore Ascend OS features as a temporary guest user",
+      title: "Temporary Sandbox Entry",
+      subtitle: "Explore all Ascend OS features with an instant guest profile",
       accentFrom: "from-amber-400",
       accentTo: "to-orange-500",
-      glowColor: "rgba(245, 158, 11, 0.15)",
-      borderColor: "border-amber-500/20",
-      ringColor: "ring-amber-500/30",
+      glowColor: "rgba(245, 158, 11, 0.25)",
+      borderColor: "border-amber-500/30",
     },
   };
 
-  const config = modeConfig[mode];
+  const config = modeConfig[currentMode];
 
   return (
-    <div suppressHydrationWarning className="auth-form-wrapper relative">
+    <div suppressHydrationWarning className="auth-form-wrapper relative w-full">
       {/* CARD GLOW HALO */}
       <div
         suppressHydrationWarning
-        className="absolute -inset-[1px] rounded-[24px] opacity-60 blur-xl pointer-events-none auth-halo-pulse"
-        style={{ background: `radial-gradient(ellipse at 50% 0%, ${config.glowColor}, transparent 70%)` }}
+        className="absolute -inset-1 rounded-[28px] opacity-70 blur-2xl pointer-events-none auth-halo-pulse"
+        style={{
+          background: `radial-gradient(ellipse at 50% 10%, ${config.glowColor}, transparent 70%)`,
+        }}
       />
 
-      {/* MAIN CARD */}
-      <div suppressHydrationWarning className={`relative w-full rounded-[24px] border ${config.borderColor} bg-[#0a0f1e]/90 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden`}>
-        {/* TOP EDGE GRADIENT LINE */}
-        <div suppressHydrationWarning className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${config.accentFrom} via-transparent ${config.accentTo} opacity-60`} />
+      {/* MAIN CYBER-DECK CONTAINER */}
+      <div
+        suppressHydrationWarning
+        className={`relative w-full rounded-[26px] border ${config.borderColor} bg-gradient-to-br from-[#0a1024]/95 via-[#060b18]/98 to-[#03060f]/99 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-500`}
+      >
+        {/* TOP ACCENT LASER LINE */}
+        <div
+          suppressHydrationWarning
+          className={`absolute top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r ${config.accentFrom} via-white/50 ${config.accentTo}`}
+        />
 
-        {/* INNER NOISE TEXTURE */}
-        <div suppressHydrationWarning className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }} />
+        {/* MODE SELECTOR TABS (SIGN IN / REGISTER / GUEST) */}
+        <div className="p-3 bg-black/40 border-b border-white/5 flex items-center justify-between gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleTabSwitch("login")}
+            className={`flex-1 py-2 px-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              currentMode === "login"
+                ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </button>
 
-        {/* HEADER SECTION */}
-        <div suppressHydrationWarning className="relative px-8 pt-8 pb-5 text-center">
-          {/* ANIMATED ICON CONTAINER */}
-          <div suppressHydrationWarning className="auth-icon-container mx-auto mb-5 relative">
-            {/* Spinning border ring */}
-            <div className="absolute -inset-[3px] rounded-[20px] auth-icon-ring" style={{
-              background: `conic-gradient(from 0deg, transparent, ${config.glowColor}, transparent, ${config.glowColor}, transparent)`,
-            }} />
-            <div className={`relative w-16 h-16 rounded-[18px] bg-gradient-to-br ${config.accentFrom} ${config.accentTo} flex items-center justify-center text-white shadow-lg z-10`} style={{
-              boxShadow: `0 0 30px ${config.glowColor}, 0 8px 32px rgba(0,0,0,0.4)`,
-            }}>
-              {config.icon}
-            </div>
-            {/* Floating sparkle particles around icon */}
-            <div className="auth-icon-sparkle auth-icon-sparkle-1">✦</div>
-            <div className="auth-icon-sparkle auth-icon-sparkle-2">✧</div>
-            <div className="auth-icon-sparkle auth-icon-sparkle-3">✦</div>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleTabSwitch("register")}
+            className={`flex-1 py-2 px-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              currentMode === "register"
+                ? "bg-gradient-to-r from-violet-500/20 to-indigo-500/20 text-violet-300 border border-violet-500/40 shadow-[0_0_12px_rgba(139,92,246,0.25)]"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Register</span>
+          </button>
 
-          {/* TITLE */}
-          <h1 className="text-2xl font-bold font-heading text-white mb-1.5 tracking-wide">
-            {config.title}
-          </h1>
-
-          {/* SUBTITLE WITH DECORATIVE LINES */}
-          <div className="flex items-center gap-3 justify-center">
-            <div className={`h-[1px] w-8 bg-gradient-to-r from-transparent ${config.accentFrom} opacity-40`} />
-            <p className="text-xs text-slate-400 font-sans">
-              {config.subtitle}
-            </p>
-            <div className={`h-[1px] w-8 bg-gradient-to-l from-transparent ${config.accentTo} opacity-40`} />
-          </div>
+          <button
+            type="button"
+            onClick={() => handleTabSwitch("guest")}
+            className={`flex-1 py-2 px-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              currentMode === "guest"
+                ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Guest</span>
+          </button>
         </div>
 
-        {/* CONTENT SECTION */}
-        <div suppressHydrationWarning className="px-8 pb-3">
-          {mode === "guest" ? (
-            <div suppressHydrationWarning className="space-y-5">
-              {/* GUEST INFO CARD */}
-              <div suppressHydrationWarning className="relative p-4 rounded-[16px] bg-gradient-to-br from-amber-950/30 to-orange-950/20 border border-amber-500/15 text-slate-300 text-xs leading-relaxed font-sans overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
-                <p className="font-semibold text-amber-300 mb-1.5 flex items-center gap-1.5 relative z-10">
+        {/* HEADER SECTION */}
+        <div suppressHydrationWarning className="relative px-6 sm:px-8 pt-5 pb-3 text-center">
+          <div suppressHydrationWarning className="auth-icon-container mx-auto mb-3 relative">
+            <div
+              className="absolute -inset-1 rounded-[22px] auth-icon-ring"
+              style={{
+                background: `conic-gradient(from 0deg, transparent, ${config.glowColor}, transparent, ${config.glowColor}, transparent)`,
+              }}
+            />
+            <div
+              className={`relative w-14 h-14 rounded-[18px] bg-gradient-to-br ${config.accentFrom} ${config.accentTo} flex items-center justify-center text-slate-950 shadow-xl z-10 font-black`}
+              style={{
+                boxShadow: `0 0 30px ${config.glowColor}, 0 8px 32px rgba(0,0,0,0.5)`,
+              }}
+            >
+              {config.icon}
+            </div>
+          </div>
+
+          <h1 className="text-xl sm:text-2xl font-black font-heading text-white tracking-wide">
+            {config.title}
+          </h1>
+          <p className="text-xs text-slate-400 font-sans mt-1 max-w-xs mx-auto leading-relaxed">
+            {config.subtitle}
+          </p>
+        </div>
+
+        {/* CONTENT & FORM SECTION */}
+        <div suppressHydrationWarning className="px-6 sm:px-8 pb-6">
+          {/* FEEDBACK BANNERS */}
+          {errorMsg && (
+            <div
+              suppressHydrationWarning
+              className="mb-4 p-3.5 bg-red-950/40 border border-red-500/40 text-red-200 text-xs rounded-2xl font-sans flex items-start gap-2.5 shadow-lg shadow-red-950/40 animate-in fade-in zoom-in-95 duration-200"
+            >
+              <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 mt-0.5 text-red-400">
+                <X className="w-3.5 h-3.5" />
+              </div>
+              <span className="leading-relaxed">{errorMsg}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div
+              suppressHydrationWarning
+              className="mb-4 p-3.5 bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-xs rounded-2xl font-sans flex items-start gap-2.5 shadow-lg shadow-cyan-950/40 animate-in fade-in zoom-in-95 duration-200"
+            >
+              <div className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0 mt-0.5 text-cyan-400">
+                <Check className="w-3.5 h-3.5" />
+              </div>
+              <span className="leading-relaxed">{successMsg}</span>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* 1. GUEST MODE */}
+          {/* ========================================================= */}
+          {currentMode === "guest" ? (
+            <div suppressHydrationWarning className="space-y-4">
+              <div
+                suppressHydrationWarning
+                className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/30 to-orange-950/20 border border-amber-500/30 text-slate-300 text-xs leading-relaxed space-y-2"
+              >
+                <div className="flex items-center gap-2 text-amber-300 font-bold font-mono text-[11px] uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Temporary Ascendant Mode
-                </p>
-                <span className="relative z-10">
-                  Your progress will be saved locally as a temporary Ascendant. You
-                  can convert to a permanent account anytime.
-                </span>
-              </div>
-
-              {/* IDENTITY DISPLAY */}
-              <div suppressHydrationWarning className="p-4 rounded-[16px] bg-[#080d1a] border border-white/5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-600 block tracking-widest">
-                    Assigned Identity
-                  </span>
-                  <span className="text-base font-bold font-mono text-amber-400">
-                    Guest-4839
-                  </span>
+                  Instant Sandbox Protocol
                 </div>
-                <Badge variant="gold">Guest Level 1</Badge>
+                <p className="text-slate-300 text-xs font-sans">
+                  Instantly jump into the Ascend OS command deck without a password. Progress persists in local storage and can be upgraded to a permanent account anytime.
+                </p>
               </div>
 
-              {/* GUEST SUBMIT BUTTON */}
               <button
                 type="button"
                 onClick={handleGuestGenerate}
                 disabled={isLoading}
-                className="auth-submit-btn w-full h-12 rounded-[14px] font-bold text-sm tracking-wide text-white relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706, #b45309)' }}
+                className="auth-submit-btn w-full h-12 rounded-xl font-bold font-mono text-xs uppercase tracking-wider text-slate-950 relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.35)]"
+                style={{ background: "linear-gradient(135deg, #f59e0b, #d97706, #fbbf24)" }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isLoading ? (
-                    <><span className="auth-spinner" /> Generating...</>
+                    <>
+                      <span className="auth-spinner" /> Launching Sandbox...
+                    </>
                   ) : (
-                    <>Generate Guest Identity <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
+                    <>
+                      LAUNCH GUEST SANDBOX <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </>
                   )}
                 </span>
               </button>
             </div>
           ) : (
-            <form suppressHydrationWarning onSubmit={handleSubmit} className="space-y-5">
-              {/* ERROR MESSAGE */}
-              {errorMsg && (
-                <div suppressHydrationWarning className="relative p-3.5 bg-red-950/30 border border-red-500/20 text-red-300 text-xs rounded-[14px] font-sans flex items-start gap-2.5 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent pointer-events-none" />
-                  <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 mt-0.5 relative z-10">
-                    <X className="w-3 h-3 text-red-400" />
-                  </div>
-                  <span className="relative z-10">{errorMsg}</span>
+            /* ========================================================= */
+            /* 2. SIGN IN / REGISTER FORM */
+            /* ========================================================= */
+            <form suppressHydrationWarning onSubmit={handleSubmit} className="space-y-4">
+              {/* REGISTER SUB-OPTIONS: USERNAME-FIRST VS EMAIL-FIRST */}
+              {currentMode === "register" && (
+                <div className="p-1 bg-black/50 border border-white/10 rounded-xl flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playUIMenuSFX("confirm");
+                      setRegOption("username");
+                      setErrorMsg(null);
+                    }}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      regOption === "username"
+                        ? "bg-violet-500 text-white shadow-md font-black"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <User className="w-3 h-3" />
+                    <span>Username-First</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playUIMenuSFX("confirm");
+                      setRegOption("email");
+                      setErrorMsg(null);
+                    }}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      regOption === "email"
+                        ? "bg-violet-500 text-white shadow-md font-black"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Mail className="w-3 h-3" />
+                    <span>Email-First (OTP)</span>
+                  </button>
                 </div>
               )}
 
-              {/* USERNAME FIELD */}
-              <div suppressHydrationWarning className="space-y-2">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 font-sans">
-                  <User className="w-3.5 h-3.5 text-slate-500" />
-                  Username
-                </label>
-                <div suppressHydrationWarning className="auth-input-wrapper relative group">
-                  <div className="absolute -inset-[1px] rounded-[14px] bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-blue-500/0 group-focus-within:from-cyan-500/30 group-focus-within:via-blue-500/20 group-focus-within:to-indigo-500/30 transition-all duration-500 opacity-0 group-focus-within:opacity-100" />
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-600 absolute left-3.5 top-3 transition-colors group-focus-within:text-cyan-400" />
+              {/* LOGIN UNIFIED INPUT (USERNAME OR EMAIL) */}
+              {currentMode === "login" && (
+                <div suppressHydrationWarning className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-cyan-400" />
+                      Username or Email
+                    </label>
+                    <span className="text-[10px] text-slate-500">[ // DUAL_ID ]</span>
+                  </div>
+
+                  <div className="relative group">
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 opacity-0 group-focus-within:opacity-100 blur-sm transition-opacity" />
+                    <Input
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="Username or registered email"
+                      className="h-11 bg-black/60 border-white/10 text-white rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 font-mono text-xs placeholder:text-slate-600 transition-all duration-300"
+                      required
+                      autoComplete="username"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* REGISTER OPTION A: USERNAME INPUT WITH PRE-VALIDATION */}
+              {currentMode === "register" && regOption === "username" && (
+                <div suppressHydrationWarning className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-violet-400" />
+                      Desired Hunter Handle
+                    </label>
+                    {usernameStatus === "checking" && (
+                      <span className="text-[10px] text-cyan-400 animate-pulse">Checking...</span>
+                    )}
+                    {usernameStatus === "available" && (
+                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Available
+                      </span>
+                    )}
+                    {usernameStatus === "taken" && (
+                      <span className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                        <X className="w-3 h-3" /> {usernameError || "Taken"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative group">
                     <Input
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value.trim())}
-                      placeholder="SAIKOU01"
-                      className="pl-10 h-10 bg-[#080d1a] border-white/8 text-white rounded-[13px] focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/20 placeholder:text-slate-600 transition-all duration-300"
+                      placeholder="e.g. SHADOW_SLAYER"
+                      className={`h-11 bg-black/60 text-white rounded-xl font-mono text-xs placeholder:text-slate-600 transition-all duration-300 ${
+                        usernameStatus === "available"
+                          ? "border-emerald-500/60 focus:border-emerald-400"
+                          : usernameStatus === "taken"
+                          ? "border-red-500/60 focus:border-red-400"
+                          : "border-white/10 focus:border-violet-500"
+                      }`}
                       required
+                      autoComplete="username"
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* PASSWORD FIELD */}
-              <div suppressHydrationWarning className="space-y-2">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 font-sans">
-                  <Lock className="w-3.5 h-3.5 text-slate-500" />
-                  Password
-                </label>
-                <div suppressHydrationWarning className="auth-input-wrapper relative group">
-                  <div className="absolute -inset-[1px] rounded-[14px] bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-blue-500/0 group-focus-within:from-cyan-500/30 group-focus-within:via-blue-500/20 group-focus-within:to-indigo-500/30 transition-all duration-500 opacity-0 group-focus-within:opacity-100" />
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-600 absolute left-3.5 top-3 transition-colors group-focus-within:text-cyan-400" />
+              {/* REGISTER OPTION B: EMAIL INPUT WITH OTP DISPATCH */}
+              {currentMode === "register" && regOption === "email" && (
+                <div suppressHydrationWarning className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-violet-400" />
+                      Neural Link Email
+                    </label>
+                    {emailStatus === "available" && (
+                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Available
+                      </span>
+                    )}
+                    {emailStatus === "taken" && (
+                      <span className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                        <X className="w-3 h-3" /> {emailError || "Registered"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
                     <Input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="pl-10 pr-11 h-10 bg-[#080d1a] border-white/8 text-white rounded-[13px] focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/20 placeholder:text-slate-600 transition-all duration-300"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value.trim())}
+                      placeholder="hunter@domain.com"
+                      className={`h-11 bg-black/60 text-white rounded-xl font-mono text-xs placeholder:text-slate-600 flex-1 ${
+                        emailStatus === "available"
+                          ? "border-emerald-500/60"
+                          : emailStatus === "taken"
+                          ? "border-red-500/60"
+                          : "border-white/10"
+                      }`}
                       required
+                      autoComplete="email"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-600 hover:text-cyan-400 transition-colors duration-200"
-                      title={showPassword ? "Hide password" : "Show password"}
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp || !isEmailValid || emailStatus === "taken" || otpCooldown > 0}
+                      className="px-3.5 h-11 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white font-mono text-[11px] font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                     >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
+                      {isSendingOtp ? (
+                        <span className="auth-spinner" />
+                      ) : otpCooldown > 0 ? (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {otpCooldown}s
+                        </span>
                       ) : (
-                        <Eye className="w-4 h-4" />
+                        <span className="flex items-center gap-1">
+                          <Send className="w-3 h-3" /> {otpSent ? "Resend" : "Send OTP"}
+                        </span>
                       )}
                     </button>
                   </div>
+
+                  {/* 6-DIGIT OTP FIELD */}
+                  {otpSent && (
+                    <div className="p-3 bg-violet-950/30 border border-violet-500/30 rounded-xl space-y-1.5 animate-in fade-in duration-300">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-violet-300">
+                        <span className="font-bold flex items-center gap-1">
+                          <KeyRound className="w-3.5 h-3.5" /> 6-Digit Verification Cipher
+                        </span>
+                        <span className="text-[10px] text-slate-400">Expires in 5m</span>
+                      </div>
+                      <Input
+                        type="text"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="123456"
+                        className="h-10 text-center font-mono text-base font-black tracking-[0.4em] bg-black/60 border-violet-500/40 text-cyan-300 rounded-lg"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PASSWORD INPUT */}
+              <div suppressHydrationWarning className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                    Access Key Cipher
+                  </label>
+                  <span className="text-[10px] text-slate-500">[ // CIPHER ]</span>
+                </div>
+
+                <div className="relative group">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 opacity-0 group-focus-within:opacity-100 blur-sm transition-opacity" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="pr-10 h-11 bg-black/60 border-white/10 text-white rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 font-mono text-xs placeholder:text-slate-600 transition-all duration-300"
+                    required
+                    autoComplete={currentMode === "login" ? "current-password" : "new-password"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-slate-500 hover:text-cyan-300 transition-colors cursor-pointer"
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
-              {/* REGISTER VALIDATION CHECKLIST */}
-              {mode === "register" && (
-                <div suppressHydrationWarning className="p-4 rounded-[16px] bg-[#080d1a] border border-white/5 space-y-2.5">
-                  <div className="text-[10px] font-semibold text-slate-500 font-sans tracking-widest uppercase mb-2 flex items-center gap-1.5">
-                    <Shield className="w-3 h-3" />
-                    Account Requirements
+              {/* REGISTRATION VALIDATION CHECKLIST */}
+              {currentMode === "register" && (
+                <div
+                  suppressHydrationWarning
+                  className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-[11px] font-mono"
+                >
+                  <div className="text-[9.5px] uppercase tracking-widest text-slate-500 font-bold">
+                    NEURAL CIPHER STRENGTH MATRIX
                   </div>
-
-                  <div suppressHydrationWarning className="grid grid-cols-1 gap-2.5 text-[11px] font-sans">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <div
-                      suppressHydrationWarning
-                      className={`flex items-center gap-2 transition-colors duration-300 ${hasMinLength && hasMaxLength ? "text-emerald-400" : "text-slate-600"}`}
+                      className={`flex items-center gap-1 ${
+                        hasPassLength ? "text-emerald-400" : "text-slate-500"
+                      }`}
                     >
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${hasMinLength && hasMaxLength ? "bg-emerald-500/20 ring-1 ring-emerald-500/40" : "bg-slate-800 ring-1 ring-slate-700"}`}>
-                        {hasMinLength && hasMaxLength ? (
-                          <Check className="w-2.5 h-2.5 shrink-0" />
-                        ) : (
-                          <X className="w-2.5 h-2.5 shrink-0" />
-                        )}
-                      </div>
-                      <span>Username: 3-20 Characters</span>
+                      {hasPassLength ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>8+ Chars</span>
                     </div>
 
                     <div
-                      suppressHydrationWarning
-                      className={`flex items-center gap-2 transition-colors duration-300 ${isAlphanumeric && username.length > 0 ? "text-emerald-400" : "text-slate-600"}`}
+                      className={`flex items-center gap-1 ${
+                        hasPassNumber ? "text-emerald-400" : "text-slate-500"
+                      }`}
                     >
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${isAlphanumeric && username.length > 0 ? "bg-emerald-500/20 ring-1 ring-emerald-500/40" : "bg-slate-800 ring-1 ring-slate-700"}`}>
-                        {isAlphanumeric && username.length > 0 ? (
-                          <Check className="w-2.5 h-2.5 shrink-0" />
-                        ) : (
-                          <X className="w-2.5 h-2.5 shrink-0" />
-                        )}
-                      </div>
-                      <span>Letters, Numbers, Underscores Only</span>
+                      {hasPassNumber ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>1+ Number</span>
                     </div>
 
                     <div
-                      suppressHydrationWarning
-                      className={`flex items-center gap-2 transition-colors duration-300 ${hasPasswordMinLength ? "text-emerald-400" : "text-slate-600"}`}
+                      className={`flex items-center gap-1 ${
+                        hasPassSpecial ? "text-emerald-400" : "text-slate-500"
+                      }`}
                     >
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${hasPasswordMinLength ? "bg-emerald-500/20 ring-1 ring-emerald-500/40" : "bg-slate-800 ring-1 ring-slate-700"}`}>
-                        {hasPasswordMinLength ? (
-                          <Check className="w-2.5 h-2.5 shrink-0" />
-                        ) : (
-                          <X className="w-2.5 h-2.5 shrink-0" />
-                        )}
-                      </div>
-                      <span>Password: Minimum 6 Characters</span>
+                      {hasPassSpecial ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>1+ Symbol</span>
                     </div>
                   </div>
                 </div>
@@ -401,28 +791,35 @@ export function AuthForm({ mode }: AuthFormProps) {
               {/* SUBMIT BUTTON */}
               <button
                 type="submit"
-                disabled={isLoading || (mode === "register" && (!isValidUsername || !hasPasswordMinLength)) || (mode === "login" && (!username || !password))}
-                className="auth-submit-btn w-full h-12 rounded-[14px] font-bold text-sm tracking-wide text-white relative overflow-hidden group disabled:opacity-40 disabled:cursor-not-allowed mt-1"
-                style={{ background: mode === 'register'
-                  ? 'linear-gradient(135deg, #8b5cf6, #6d28d9, #4c1d95)'
-                  : 'linear-gradient(135deg, #06b6d4, #3b82f6, #6366f1)'
+                disabled={
+                  isLoading ||
+                  (currentMode === "login" && (!identifier || !password)) ||
+                  (currentMode === "register" && !isPasswordStrong) ||
+                  (currentMode === "register" && regOption === "username" && (!hasValidFormat || usernameStatus === "taken")) ||
+                  (currentMode === "register" && regOption === "email" && (!isEmailValid || !otp || otp.length !== 6))
+                }
+                className="auth-submit-btn w-full h-12 rounded-xl font-black font-mono text-xs uppercase tracking-wider text-slate-950 relative overflow-hidden group disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all duration-300 mt-2"
+                style={{
+                  background:
+                    currentMode === "register"
+                      ? "linear-gradient(135deg, #a78bfa, #8b5cf6, #6366f1)"
+                      : "linear-gradient(135deg, #22d3ee, #06b6d4, #3b82f6)",
+                  boxShadow:
+                    currentMode === "register"
+                      ? "0 0 25px rgba(139, 92, 246, 0.35)"
+                      : "0 0 25px rgba(6, 182, 212, 0.35)",
                 }}
               >
-                {/* Shimmer effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
-                {/* Subtle pulse glow */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
-                  boxShadow: mode === 'register'
-                    ? 'inset 0 0 30px rgba(139, 92, 246, 0.3)'
-                    : 'inset 0 0 30px rgba(6, 182, 212, 0.3)',
-                }} />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isLoading ? (
-                    <><span className="auth-spinner" /> Authenticating...</>
+                    <>
+                      <span className="auth-spinner" /> AUTHENTICATING...
+                    </>
                   ) : (
                     <>
-                      {mode === "login" ? "Sign In" : "Create Account"}
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+                      {currentMode === "login" ? "AUTHENTICATE HUNTER" : "CREATE ASCENDANT PROFILE"}
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                 </span>
@@ -431,67 +828,66 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
         </div>
 
-        {/* FOOTER SECTION */}
-        <div suppressHydrationWarning className="relative px-8 py-5 border-t border-white/5">
-          {/* Feature badges row — only on login */}
-          {mode === "login" && (
-            <div suppressHydrationWarning className="flex items-center justify-center gap-4 mb-4">
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
-                <Zap className="w-3 h-3 text-cyan-700" />
-                <span>Level System</span>
-              </div>
-              <div className="w-[1px] h-3 bg-slate-800" />
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
-                <Swords className="w-3 h-3 text-cyan-700" />
-                <span>RPG Combat</span>
-              </div>
-              <div className="w-[1px] h-3 bg-slate-800" />
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
-                <Shield className="w-3 h-3 text-cyan-700" />
-                <span>AI Assistant</span>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation links */}
-          <div suppressHydrationWarning className="flex items-center justify-center gap-5 text-xs text-slate-500">
-            {mode !== "login" && (
-              <Link
-                href="/login"
-                className="hover:text-cyan-400 transition-colors duration-200 group/link"
-              >
-                Already have an account?{" "}
-                <span className="text-cyan-500 font-semibold group-hover/link:underline underline-offset-4">
-                  Sign In
-                </span>
-              </Link>
-            )}
-
-            {mode !== "register" && mode !== "guest" && (
-              <Link
-                href="/register"
-                className="hover:text-cyan-400 transition-colors duration-200 group/link"
-              >
-                New here?{" "}
-                <span className="text-cyan-500 font-semibold group-hover/link:underline underline-offset-4">
-                  Create Account
-                </span>
-              </Link>
-            )}
+        {/* BOTTOM ATTRIBUTION BADGES */}
+        <div className="px-6 py-3.5 bg-black/60 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <Shield className="w-3 h-3 text-cyan-400" />
+            <span>DUAL-IDENTIFIER LINKED</span>
           </div>
-
-          {mode !== "guest" && (
-            <div suppressHydrationWarning className="text-center mt-3">
-              <Link
-                href="/guest"
-                className="text-slate-600 hover:text-slate-400 text-[10px] font-mono transition-colors duration-200 tracking-widest uppercase"
-              >
-                [ Continue as Guest ]
-              </Link>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5">
+            <Zap className="w-3 h-3 text-amber-400" />
+            <span>EMAIL OTP ENGINE</span>
+          </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .auth-form-wrapper {
+          perspective: 1000px;
+        }
+        .auth-halo-pulse {
+          animation: auth-halo 4s ease-in-out infinite;
+        }
+        @keyframes auth-halo {
+          0%, 100% { opacity: 0.35; transform: scale(0.98); }
+          50% { opacity: 0.7; transform: scale(1.02); }
+        }
+        .auth-icon-container {
+          width: 56px;
+          height: 56px;
+          position: relative;
+        }
+        .auth-icon-ring {
+          animation: auth-icon-spin 8s linear infinite;
+          border-radius: 20px;
+        }
+        @keyframes auth-icon-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .auth-submit-btn {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .auth-submit-btn:not(:disabled):hover {
+          transform: translateY(-1.5px);
+          filter: brightness(1.1);
+        }
+        .auth-submit-btn:not(:disabled):active {
+          transform: translateY(0px) scale(0.99);
+        }
+        .auth-spinner {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(0,0,0,0.3);
+          border-top-color: black;
+          border-radius: 50%;
+          animation: auth-spin 0.6s linear infinite;
+        }
+        @keyframes auth-spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

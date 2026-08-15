@@ -6,6 +6,7 @@ import { API_BASE_URL } from "@/constants";
 import { Sparkles, CheckCircle2, Target, Trophy, Filter, Award, Lock, Check, Dumbbell, Flame, MessageSquare, Layers } from "lucide-react";
 import { playUIMenuSFX, playBuffSFX, playAIRASound } from "@/utils/audio";
 import { SystemTooltip } from "@/components/ui/SystemTooltip";
+import { ACHIEVEMENT_LORE } from "@/features/lore/loreData";
 
 interface Achievement {
   id: string;
@@ -496,30 +497,40 @@ export default function AchievementsPage() {
                 )}
 
                 {/* Header: Icon, Title & Status */}
-                <div className="flex gap-4 items-start relative z-10 mb-3">
-                  <SystemTooltip
-                    title={ach.title}
-                    subtitle={`Achievement Milestone • ${ach.category}`}
-                    category="System Chronicle"
-                    rarity={ach.isClaimed ? "LEGENDARY" : isUnlocked ? "EPIC" : "RARE"}
-                    description={ach.description}
-                    lore="Etched permanently into your Hunter Chronicle upon meeting the dimensional requirement."
-                    mechanics={`Unlock Requirement: ${unlockHow}\nRewards: +${ach.rewardGold} Gold, +${ach.rewardGems} Gems`}
-                    stats={[
-                      { label: "Current Progress", value: `${Math.min(ach.currentProgress, ach.targetValue)} / ${ach.targetValue}` },
-                      { label: "Status", value: ach.isClaimed ? "Claimed" : isUnlocked ? "Unlocked" : "Locked", color: isUnlocked ? "text-emerald-400" : "text-amber-400" },
-                      { label: "Gold Bounty", value: `+${ach.rewardGold}g`, color: "text-amber-400" },
-                      { label: "Gems Bounty", value: `+${ach.rewardGems}`, color: "text-cyan-400" }
-                    ]}
-                    tags={["Achievement", ach.category, isUnlocked ? "Unlocked" : "Locked"]}
-                  >
-                    <div
-                      className={`w-16 h-16 rounded-2xl bg-gradient-to-b from-[#131B33] to-[#0A0F22] border flex items-center justify-center shrink-0 p-2 relative shadow-inner cursor-help ${
-                        isUnlocked
-                          ? "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
-                          : "border-white/10"
-                      }`}
-                    >
+                {(() => {
+                  const loreEntry = ACHIEVEMENT_LORE[ach.title] || {
+                    storyLore: "An ancient testament of hunter willpower preserved within the System Chronicles.",
+                    historicalContext: "Forged during the primordial awakening of Ascend OS to reward kinetic momentum.",
+                    unlockWisdom: unlockHow
+                  };
+
+                  return (
+                    <div className="flex gap-4 items-start relative z-10 mb-3">
+                      <SystemTooltip
+                        title={ach.title}
+                        subtitle={`Achievement Milestone • ${ach.category}`}
+                        category="System Chronicle"
+                        rarity={ach.isClaimed ? "LEGENDARY" : isUnlocked ? "EPIC" : "RARE"}
+                        description={ach.description}
+                        lore={loreEntry.storyLore}
+                        mechanics={loreEntry.historicalContext}
+                        howToImprove={loreEntry.unlockWisdom}
+                        stats={[
+                          { label: "Current Progress", value: `${Math.min(ach.currentProgress, ach.targetValue)} / ${ach.targetValue}` },
+                          { label: "Status", value: ach.isClaimed ? "Claimed" : isUnlocked ? "Unlocked" : "Locked", color: isUnlocked ? "text-emerald-400" : "text-amber-400" },
+                          { label: "Gold Bounty", value: `+${ach.rewardGold}g`, color: "text-amber-400" },
+                          { label: "Gems Bounty", value: `+${ach.rewardGems}`, color: "text-cyan-400" }
+                        ]}
+                        tags={["Achievement", ach.category, isUnlocked ? "Unlocked" : "Locked"]}
+                        delayMs={1000}
+                      >
+                        <div
+                          className={`w-16 h-16 rounded-2xl bg-gradient-to-b from-[#131B33] to-[#0A0F22] border flex items-center justify-center shrink-0 p-2 relative shadow-inner cursor-help ${
+                            isUnlocked
+                              ? "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+                              : "border-white/10"
+                          }`}
+                        >
                       <img
                         src={ach.icon}
                         alt={ach.title}
@@ -568,6 +579,8 @@ export default function AchievementsPage() {
                     </p>
                   </div>
                 </div>
+              );
+            })()}
 
                 {/* Clear Unlock Requirement Callout Box */}
                 <div className="my-2 p-2.5 rounded-xl bg-[#0B1020] border border-slate-800/80 text-[11px] font-mono flex items-start gap-2">

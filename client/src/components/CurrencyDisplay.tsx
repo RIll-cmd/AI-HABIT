@@ -31,12 +31,12 @@ const CURRENCY_GIF_PATHS: Record<string, { src: string; alt: string }> = {
   gems: { src: "/coin icons/gem_icon.gif", alt: "Gems" },
   EXP: { src: "/exp_icon/exp_icon.gif", alt: "EXP" },
   exp: { src: "/exp_icon/exp_icon.gif", alt: "EXP" },
-  THIRD: { src: "/coin icons/3rd_currency.gif", alt: "3rd Currency" },
-  third: { src: "/coin icons/3rd_currency.gif", alt: "3rd Currency" },
-  "3RD_CURRENCY": { src: "/coin icons/3rd_currency.gif", alt: "3rd Currency" },
-  thirdCurrency: { src: "/coin icons/3rd_currency.gif", alt: "3rd Currency" },
-  TOWER_TOKENS: { src: "/coin icons/3rd_currency.gif", alt: "3rd Currency" },
-  towerTokens: { src: "/coin icons/3rd_currency.gif", alt: "3rd Currency" },
+  THIRD: { src: "/coin icons/3rd_currency.gif", alt: "Abyssal Tokens" },
+  third: { src: "/coin icons/3rd_currency.gif", alt: "Abyssal Tokens" },
+  "3RD_CURRENCY": { src: "/coin icons/3rd_currency.gif", alt: "Abyssal Tokens" },
+  thirdCurrency: { src: "/coin icons/3rd_currency.gif", alt: "Abyssal Tokens" },
+  TOWER_TOKENS: { src: "/coin icons/3rd_currency.gif", alt: "Abyssal Tokens" },
+  towerTokens: { src: "/coin icons/3rd_currency.gif", alt: "Abyssal Tokens" },
 };
 
 const SIZE_CLASSES: Record<string, string> = {

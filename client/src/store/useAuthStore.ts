@@ -5,6 +5,8 @@ import { useCharacterStore } from "./useCharacterStore";
 export interface UserState {
   id: string;
   username: string;
+  email?: string | null;
+  isEmailVerified?: boolean;
 }
 
 interface AuthStore {
@@ -15,6 +17,7 @@ interface AuthStore {
   isHydrated: boolean;
   hydrateAuth: () => void;
   setAuth: (user: UserState, token?: string) => void;
+  updateUserProfile: (partial: Partial<UserState>) => void;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -91,6 +94,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
   },
 
+  updateUserProfile: (partial) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
+    const updatedUser = { ...currentUser, ...partial };
+    try {
+      localStorage.setItem("ascend_user", JSON.stringify(updatedUser));
+    } catch {}
+    set({ user: updatedUser });
+  },
+
   logout: () => {
     clearCookie();
     try {
@@ -130,7 +143,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           } catch {}
         }
       } else {
-        // Only clear if token is explicitly missing locally and no cached user exists
         const cachedUser = getStoredUser();
         const cachedToken = getStoredToken();
         if (!cachedUser && !cachedToken) {
@@ -139,15 +151,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           set({ isLoading: false, isHydrated: true });
         }
       }
-    } catch (err) {
-      console.warn("Auth check network error, preserving local session:", err);
+    } catch {
       const cachedUser = getStoredUser();
-      set({
-        user: cachedUser || get().user,
-        isAuthenticated: !!(cachedUser || get().user),
-        isLoading: false,
-        isHydrated: true,
-      });
+      const cachedToken = getStoredToken();
+      if (!cachedUser && !cachedToken) {
+        set({ user: null, token: null, isAuthenticated: false, isLoading: false, isHydrated: true });
+      } else {
+        set({ isLoading: false, isHydrated: true });
+      }
     }
   },
 }));

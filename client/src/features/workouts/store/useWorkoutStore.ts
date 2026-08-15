@@ -1,4 +1,10 @@
 import { create } from 'zustand';
+import { API_BASE_URL } from '@/constants';
+import { 
+  MuscleRecoveryStatusResponse, 
+  EnrichedExercise, 
+  LogWorkoutPayload 
+} from '../types/muscleRecovery';
 
 export interface WorkoutSet {
   id: string;
@@ -12,6 +18,8 @@ export interface ExerciseDefinition {
   id: string;
   name: string;
   primaryMuscle: string;
+  secondaryMuscles?: string[];
+  category?: string;
   equipment: string;
 }
 
@@ -33,6 +41,13 @@ interface WorkoutState {
   restTimerEnd: number | null;
   customTemplates: CustomWorkoutPlan[];
   
+  // Real-Time Muscle Recovery Engine State
+  muscleRecovery: MuscleRecoveryStatusResponse | null;
+  isLoadingRecovery: boolean;
+  availableExercises: EnrichedExercise[];
+  isLoadingExercises: boolean;
+
+  // Actions
   startWorkout: (sessionId: string) => void;
   startWorkoutWithTemplate: (templateName: string, templateExercises: ExerciseDefinition[], sessionId: string) => void;
   endWorkout: () => void;
@@ -46,6 +61,12 @@ interface WorkoutState {
   addCustomTemplate: (name: string, target: string, exercises: ExerciseDefinition[]) => void;
   deleteCustomTemplate: (id: string) => void;
   hydrateTemplates: () => void;
+
+  // Real-Time Recovery & Logging API Calls
+  fetchMuscleRecoveryStatus: (characterId: string) => Promise<MuscleRecoveryStatusResponse | null>;
+  resetMuscleRecovery: (characterId: string) => Promise<void>;
+  fetchAvailableExercises: () => Promise<EnrichedExercise[]>;
+  logCompletedWorkout: (payload: LogWorkoutPayload) => Promise<any>;
 }
 
 const STORAGE_KEY = "ascend_os_custom_workout_plans";
@@ -67,7 +88,7 @@ const saveCustomTemplates = (templates: CustomWorkoutPlan[]) => {
   } catch (e) {}
 };
 
-export const useWorkoutStore = create<WorkoutState>((set) => ({
+export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   isWorkoutActive: false,
   sessionId: null,
   activeTemplateName: null,
@@ -76,6 +97,10 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
   sets: [],
   restTimerEnd: null,
   customTemplates: [],
+  muscleRecovery: null,
+  isLoadingRecovery: false,
+  availableExercises: [],
+  isLoadingExercises: false,
 
   hydrateTemplates: () => set({ customTemplates: loadStoredCustomTemplates() }),
 
@@ -145,4 +170,72 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     saveCustomTemplates(updated);
     return { customTemplates: updated };
   }),
+
+  // API Calls
+  fetchMuscleRecoveryStatus: async (characterId: string) => {
+    if (!characterId) return null;
+    set({ isLoadingRecovery: true });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/workouts/muscle-status/${characterId}`);
+      if (!res.ok) throw new Error("Failed to fetch muscle recovery status");
+      const data: MuscleRecoveryStatusResponse = await res.json();
+      set({ muscleRecovery: data, isLoadingRecovery: false });
+      return data;
+    } catch (error) {
+      console.error("Error fetching muscle recovery:", error);
+      set({ isLoadingRecovery: false });
+      return null;
+    }
+  },
+
+  resetMuscleRecovery: async (characterId: string) => {
+    if (!characterId) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/workouts/reset-recovery/${characterId}`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        set({ muscleRecovery: data.status });
+      }
+    } catch (error) {
+      console.error("Error resetting muscle recovery:", error);
+    }
+  },
+
+  fetchAvailableExercises: async () => {
+    set({ isLoadingExercises: true });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/workouts/exercises`);
+      if (!res.ok) throw new Error("Failed to fetch exercises");
+      const data: EnrichedExercise[] = await res.json();
+      set({ availableExercises: data, isLoadingExercises: false });
+      return data;
+    } catch (error) {
+      console.error("Error fetching available exercises:", error);
+      set({ isLoadingExercises: false });
+      return [];
+    }
+  },
+
+  logCompletedWorkout: async (payload: LogWorkoutPayload) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/workouts/log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to log workout session");
+      const data = await res.json();
+      if (data.recoveryStatus) {
+        set({ muscleRecovery: data.recoveryStatus });
+      } else {
+        get().fetchMuscleRecoveryStatus(payload.characterId);
+      }
+      return data;
+    } catch (error) {
+      console.error("Error logging workout session:", error);
+      throw error;
+    }
+  }
 }));

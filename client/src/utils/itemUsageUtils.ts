@@ -21,6 +21,7 @@ export interface ItemStatBonus {
   color: string;
   bg: string;
   borderColor: string;
+  isPercentage?: boolean;
 }
 
 export interface ItemUsageDetails {
@@ -98,28 +99,19 @@ export function getItemUsageDetails(item: {
     slotLabel = "Neck Accessory Slot";
     usageGuide = "Equip via Inventory to enhance life resonance, recovery speed, and spiritual stats.";
   } else if (typeUpper === "ARTIFACT" || typeUpper === "RELIC" || anyKeywordMatch(nameLower, ["artifact", "relic"])) {
-    categoryLabel = "Artifact / Relic";
-    slotLabel = "Artifact Relic Slot";
-    usageGuide = "Equip via Inventory to unleash ancient monarch passive bonuses and special aura effects.";
-  } else if (typeUpper === "CONSUMABLE" || anyKeywordMatch(nameLower, ["potion", "elixir", "flask", "token", "tonic", "scroll"])) {
+    categoryLabel = "Artifact";
+    slotLabel = "Sacred Relic Slot";
+    usageGuide = "Equip via Inventory to channel ancient transcendent passives and divine multipliers.";
+  } else if (typeUpper === "CONSUMABLE" || anyKeywordMatch(nameLower, ["potion", "elixir", "draught", "scroll", "tome", "flask", "brew"])) {
     categoryLabel = "Consumable";
-    slotLabel = "Useable from Inventory";
-    if (nameLower.includes("health") || nameLower.includes("hp")) {
-      usageGuide = "Use from Inventory to instantly restore character HP and accelerate biological recovery.";
-    } else if (nameLower.includes("exp")) {
-      usageGuide = "Use from Inventory to stimulate neural adaptation and immediately grant bonus EXP.";
-    } else if (nameLower.includes("gold")) {
-      usageGuide = "Use from Inventory to grant an immediate bonus payout of Gold currency.";
-    } else {
-      usageGuide = "Use directly from Inventory to activate its instant regenerative or multiplier effect.";
-    }
+    slotLabel = "Direct Consumption";
+    usageGuide = "Click 'Use Item' to instantly consume and receive temporary stat boosts, healing, or EXP rewards.";
   } else if (anyKeywordMatch(nameLower, ["gem", "crystal", "stone", "shard", "ore", "ingot", "material"])) {
     categoryLabel = "Material";
     slotLabel = "Crafting / Enhancement Material";
     usageGuide = "Valuable crafting material. Used in Forge upgrades and alchemical synthesis, or sellable for Gold.";
   }
 
-  // Collect active stat bonuses
   const statBonuses: ItemStatBonus[] = [];
 
   if (typeof item.attack === "number" && item.attack > 0) {
@@ -131,6 +123,7 @@ export function getItemUsageDetails(item: {
       color: "text-red-400",
       bg: "bg-red-950/40",
       borderColor: "border-red-500/30",
+      isPercentage: false,
     });
   }
 
@@ -143,84 +136,91 @@ export function getItemUsageDetails(item: {
       color: "text-blue-400",
       bg: "bg-blue-950/40",
       borderColor: "border-blue-500/30",
+      isPercentage: false,
     });
   }
 
   if (typeof item.strength === "number" && item.strength > 0) {
     statBonuses.push({
-      label: "Strength",
+      label: "Strength Multiplier",
       shortLabel: "STR",
       value: item.strength,
       icon: Dumbbell,
       color: "text-orange-400",
       bg: "bg-orange-950/40",
       borderColor: "border-orange-500/30",
+      isPercentage: true,
     });
   }
 
   if (typeof item.knowledge === "number" && item.knowledge > 0) {
     statBonuses.push({
-      label: "Knowledge",
+      label: "Knowledge Multiplier",
       shortLabel: "KNO",
       value: item.knowledge,
       icon: BookOpen,
       color: "text-cyan-400",
       bg: "bg-cyan-950/40",
       borderColor: "border-cyan-500/30",
+      isPercentage: true,
     });
   }
 
   if (typeof item.endurance === "number" && item.endurance > 0) {
     statBonuses.push({
-      label: "Endurance",
+      label: "Endurance Multiplier",
       shortLabel: "END",
       value: item.endurance,
       icon: Zap,
       color: "text-emerald-400",
       bg: "bg-emerald-950/40",
       borderColor: "border-emerald-500/30",
+      isPercentage: true,
     });
   }
 
   if (typeof item.recovery === "number" && item.recovery > 0) {
     statBonuses.push({
-      label: "Recovery",
+      label: "Recovery Multiplier",
       shortLabel: "REC",
       value: item.recovery,
       icon: HeartPulse,
       color: "text-pink-400",
       bg: "bg-pink-950/40",
       borderColor: "border-pink-500/30",
+      isPercentage: true,
     });
   }
 
   if (typeof item.focus === "number" && item.focus > 0) {
     statBonuses.push({
-      label: "Focus",
+      label: "Focus Multiplier",
       shortLabel: "FOC",
       value: item.focus,
       icon: Target,
       color: "text-purple-400",
       bg: "bg-purple-950/40",
       borderColor: "border-purple-500/30",
+      isPercentage: true,
     });
   }
 
   if (typeof item.discipline === "number" && item.discipline > 0) {
     statBonuses.push({
-      label: "Discipline",
+      label: "Discipline Multiplier",
       shortLabel: "DIS",
       value: item.discipline,
       icon: Activity,
       color: "text-amber-400",
       bg: "bg-amber-950/40",
       borderColor: "border-amber-500/30",
+      isPercentage: true,
     });
   }
 
   if (typeof item.consistency === "number" && item.consistency > 0) {
     statBonuses.push({
-      label: "Consistency",
+      label: "Consistency Multiplier",
       shortLabel: "CNS",
       value: item.consistency,
       icon: Activity,

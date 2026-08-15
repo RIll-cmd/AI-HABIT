@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { ShopItem } from "../types/shop";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
+import { useDailyBonusStore } from "@/store/useDailyBonusStore";
 import { playUISound } from "@/utils/audio";
 import { toast } from "sonner";
 import { API_BASE_URL } from "@/constants";
@@ -12,7 +13,7 @@ interface ShopStore {
   isRefreshing: boolean;
   error: string | null;
   fetchShopItems: (characterId: string) => Promise<void>;
-  refreshShopItems: (characterId: string) => Promise<void>;
+  refreshShopItems: (characterId: string, isFree?: boolean, goldCost?: number) => Promise<boolean>;
   buyItem: (characterId: string, shopItemId: string) => Promise<boolean>;
 }
 
@@ -34,20 +35,46 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     }
   },
 
-  refreshShopItems: async (characterId) => {
+  refreshShopItems: async (characterId, isFree = true, goldCost = 100) => {
     set({ isRefreshing: true, error: null });
     playUISound("/sounds/General/10_UI_Menu_SFX/079_Buy_sell_01.wav");
+
+    const effectiveCost = isFree ? 0 : goldCost;
+    const charStore = useCharacterStore.getState();
+    const curGold = charStore.character?.gold || 0;
+
+    if (!isFree && curGold < effectiveCost) {
+      toast.error(`Insufficient Gold! Requires ${effectiveCost} Gold to rotate shop inventory.`);
+      set({ isRefreshing: false });
+      return false;
+    }
+
+    if (isFree) {
+      useDailyBonusStore.getState().consumeShopRefresh();
+    } else {
+      charStore.updateIdentity({ gold: Math.max(0, curGold - effectiveCost) });
+    }
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/shop/${characterId}/refresh`, {
+      const res = await fetch(`${API_BASE_URL}/api/shop/${characterId}/refresh?cost=${effectiveCost}`, {
         method: "POST"
       });
-      if (!res.ok) throw new Error("Failed to rotate shop stock");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Failed to rotate shop stock" }));
+        throw new Error(err.detail || "Failed to rotate shop stock");
+      }
       const data = await res.json();
       set({ items: data, isRefreshing: false });
-      toast.success("Shop stock rotated with new items!");
+      if (isFree) {
+        toast.success("Shop stock rotated with new items (Free Reroll Used)!");
+      } else {
+        toast.success(`Shop stock rotated (-${effectiveCost} Gold)!`);
+      }
+      return true;
     } catch (e: any) {
-      toast.error("Failed to rotate shop stock.");
+      toast.error(e.message || "Failed to rotate shop stock.");
       set({ error: e.message, isRefreshing: false });
+      return false;
     }
   },
   

@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
+import { SystemTooltip } from "@/components/ui/SystemTooltip";
+import { EGG_LORE } from "@/features/lore/loreData";
 
 interface MysteryEggShopProps {
   characterId: string;
@@ -103,83 +105,108 @@ export const MysteryEggShop: React.FC<MysteryEggShopProps> = ({
             const canAffordGold = (character?.gold || 0) >= item.goldPrice;
             const canAffordGems = item.gemPrice > 0 && (character?.gems || 0) >= item.gemPrice;
 
+            const eggLore = EGG_LORE[item.name] || {
+              origin: "Harvested from deep dimensional rifts.",
+              storyLore: item.description,
+              incubationGuide: `Accumulate ${(item.targetEnergy ?? item.targetSteps).toLocaleString()} steps to hatch this egg.`,
+              potentialBeasts: ["Mystic Dragon", "Celestial Beast"]
+            };
+
             return (
-              <div
+              <SystemTooltip
                 key={item.id}
-                className="rounded-2xl bg-gradient-to-br from-[#0B1020]/95 via-[#070C18]/95 to-[#040710]/98 border border-cyan-500/25 p-4 flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition-all shadow-lg group"
+                title={item.name}
+                subtitle={`${item.eggType} Element • ${(item.targetEnergy ?? item.targetSteps).toLocaleString()} Steps Target`}
+                category="Mystery Beast Egg"
+                rarity={item.rarity as any}
+                description={item.description}
+                lore={eggLore.storyLore}
+                mechanics={eggLore.incubationGuide}
+                howToImprove={`Accumulate daily walking steps (${(item.targetEnergy ?? item.targetSteps).toLocaleString()} steps) to feed kinetic energy into the Incubator Chamber.`}
+                stats={[
+                  { label: "Step Target", value: `${(item.targetEnergy ?? item.targetSteps).toLocaleString()} Steps`, color: "text-cyan-300" },
+                  { label: "Egg Element", value: item.eggType, color: "text-amber-300" }
+                ]}
+                tags={[item.eggType, item.rarity, "Incubation"]}
+                delayMs={1000}
+                className="w-full h-full"
               >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
-                      {item.eggType} ELEMENT
-                    </span>
-                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/50 text-[9px] font-mono font-bold">
-                      {item.rarity}
-                    </Badge>
+                <div
+                  className="w-full h-full rounded-2xl bg-gradient-to-br from-[#0B1020]/95 via-[#070C18]/95 to-[#040710]/98 border border-cyan-500/25 p-4 flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition-all shadow-lg group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
+                        {item.eggType} ELEMENT
+                      </span>
+                      <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/50 text-[9px] font-mono font-bold">
+                        {item.rarity}
+                      </Badge>
+                    </div>
+
+                    {/* Egg Sprite Display */}
+                    <div className="py-3 flex items-center justify-center bg-black/40 rounded-xl border border-white/5 group-hover:scale-105 transition-transform">
+                      <img
+                        src={item.sprite}
+                        alt={item.name}
+                        className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]"
+                        style={{ imageRendering: "pixelated" }}
+                      />
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-black font-heading text-white">
+                        {item.name}
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-sans leading-relaxed mt-0.5 line-clamp-2">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-slate-300 bg-cyan-950/40 p-2 rounded-xl border border-cyan-500/20">
+                      <Footprints className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span>Requires {(item.targetEnergy ?? item.targetSteps).toLocaleString()} Steps</span>
+                    </div>
                   </div>
 
-                  {/* Egg Sprite Display */}
-                  <div className="py-3 flex items-center justify-center bg-black/40 rounded-xl border border-white/5 group-hover:scale-105 transition-transform">
-                    <img
-                      src={item.sprite}
-                      alt={item.name}
-                      className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]"
-                      style={{ imageRendering: "pixelated" }}
-                    />
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-black font-heading text-white">
-                      {item.name}
-                    </h4>
-                    <p className="text-[11px] text-slate-400 font-sans leading-relaxed mt-0.5">
-                      {item.description}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-slate-300 bg-cyan-950/40 p-2 rounded-xl border border-cyan-500/20">
-                    <Footprints className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>Requires {item.targetEnergy.toLocaleString()} Steps</span>
-                  </div>
-                </div>
-
-                {/* Purchase Buttons */}
-                <div className="space-y-2 pt-2 border-t border-white/5">
-                  <Button
-                    onClick={() => handleBuy(item, "GOLD")}
-                    disabled={isBuying || !canAffordGold}
-                    className={`w-full h-9 font-mono text-xs font-bold rounded-xl flex items-center justify-between px-3 cursor-pointer ${
-                      canAffordGold
-                        ? "bg-amber-950/80 hover:bg-amber-900 border border-amber-500/50 text-amber-200 shadow-md"
-                        : "bg-slate-900 text-slate-500 border border-slate-800 cursor-not-allowed"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <CurrencyIcon type="GOLD" size="sm" />
-                      Buy with Gold
-                    </span>
-                    <span className="font-black">{item.goldPrice.toLocaleString()} G</span>
-                  </Button>
-
-                  {item.gemPrice > 0 && (
+                  {/* Purchase Buttons */}
+                  <div className="space-y-2 pt-2 border-t border-white/5">
                     <Button
-                      onClick={() => handleBuy(item, "GEMS")}
-                      disabled={isBuying || !canAffordGems}
+                      onClick={() => handleBuy(item, "GOLD")}
+                      disabled={isBuying || !canAffordGold}
                       className={`w-full h-9 font-mono text-xs font-bold rounded-xl flex items-center justify-between px-3 cursor-pointer ${
-                        canAffordGems
-                          ? "bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 text-purple-200 shadow-md"
+                        canAffordGold
+                          ? "bg-amber-950/80 hover:bg-amber-900 border border-amber-500/50 text-amber-200 shadow-md"
                           : "bg-slate-900 text-slate-500 border border-slate-800 cursor-not-allowed"
                       }`}
                     >
                       <span className="flex items-center gap-1.5">
-                        <CurrencyIcon type="GEMS" size="sm" />
-                        Buy with Gems
+                        <CurrencyIcon type="GOLD" size="sm" />
+                        Buy with Gold
                       </span>
-                      <span className="font-black">{item.gemPrice} Gems</span>
+                      <span className="font-black">{item.goldPrice.toLocaleString()} G</span>
                     </Button>
-                  )}
+
+                    {item.gemPrice > 0 && (
+                      <Button
+                        onClick={() => handleBuy(item, "GEMS")}
+                        disabled={isBuying || !canAffordGems}
+                        className={`w-full h-9 font-mono text-xs font-bold rounded-xl flex items-center justify-between px-3 cursor-pointer ${
+                          canAffordGems
+                            ? "bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 text-purple-200 shadow-md"
+                            : "bg-slate-900 text-slate-500 border border-slate-800 cursor-not-allowed"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <CurrencyIcon type="GEMS" size="sm" />
+                          Buy with Gems
+                        </span>
+                        <span className="font-black">{item.gemPrice} Gems</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </SystemTooltip>
             );
           })}
         </div>
@@ -191,65 +218,87 @@ export const MysteryEggShop: React.FC<MysteryEggShopProps> = ({
       {activeTab === "STORAGE" && (
         <div className="space-y-4">
           {unhatchedEggs.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-black/40 border border-white/5 text-center space-y-3">
-              <Package className="w-10 h-10 text-slate-600 mx-auto" />
-              <h4 className="text-sm font-bold text-slate-300 font-heading">
-                No Eggs in Storage
-              </h4>
-              <p className="text-xs text-slate-500 font-mono">
-                Purchase mystery eggs in the Sanctuary Shop tab or acquire them through daily missions!
+            <div className="p-8 text-center bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+              <Package className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-xs text-slate-400 font-mono">
+                No eggs currently stored in your inventory vault. Purchase eggs in the Sanctuary Shop!
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {unhatchedEggs.map((egg) => {
-                const isCurrentlyActive = egg.id === activeEggId;
-                const progress = Math.min(100, Math.floor((egg.currentEnergy / egg.targetEnergy) * 100));
+                const isActive = egg.id === activeEggId;
+                const cSteps = egg.currentSteps ?? egg.currentEnergy ?? 0;
+                const tSteps = egg.targetSteps ?? egg.targetEnergy ?? 5000;
+                const eggLore = EGG_LORE[egg.name] || {
+                  origin: "Harvested from gate rifts.",
+                  storyLore: "A dormant mystery egg.",
+                  incubationGuide: `Accumulate ${tSteps.toLocaleString()} steps to hatch.`
+                };
 
                 return (
-                  <div
+                  <SystemTooltip
                     key={egg.id}
-                    className={`rounded-2xl p-4 border transition-all flex flex-col justify-between space-y-3 ${
-                      isCurrentlyActive
-                        ? "bg-gradient-to-br from-[#0c1c30] to-[#060e1a] border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-                        : "bg-black/40 border-slate-800"
-                    }`}
+                    title={egg.name}
+                    subtitle={`${egg.rarity} Mystery Egg • ${cSteps}/${tSteps} Steps`}
+                    category="Incubating Relic"
+                    rarity={egg.rarity as any}
+                    description={`Current incubation energy: ${cSteps.toLocaleString()} / ${tSteps.toLocaleString()} steps.`}
+                    lore={eggLore.storyLore}
+                    mechanics={eggLore.incubationGuide}
+                    howToImprove="Walk, jog, or perform cardio to generate kinetic incubation energy."
+                    stats={[
+                      { label: "Current Progress", value: `${Math.floor((cSteps / tSteps) * 100)}%`, color: "text-cyan-300" },
+                      { label: "Steps Logged", value: `${cSteps} / ${tSteps}`, color: "text-amber-300" }
+                    ]}
+                    tags={[egg.rarity, "Incubation"]}
+                    delayMs={1000}
+                    className="w-full h-full"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-xl bg-black/50 border border-white/10 flex items-center justify-center p-1 shrink-0">
+                    <div
+                      className={`w-full h-full rounded-2xl p-4 border flex flex-col justify-between space-y-3 ${
+                        isActive
+                          ? "bg-gradient-to-br from-[#0c2236] to-[#06121f] border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                          : "bg-slate-900/80 border-slate-800"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-[9px] font-mono">
+                          {egg.rarity}
+                        </Badge>
+                        {isActive && (
+                          <span className="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                            INCUBATING
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
                         <img
                           src={egg.sprite}
                           alt={egg.name}
-                          className="w-full h-full object-contain"
+                          className="w-12 h-12 object-contain"
                           style={{ imageRendering: "pixelated" }}
                         />
+                        <div className="min-w-0">
+                          <h5 className="font-bold text-sm text-white font-heading truncate">{egg.name}</h5>
+                          <span className="text-[10px] text-slate-400 font-mono block">
+                            {cSteps.toLocaleString()} / {tSteps.toLocaleString()} Steps
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-[9px] font-mono font-bold mb-1">
-                          {egg.rarity}
-                        </Badge>
-                        <h4 className="text-xs font-black font-heading text-white truncate">
-                          {egg.name}
-                        </h4>
-                        <span className="text-[10px] font-mono text-slate-400 block">
-                          {egg.currentEnergy.toLocaleString()} / {egg.targetEnergy.toLocaleString()} Energy ({progress}%)
-                        </span>
-                      </div>
-                    </div>
 
-                    <Button
-                      size="sm"
-                      onClick={() => handleIncubate(egg.id)}
-                      disabled={isCurrentlyActive}
-                      className={`w-full h-8 font-mono text-[10.5px] font-bold rounded-xl cursor-pointer ${
-                        isCurrentlyActive
-                          ? "bg-cyan-500 text-slate-950 font-black cursor-default"
-                          : "bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700"
-                      }`}
-                    >
-                      {isCurrentlyActive ? "IN INCUBATOR" : "PLACE IN INCUBATOR"}
-                    </Button>
-                  </div>
+                      {!isActive && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleIncubate(egg.id)}
+                          className="w-full h-8 font-mono text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-slate-950 rounded-xl"
+                        >
+                          Slot into Incubator
+                        </Button>
+                      )}
+                    </div>
+                  </SystemTooltip>
                 );
               })}
             </div>

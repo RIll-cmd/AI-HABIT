@@ -76,7 +76,7 @@ export default function BeastsPage() {
             <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-[#0f1a3d] to-[#070c20] border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] shrink-0 relative overflow-hidden group">
               <div className="absolute inset-0 bg-cyan-500/10 pointer-events-none" />
               <img
-                src={equippedBeast?.spritePath || "/beasts/beast_1.png"}
+                src={equippedBeast?.spritePath ? equippedBeast.spritePath.replace('.png', '.gif') : "/beasts/beast_1.gif"}
                 alt="Active Familiar"
                 className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 animate-float-slow"
                 style={{ imageRendering: "pixelated" }}
@@ -171,7 +171,7 @@ export default function BeastsPage() {
                 <div className="w-28 h-28 rounded-full bg-cyan-500/20 blur-xl animate-pulse pointer-events-none" />
                 <div className="relative w-24 h-24 bg-black/50 rounded-3xl border border-cyan-500/40 p-2 shadow-2xl flex items-center justify-center">
                   <img
-                    src={equippedBeast.spritePath}
+                    src={equippedBeast.spritePath ? equippedBeast.spritePath.replace('.png', '.gif') : '/beasts/beast_1.gif'}
                     alt={equippedBeast.name}
                     className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.8)] animate-float-slow"
                     style={{ imageRendering: "pixelated" }}
@@ -190,11 +190,10 @@ export default function BeastsPage() {
 
               <div className="w-full bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-3 flex items-center justify-between">
                 <span className="text-xs font-mono text-slate-300 font-bold">
-                  {(equippedBeast.statBonusType || equippedBeast.passiveBuffType || "EXP_BOOST").replace("_", " ")}:
+                  {(equippedBeast.statBonusType || equippedBeast.passiveBuffType || "EXP_PERCENT").replace("_PERCENT", "").replace("_BOOST", "").replace("_", " ")} Multiplier:
                 </span>
                 <span className="text-sm font-mono font-black text-emerald-400">
-                  +{equippedBeast.statBonusValue ?? equippedBeast.passiveBuffValue ?? 5}
-                  {(equippedBeast.statBonusType || equippedBeast.passiveBuffType || "").includes("BOOST") ? "%" : " SP"}
+                  +{(equippedBeast.statBonusValue ?? equippedBeast.passiveBuffValue ?? 5).toFixed(1)}%
                 </span>
               </div>
             </div>

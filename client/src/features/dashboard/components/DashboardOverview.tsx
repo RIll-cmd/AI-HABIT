@@ -49,7 +49,11 @@ import { useCombatStats } from "@/features/inventory/hooks/useCombatStats";
 import { useTowerStore } from "@/features/tower/store/useTowerStore";
 import { useBossStore } from "@/features/bosses/store/useBossStore";
 import { useBeastStore } from "@/features/beasts/store/useBeastStore";
+import { useWorkoutStore } from "@/features/workouts/store/useWorkoutStore";
+import { BodyHeatmap } from "@/components/workout";
 import { EquippedBeastDisplay } from "@/features/beasts/components/EquippedBeastDisplay";
+import { CompanionSanctumCard } from "./CompanionSanctumCard";
+import { DailyWeeklyBonusDrawer } from "@/features/habits/components/DailyWeeklyBonusDrawer";
 import { getEnemySpritePath } from "@/utils/sprites";
 import { SystemTooltip } from "@/components/ui/SystemTooltip";
 import { CURRENCY_LORE, STAT_LORE, ENEMY_LORE, getEnemyLore } from "@/features/lore/loreData";
@@ -129,6 +133,7 @@ export function DashboardOverview() {
   const { floors, fetchFloors, selectFloor } = useTowerStore();
   const { bosses, fetchBosses, isLoading: isBossesLoading } = useBossStore();
   const { collection, fetchCollection } = useBeastStore();
+  const { muscleRecovery, fetchMuscleRecoveryStatus } = useWorkoutStore();
 
   useEffect(() => {
     loadCharacter("char-id-123");
@@ -137,7 +142,8 @@ export function DashboardOverview() {
     fetchFloors("char-id-123");
     fetchBosses("char-id-123");
     fetchCollection("char-id-123");
-  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors, fetchBosses, fetchCollection]);
+    fetchMuscleRecoveryStatus("char-id-123");
+  }, [loadCharacter, loadTodayMissions, fetchInventory, fetchFloors, fetchBosses, fetchCollection, fetchMuscleRecoveryStatus]);
 
   const [missionViewFilter, setMissionViewFilter] = useState<"all" | "habits" | "missions">("all");
   const { quests } = useKanbanMissionStore();
@@ -191,6 +197,9 @@ export function DashboardOverview() {
 
   return (
     <div suppressHydrationWarning className="space-y-6">
+      {/* 5X DAILY BONUSES & WEEKLY QUEST DRAWER (SIDE BUTTON TRIGGER) */}
+      <DailyWeeklyBonusDrawer />
+
       {/* MAIN 3-COLUMN DASHBOARD GRID */}
       <div suppressHydrationWarning className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
@@ -291,6 +300,33 @@ export function DashboardOverview() {
                 className="text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 px-2 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/30 hover:border-cyan-500/60 transition-all cursor-pointer"
               >
                 {collection?.equippedBeast ? `+${collection.equippedBeast.statBonusValue}%` : "Incubate"}
+              </Link>
+            </div>
+
+            {/* Muscle Recovery & Bio-Decay Telemetry Mini-Card */}
+            <div suppressHydrationWarning className="mt-2.5 p-2.5 rounded-xl bg-[#080E22]/90 border border-cyan-500/25 flex items-center justify-between">
+              <div suppressHydrationWarning className="flex items-center gap-2.5">
+                <div suppressHydrationWarning className="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.3)]">
+                  <Activity className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <span suppressHydrationWarning className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">
+                    BIO-RECOVERY TELEMETRY
+                  </span>
+                  <span suppressHydrationWarning className="text-xs font-mono font-bold text-cyan-300 flex items-center gap-1.5">
+                    <span>{muscleRecovery?.summary.overallFreshness ?? 100}% Fresh</span>
+                    <span className="text-[10px] text-emerald-400 font-normal">
+                      ({muscleRecovery?.summary.freshCount ?? 16}/16 Ready)
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <Link
+                href="/workouts"
+                suppressHydrationWarning
+                className="text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 px-2 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/30 hover:border-cyan-500/60 transition-all cursor-pointer"
+              >
+                Scanner
               </Link>
             </div>
 
@@ -666,17 +702,20 @@ export function DashboardOverview() {
         </motion.div>
 
         {/* ========================================================= */}
-        {/* COLUMN 3: TOWER OF ASCENSION */}
+        {/* COLUMN 3: COMPANION SANCTUM & TOWER OF ASCENSION */}
         {/* ========================================================= */}
         <motion.div
           suppressHydrationWarning
-          className="space-y-4 flex flex-col h-full"
+          className="space-y-5 flex flex-col"
           variants={columnVariants}
           initial="hidden"
           animate="visible"
           custom={2}
         >
-          <div suppressHydrationWarning className="glass-card-purple p-5 flex flex-col flex-1 relative">
+          {/* Familiar Sanctum & Step Matrix Hub */}
+          <CompanionSanctumCard />
+
+          <div suppressHydrationWarning className="glass-card-purple p-5 flex flex-col relative">
             
             {/* Tower Background Gradient */}
             <div suppressHydrationWarning className="absolute inset-0 bg-gradient-to-b from-purple-900/[0.06] via-transparent to-transparent pointer-events-none rounded-[22px]" />

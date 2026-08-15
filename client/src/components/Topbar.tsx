@@ -15,7 +15,10 @@ import {
   Sparkles,
   Shield,
   Palette,
-  AlertTriangle
+  AlertTriangle,
+  Moon,
+  Brain,
+  Zap,
 } from "lucide-react";
 import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { SystemTooltip } from "@/components/ui/SystemTooltip";
@@ -24,6 +27,8 @@ import { AiraAvatar, AiraMood } from "@/components/ui/AiraAvatar";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useAiraStore } from "@/features/aira/store";
 import { useThemeStore } from "@/store/useThemeStore";
+import { useSleepStore } from "@/features/sleep/store/useSleepStore";
+import { useLearningStore } from "@/features/learning/store/useLearningStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +56,12 @@ export function Topbar() {
     toggleAutoBriefings,
     currentMood
   } = useAiraStore();
+
+  const openSleepDrawer = useSleepStore((state) => state.openDrawer);
+  const openLearningDrawer = useLearningStore((state) => state.openDrawer);
+  const pomodoroStatus = useLearningStore((state) => state.status);
+  const pomodoroTimeLeft = useLearningStore((state) => state.timeLeft);
+  const pomodoroMode = useLearningStore((state) => state.mode);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
@@ -349,6 +360,61 @@ export function Topbar() {
 
           {/* Action Icons */}
           <div suppressHydrationWarning className="flex items-center gap-1 sm:gap-2">
+            {/* Live Pomodoro Active Ticker */}
+            {isMounted && pomodoroStatus === "RUNNING" && (
+              <button
+                onClick={openLearningDrawer}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-950/80 border border-cyan-400 text-cyan-300 font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] animate-pulse cursor-pointer hover:bg-cyan-900/60 transition-all"
+                title="Focus Timer Active - Click to open Focus Engine"
+              >
+                <Brain className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                <span>
+                  {Math.floor(pomodoroTimeLeft / 60)}:
+                  {String(pomodoroTimeLeft % 60).padStart(2, "0")}
+                </span>
+              </button>
+            )}
+
+            {/* Learning & Focus Engine Quick Trigger */}
+            <SystemTooltip
+              title="Cognitive Mastery & Pomodoro Engine"
+              subtitle="Deep Focus & Habit Integration"
+              category="Focus System"
+              rarity="EPIC"
+              description="Open the integrated Pomodoro Timer. Link focus sessions to habits and level up KNO, FOC, and DIS stats."
+              delayMs={1000}
+            >
+              <Button
+                suppressHydrationWarning
+                variant="ghost"
+                size="icon"
+                onClick={openLearningDrawer}
+                className="text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer rounded-xl transition-all duration-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+              >
+                <Brain className="w-4 h-4" />
+              </Button>
+            </SystemTooltip>
+
+            {/* Sleep & Restorative Engine Quick Trigger */}
+            <SystemTooltip
+              title="Sleep Sanctuary & Recovery Engine"
+              subtitle="8-Hour Golden Standard Biometrics"
+              category="Restoration System"
+              rarity="EPIC"
+              description="Log sleep hours and track sleep debt. Optimal 8.0h sleep accelerates somatic cellular recovery and REC stats."
+              delayMs={1000}
+            >
+              <Button
+                suppressHydrationWarning
+                variant="ghost"
+                size="icon"
+                onClick={openSleepDrawer}
+                className="text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer rounded-xl transition-all duration-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+              >
+                <Moon className="w-4 h-4" />
+              </Button>
+            </SystemTooltip>
+
             <NotificationDrawer>
               <Button suppressHydrationWarning variant="ghost" size="icon" className="relative text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer rounded-xl transition-all duration-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]">
                 <Bell className="w-4 h-4" />

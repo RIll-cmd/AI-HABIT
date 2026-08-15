@@ -5,7 +5,14 @@ import { useWorkoutStore } from "@/features/workouts/store/useWorkoutStore";
 import { ActiveWorkout } from "@/features/workouts/components/ActiveWorkout";
 import { ExerciseRankCard } from "@/features/workouts/components/ExerciseRankCard";
 import { CreateCustomWorkoutModal } from "@/features/workouts/components/CreateCustomWorkoutModal";
+import {
+  BodyHeatmap,
+  MuscleRecoveryHUD,
+  WorkoutLoggerModal,
+} from "@/components/workout";
+import { MuscleGroupKey } from "@/features/workouts/types/muscleRecovery";
 import { useUser } from "@/context/UserContext";
+import { AiraAvatar } from "@/components/ui/AiraAvatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -25,6 +32,7 @@ import {
   Layers,
   ChevronRight,
   Shield,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -32,7 +40,12 @@ import { API_BASE_URL } from "@/constants";
 import { SystemTooltip } from "@/components/ui/SystemTooltip";
 import { WORKOUT_LORE } from "@/features/lore/loreData";
 import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
-import { playUIMenuSFX, playBattleSFX, playBuffSFX, playAIRASound } from "@/utils/audio";
+import {
+  playUIMenuSFX,
+  playBattleSFX,
+  playBuffSFX,
+  playAIRASound,
+} from "@/utils/audio";
 import Link from "next/link";
 
 const PREDEFINED_SPLITS = [
@@ -108,6 +121,10 @@ export default function WorkoutsPage() {
     startWorkoutWithTemplate,
     customTemplates,
     deleteCustomTemplate,
+    muscleRecovery,
+    fetchMuscleRecoveryStatus,
+    resetMuscleRecovery,
+    isLoadingRecovery,
   } = useWorkoutStore();
   const { user } = useUser();
 
@@ -115,17 +132,29 @@ export default function WorkoutsPage() {
   const [isLoadingRanks, setIsLoadingRanks] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isLoggerModalOpen, setIsLoggerModalOpen] = useState(false);
+  const [selectedMuscleKey, setSelectedMuscleKey] = useState<MuscleGroupKey | null>(null);
   const [activeBoss, setActiveBoss] = useState<any>(null);
 
   useEffect(() => {
     useWorkoutStore.getState().hydrateTemplates();
   }, []);
 
+  // Fetch Muscle Recovery Telemetry
+  useEffect(() => {
+    const charId = user?.id;
+    if (charId) {
+      fetchMuscleRecoveryStatus(charId);
+    }
+  }, [user?.id, isWorkoutActive, fetchMuscleRecoveryStatus]);
+
+  // Fetch PR Ranks
   useEffect(() => {
     const fetchRanks = async () => {
-      if (!user) return;
+      const charId = user?.id;
+      if (!charId) return;
       try {
-        const res = await fetch(`${API_BASE_URL}/api/workouts/ranks/${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/workouts/ranks/${charId}`);
         if (res.ok) {
           const data = await res.json();
           setRanks(data.ranks || []);
@@ -139,11 +168,13 @@ export default function WorkoutsPage() {
     fetchRanks();
   }, [user?.id, isWorkoutActive]);
 
+  // Fetch Weekly Boss
   useEffect(() => {
     const fetchBoss = async () => {
-      if (!user?.id) return;
+      const charId = user?.id;
+      if (!charId) return;
       try {
-        const res = await fetch(`${API_BASE_URL}/api/fitness/boss/${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/fitness/boss/${charId}`);
         if (res.ok) {
           const data = await res.json();
           setActiveBoss(data);
@@ -154,13 +185,14 @@ export default function WorkoutsPage() {
   }, [user?.id]);
 
   const handleQuickWorkout = async () => {
-    if (!user?.id) return;
+    const charId = user?.id;
+    if (!charId) return;
     playBattleSFX("encounter");
     try {
       const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: user.id }),
+        body: JSON.stringify({ characterId: charId }),
       });
       if (res.ok) {
         const session = await res.json();
@@ -175,13 +207,14 @@ export default function WorkoutsPage() {
   };
 
   const handleStartTemplate = async (name: string, exercises: any[]) => {
-    if (!user?.id) return;
+    const charId = user?.id;
+    if (!charId) return;
     playBattleSFX("encounter");
     try {
       const res = await fetch(`${API_BASE_URL}/api/fitness/sessions/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: user.id }),
+        body: JSON.stringify({ characterId: charId }),
       });
       if (res.ok) {
         const session = await res.json();
@@ -196,7 +229,8 @@ export default function WorkoutsPage() {
   };
 
   const handleCielAnalysis = async () => {
-    if (!user) return;
+    const charId = user?.id;
+    if (!charId) return;
     setIsAnalyzing(true);
     playAIRASound("NOTICE");
     try {
@@ -204,8 +238,8 @@ export default function WorkoutsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "Analyze my recent workout ranks.",
-          characterId: user.id,
+          prompt: "Analyze my recent workout ranks and muscle recovery telemetry.",
+          characterId: charId,
         }),
       });
       if (res.ok) {
@@ -232,23 +266,28 @@ export default function WorkoutsPage() {
     }
   };
 
+  const handleResetRecoverySimulation = async () => {
+    const charId = user?.id;
+    if (!charId) return;
+    playUIMenuSFX("confirm");
+    await resetMuscleRecovery(charId);
+    toast.success("Simulation Reset: All muscle groups refreshed to 100%!");
+  };
+
   return (
     <div className="space-y-8 pb-16 font-sans animate-in fade-in duration-300 relative text-slate-100 max-w-6xl mx-auto p-4 md:p-6">
-      {/* Background Floating Runes & Moving Particles */}
+      {/* Background Floating Runes */}
       <FloatingRuneField density="low" className="opacity-60" />
 
       {/* ========================================================= */}
-      {/* HERO & TELEMETRY COMMAND BAR */}
+      {/* 1. HERO & TOP TELEMETRY COMMAND BAR */}
       {/* ========================================================= */}
       <div className="relative rounded-[28px] bg-gradient-to-br from-[#0B1126]/95 via-[#070D1E]/95 to-[#040814]/98 border border-indigo-500/25 p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden backdrop-blur-2xl">
-        {/* Floating Runes & Moving Particles */}
         <FloatingRuneField density="high" />
 
-        {/* Animated Cyber Accent Lines */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent pointer-events-none" />
 
-        {/* Ambient Glow Orbs */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
         <div
           className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow"
@@ -270,20 +309,31 @@ export default function WorkoutsPage() {
                   KINETIC ASCENSION HUB
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono font-bold shadow-[0_0_10px_rgba(99,102,241,0.25)] flex items-center gap-1">
-                  E1RM RANK MATRIX
+                  RECOVERY & HEATMAP ENGINE
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]">
-                Workout Command
+                Workout Command & Muscle Heatmap
               </h1>
               <p className="text-xs text-slate-300 max-w-xl font-sans leading-relaxed">
-                Log progressive overload sets, unlock e1RM RPG power ranks, craft custom routines, and challenge the Weekly Boss PR.
+                Track real-time anatomical muscle fatigue, time-decay recovery, progressive overload e1RM power ranks, and boss damage.
               </p>
             </div>
           </div>
 
           {/* Action Controls */}
           <div className="flex flex-wrap items-center gap-3 z-10 w-full lg:w-auto justify-end">
+            <Button
+              onClick={() => {
+                playUIMenuSFX("click");
+                setIsLoggerModalOpen(true);
+              }}
+              className="h-11 px-5 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-mono font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Dumbbell className="w-4 h-4" />
+              <span>Log Targeted Workout</span>
+            </Button>
+
             <Link href="/workouts/boss-pr">
               <button
                 onClick={() => playBattleSFX("encounter")}
@@ -297,42 +347,58 @@ export default function WorkoutsPage() {
             <button
               onClick={handleCielAnalysis}
               disabled={isAnalyzing}
-              className="px-3.5 py-2.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg disabled:opacity-50 active:scale-95"
+              className="px-3.5 py-2.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-lg disabled:opacity-50 active:scale-95"
             >
               {isAnalyzing ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                <AiraAvatar mood="ANALYZING" className="w-4 h-4 border-none shadow-none rounded-full" />
               )}
               <span>AIRA Intel</span>
             </button>
-
-            <button
-              onClick={() => {
-                playUIMenuSFX();
-                setIsCreateModalOpen(true);
-              }}
-              className="px-3.5 py-2.5 rounded-xl border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-300 font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5 text-indigo-400" />
-              <span>+ Custom Plan</span>
-            </button>
-
-            {!isWorkoutActive && (
-              <button
-                onClick={handleQuickWorkout}
-                className="px-5 py-2.5 rounded-xl font-black font-mono text-xs uppercase tracking-wider bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>Quick Workout</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* FITNESS STATS & PR OVERVIEW DECK */}
+      {/* 2. RECOVERY ENGINE HUD & ANATOMICAL BODY HEATMAP */}
+      {/* ========================================================= */}
+      <div className="space-y-6">
+        {/* Top Recovery Telemetry HUD */}
+        <MuscleRecoveryHUD
+          recoveryStatus={muscleRecovery}
+          onOpenLogger={() => {
+            playUIMenuSFX("click");
+            setIsLoggerModalOpen(true);
+          }}
+          onResetRecovery={handleResetRecoverySimulation}
+          isLoading={isLoadingRecovery}
+        />
+
+        {/* Interactive Dual-View Anatomical Heatmap */}
+        <BodyHeatmap
+          recoveryStatus={muscleRecovery}
+          selectedMuscleKey={selectedMuscleKey}
+          onSelectMuscle={(mKey) => {
+            setSelectedMuscleKey(mKey);
+            playUIMenuSFX("click");
+          }}
+          variant="full"
+          defaultView="dual"
+        />
+      </div>
+
+      {/* ========================================================= */}
+      {/* 3. ACTIVE LIVE WORKOUT SESSION (IF ACTIVE) */}
+      {/* ========================================================= */}
+      {isWorkoutActive && (
+        <div className="relative z-20">
+          <ActiveWorkout />
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 4. FITNESS STATS & PR RANK MATRIX */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Fitness Power Card */}
@@ -425,7 +491,7 @@ export default function WorkoutsPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-slate-400 font-mono text-xs border border-dashed border-slate-800 rounded-2xl p-4 bg-[#050914]/50">
-                No exercise sets logged yet. Launch a quick workout or split routine to establish your e1RM ranks!
+                No exercise sets logged yet. Log a workout above to establish your e1RM ranks!
               </div>
             )}
           </div>
@@ -433,7 +499,7 @@ export default function WorkoutsPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* USER CUSTOM WORKOUT PLANS */}
+      {/* 5. USER CUSTOM WORKOUT PLANS */}
       {/* ========================================================= */}
       {customTemplates.length > 0 && (
         <div className="space-y-4">
@@ -515,144 +581,80 @@ export default function WorkoutsPage() {
       )}
 
       {/* ========================================================= */}
-      {/* PREDEFINED SPLIT ROUTINES MATRIX */}
+      {/* 6. PREDEFINED SPLIT ROUTINES MATRIX */}
       {/* ========================================================= */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-indigo-950/80 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
-              <Dumbbell className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold text-white font-heading tracking-tight flex items-center gap-2">
-                Predefined Split Protocols
-              </h3>
-              <p className="text-[10.5px] font-mono text-slate-400">
-                Balanced compound resistance chains tailored for optimal hypertrophy
-              </p>
-            </div>
+          <div>
+            <h3 className="text-base font-extrabold text-white font-heading tracking-tight flex items-center gap-2">
+              <Layers className="w-5 h-5 text-indigo-400" />
+              Standard Split Routines
+            </h3>
+            <p className="text-xs text-slate-400 font-sans">
+              Choose a tactical routine to target primary muscle groups and build progressive power.
+            </p>
           </div>
-
-          <button
-            onClick={() => {
-              playUIMenuSFX();
-              setIsCreateModalOpen(true);
-            }}
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-mono font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Custom Routine
-          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {PREDEFINED_SPLITS.map((split, i) => {
-            const lore = WORKOUT_LORE[split.name];
-            const primaryMuscles = lore?.targetMuscles.primary.join(", ") || split.target;
-            const secondaryMuscles = lore?.targetMuscles.secondary.join(", ") || "Core Stabilizers";
-
-            return (
-              <SystemTooltip
-                key={i}
-                title={split.name}
-                subtitle={split.target}
-                category={lore?.category || "Predefined Split Routine"}
-                rarity={lore?.rarity || "EPIC"}
-                description={`⚡ Primary Muscles: ${primaryMuscles}\n🛡️ Stabilizing Muscles: ${secondaryMuscles}`}
-                lore={lore?.lore || "A balanced compound split designed to maximize neuromuscular hypertrophy."}
-                mechanics={`Biomechanics: ${lore?.biomechanics || "Compound resistance movement chain with progressive tension overload."}`}
-                stats={[
-                  { label: "Target Focus", value: split.target.split("•")[0]?.trim() || "Upper Body" },
-                  { label: "Attribute Gain", value: split.statGain.replace("+", ""), color: "text-emerald-400" },
-                  { label: "Exercise Count", value: `${split.exercises.length} Movements` },
-                ]}
-                tags={["Workout", "Hypertrophy", "Strength", split.name.replace(" Split", "")]}
-                className="w-full h-full"
-              >
-                <div
-                  className={`p-5 rounded-[22px] bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border ${split.borderColor} ${split.glowColor} transition-all overflow-hidden flex flex-col justify-between group w-full h-full cursor-help relative backdrop-blur-xl`}
-                >
-                  {/* Floating Micro Rune */}
-                  <FloatingRuneField density="low" className="opacity-20 group-hover:opacity-40 transition-opacity" />
-
-                  {/* Header */}
-                  <div className="pb-3 border-b border-slate-800/80 relative z-10">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors font-sans">
-                        {split.name}
-                      </h4>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border ${split.badgeColor}`}>
-                        {split.exercises.length} EX
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">{split.target}</p>
-                  </div>
-
-                  {/* Body */}
-                  <div className="py-3 font-mono flex-1 flex flex-col justify-between relative z-10">
-                    <div>
-                      <span className="block text-[10px] text-emerald-400 font-bold mb-2 font-mono">
-                        {split.statGain}
-                      </span>
-
-                      {/* Default Preview */}
-                      <ul className="text-xs text-slate-300 space-y-1.5 group-hover:hidden transition-all">
-                        {split.exercises.slice(0, 3).map((ex, idx) => (
-                          <li key={idx} className="truncate flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-indigo-400" />
-                            <span>{ex.name}</span>
-                          </li>
-                        ))}
-                        {split.exercises.length > 3 && (
-                          <li className="text-[10px] text-cyan-400/90 font-mono italic">
-                            + {split.exercises.length - 3} more (hover for all)
-                          </li>
-                        )}
-                      </ul>
-
-                      {/* Hover View: All Exercises */}
-                      <div className="hidden group-hover:flex flex-col space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-                        <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-wider font-bold">
-                          All {split.exercises.length} Exercises:
-                        </span>
-                        <ul className="text-xs text-slate-200 space-y-1 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
-                          {split.exercises.map((ex, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-center justify-between text-[11px] bg-[#050914]/90 border border-slate-800 rounded-lg px-2 py-1"
-                            >
-                              <span className="truncate mr-2 font-medium text-slate-200">• {ex.name}</span>
-                              <span className="text-[9px] text-indigo-300 bg-indigo-950/60 border border-indigo-500/30 px-1.5 py-0.5 rounded flex-shrink-0 font-mono">
-                                {ex.primaryMuscle}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <button
-                      disabled={isWorkoutActive}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartTemplate(split.name, split.exercises);
-                      }}
-                      className="w-full mt-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.3)] flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-white" />
-                      <span>Launch Routine</span>
-                    </button>
-                  </div>
+          {PREDEFINED_SPLITS.map((split, i) => (
+            <div
+              key={i}
+              className={`p-5 rounded-[22px] bg-gradient-to-br ${split.accentColor} bg-[#080D1E]/90 border ${split.borderColor} ${split.glowColor} transition-all duration-300 flex flex-col justify-between group relative overflow-hidden backdrop-blur-xl`}
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span
+                    className={`px-2 py-0.5 rounded-md border text-[9px] font-mono font-black uppercase ${split.badgeColor}`}
+                  >
+                    {split.statGain}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {split.exercises.length} Exercises
+                  </span>
                 </div>
-              </SystemTooltip>
-            );
-          })}
+
+                <h4 className="text-base font-extrabold font-heading text-white group-hover:text-cyan-300 transition-colors">
+                  {split.name}
+                </h4>
+                <p className="text-xs text-slate-300 font-sans mt-0.5">{split.target}</p>
+
+                <ul className="mt-4 space-y-1.5 text-xs text-slate-300 font-sans">
+                  {split.exercises.map((ex, idx) => (
+                    <li key={idx} className="truncate flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-cyan-400/80" />
+                      <span>{ex.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <button
+                disabled={isWorkoutActive}
+                onClick={() => handleStartTemplate(split.name, split.exercises)}
+                className="w-full mt-5 py-2.5 rounded-xl bg-slate-900/90 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 border border-cyan-500/40 font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md disabled:opacity-40 active:scale-95"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Start Routine</span>
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Modals & Active Workout Overlay */}
-      <CreateCustomWorkoutModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-      {isWorkoutActive && <ActiveWorkout />}
+      {/* ========================================================= */}
+      {/* 7. MODALS */}
+      {/* ========================================================= */}
+      <CreateCustomWorkoutModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
+
+      <WorkoutLoggerModal
+        isOpen={isLoggerModalOpen}
+        onClose={() => setIsLoggerModalOpen(false)}
+        initialExerciseId={selectedMuscleKey ? undefined : undefined}
+      />
     </div>
   );
 }
-

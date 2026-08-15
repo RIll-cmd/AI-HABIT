@@ -43,12 +43,14 @@ const RARITY_COLORS: Record<string, string> = {
 
 const SLOT_RUNES = ['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ'];
 
-export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
+import { SystemTooltip, SystemTooltipStat } from '@/components/ui/SystemTooltip';
+
+export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems = [] }) => {
   const { collection } = useBeastStore();
   const equippedBeast = collection?.equippedBeast || null;
 
   const getItemForSlot = (slot: string) => {
-    return equippedItems.find(item => item.itemDefinition.type === slot);
+    return (equippedItems || []).find(item => item?.itemDefinition?.type === slot);
   };
 
   const renderSlot = (slotType: ItemType, label: string, floatDelay: number) => {
@@ -61,24 +63,48 @@ export const PaperDoll: React.FC<PaperDollProps> = ({ equippedItems }) => {
       
     const bgOpacity = item ? 'bg-[#0a1024]/90' : 'bg-[#0a1024]/50';
 
+    const tooltipStats: SystemTooltipStat[] = [];
+    if (item?.itemDefinition) {
+      const def = item.itemDefinition;
+      if (def.attack) tooltipStats.push({ label: "Attack Power", value: `+${def.attack} ATK`, color: "text-rose-400" });
+      if (def.defense) tooltipStats.push({ label: "Defense Armor", value: `+${def.defense} DEF`, color: "text-blue-400" });
+      if (def.strength) tooltipStats.push({ label: "STR Multiplier", value: `+${def.strength}% (IRL Scaling)` });
+      if (def.knowledge) tooltipStats.push({ label: "KNW Multiplier", value: `+${def.knowledge}% (IRL Scaling)` });
+      if (def.discipline) tooltipStats.push({ label: "DIS Multiplier", value: `+${def.discipline}% (IRL Scaling)` });
+      if (def.focus) tooltipStats.push({ label: "FOC Multiplier", value: `+${def.focus}% (IRL Scaling)` });
+      if (def.endurance) tooltipStats.push({ label: "END Multiplier", value: `+${def.endurance}% (IRL Scaling)` });
+      if (def.recovery) tooltipStats.push({ label: "REC Multiplier", value: `+${def.recovery}% (IRL Scaling)` });
+    }
+
     return (
-      <div 
+      <SystemTooltip
         key={slotType}
-        className={`w-14 h-14 rounded-xl ${bgOpacity} border ${borderColor} flex flex-col items-center justify-center transition-all duration-300 group relative shadow-md animate-float-gentle hover:scale-110`}
-        style={{ animationDelay: `${floatDelay}s` }}
-        title={item ? item.itemDefinition.name : `Empty ${label} Slot`}
+        title={item ? item.itemDefinition.name : `${label} Slot`}
+        subtitle={item ? `${item.itemDefinition.rarity} ${item.itemDefinition.type}` : "Empty Equipment Socket"}
+        category={label}
+        rarity={item?.itemDefinition?.rarity as any || "COMMON"}
+        description={item ? item.itemDefinition.description || "Equipped armament." : `No armament currently equipped in your ${label} slot. Forge or acquire gear in the Shop and Tower.`}
+        lore={item?.itemDefinition?.lore || `Socketed armaments amplify your kinetic attributes into combat prowess.`}
+        mechanics="Equipped items grant percentage amplifiers (% Multipliers) based on your real-world base stats."
+        stats={tooltipStats}
+        delayMs={1000}
       >
-        {item && item.itemDefinition.icon ? (
-          <Image 
-            src={item.itemDefinition.icon.replace('client/public', '')} 
-            alt={item.itemDefinition.name} 
-            fill
-            className="object-contain p-1.5 drop-shadow-md"
-          />
-        ) : (
-          <Icon className="w-5 h-5 text-slate-600/60 group-hover:text-cyan-400/60 transition-colors" />
-        )}
-      </div>
+        <div 
+          className={`w-14 h-14 rounded-xl ${bgOpacity} border ${borderColor} flex flex-col items-center justify-center transition-all duration-300 group relative shadow-md animate-float-gentle hover:scale-110 cursor-pointer`}
+          style={{ animationDelay: `${floatDelay}s` }}
+        >
+          {item && item.itemDefinition.icon ? (
+            <Image 
+              src={item.itemDefinition.icon.replace('client/public', '')} 
+              alt={item.itemDefinition.name} 
+              fill
+              className="object-contain p-1.5 drop-shadow-md"
+            />
+          ) : (
+            <Icon className="w-5 h-5 text-slate-600/60 group-hover:text-cyan-400/60 transition-colors" />
+          )}
+        </div>
+      </SystemTooltip>
     );
   };
 

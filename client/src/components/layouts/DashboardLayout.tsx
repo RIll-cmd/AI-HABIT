@@ -6,6 +6,8 @@ import { Topbar } from "@/components/Topbar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAiraNotification } from "@/features/aira/useAiraNotification";
 import { AiraPeriodicToast } from "@/features/aira/components/AiraPeriodicToast";
+import { SleepDrawer } from "@/features/sleep/components/SleepDrawer";
+import { LearningDrawer } from "@/features/learning/components/LearningDrawer";
 
 /* Arcane rune glyphs for the floating rune system */
 const RUNE_GLYPHS = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ", "ᚺ", "ᚾ", "ᛁ", "ᛃ", "ᛈ", "ᛇ", "ᛉ", "ᛊ", "ᛏ", "ᛒ", "ᛗ", "ᛚ", "ᛞ", "ᛟ"];
@@ -89,6 +91,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </div>
       <MobileBottomNav />
       <AiraPeriodicToast />
+      <SleepDrawer />
+      <LearningDrawer />
     </div>
   );
 }

@@ -107,11 +107,11 @@ function NotificationCard({ notification, onRead }: { notification: AppNotificat
     switch (notification.category) {
       case "AIRA BRIEFINGS":
         return (
-          <div className="w-9 h-9 rounded-full overflow-hidden border border-cyan-500/40 bg-slate-900 flex-shrink-0 relative flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-cyan-500/50 bg-slate-900 flex-shrink-0 relative flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.4)]">
             <img
-              src="/AIRA ICON/cropped/aira-neutral.png"
+              src="/AIRA ICON/fairy-gif.gif"
               alt="AIRA"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover scale-110"
             />
           </div>
         );

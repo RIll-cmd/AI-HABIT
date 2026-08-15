@@ -10,14 +10,27 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  email     String?  @unique
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  username        String   @unique
+  email           String?  @unique
+  password        String?
+  isEmailVerified Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  character Character?
+  character       Character?
+  emailTokens     EmailVerificationToken[]
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
 }
 
 model Character {
@@ -43,6 +56,8 @@ model Character {
   streakFreezes Int    @default(0)
   timezone      String? @default("UTC")
   lastDecayCheck DateTime?
+  dailyStepGoal Int    @default(10000)
+  dailySteps    Int    @default(0)
   createdAt DateTime @default(now())
 
   stats         CharacterStats?
@@ -68,6 +83,7 @@ model Character {
   eggs             Egg[]
   beasts           Beast[]
   dailyStepLogs    DailyStepLog[]
+  muscleRecoveryStates MuscleRecoveryState[]
 }
 
 model CharacterStats {
@@ -346,15 +362,18 @@ model InventoryTransaction {
 }
 
 model ExerciseDefinition {
-  id              String             @id @default(uuid())
-  name            String             @unique
-  primaryMuscle   String
-  equipment       String
-  trackingMetrics String             // e.g. "Weight, Reps"
-  createdAt       DateTime           @default(now())
+  id               String             @id @default(uuid())
+  name             String             @unique
+  primaryMuscle    String
+  secondaryMuscles String             @default("[]") // JSON-serialized list of secondary muscles, e.g. '["TRICEPS", "SHOULDERS"]'
+  category         String             @default("HYPERTROPHY") // 'STRENGTH', 'HYPERTROPHY', 'ENDURANCE'
+  instructions     String?
+  equipment        String
+  trackingMetrics  String             // e.g. "Weight, Reps"
+  createdAt        DateTime           @default(now())
 
-  standards       ExerciseStandard[]
-  workoutSets     WorkoutSet[]
+  standards        ExerciseStandard[]
+  workoutSets      WorkoutSet[]
 }
 
 model ExerciseStandard {
@@ -397,6 +416,20 @@ model WorkoutSet {
   createdAt       DateTime           @default(now())
 
   @@index([sessionId])
+}
+
+model MuscleRecoveryState {
+  id                String    @id @default(uuid())
+  characterId       String
+  character         Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  muscleGroup       String    // 'CHEST', 'BACK', 'LATS', 'TRAPS', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'ABS', 'OBLIQUES', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES'
+  initialFatigue    Float     @default(0.0) // 0.0 to 100.0
+  lastTrainedAt     DateTime  @default(now())
+  fullRecoveryHours Float     @default(48.0) // 48.0 for standard, 72.0 for heavy compound groups
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([characterId, muscleGroup])
 }
 
 model WeeklyBoss {
@@ -689,6 +722,10 @@ model Beast {
   statBonusValue   Float     @default(5.0)
   description      String?
   lore             String?
+  level            Int       @default(1)
+  accumulatedSteps Int       @default(0)
+  stepUpgradeReq   Int       @default(5000)
+  goldUpgradeReq   Int       @default(1000)
   isEquipped       Boolean   @default(false)
   characterId      String
   character        Character @relation(fields: [characterId], references: [id], onDelete: Cascade)

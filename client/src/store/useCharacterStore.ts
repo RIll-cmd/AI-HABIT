@@ -302,7 +302,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const lowerStat = statName.toLowerCase();
     const currentStats = (character.stats || defaultStats) as Record<string, any>;
     const currentVal = typeof currentStats[lowerStat] === "number" ? currentStats[lowerStat] : 1;
-    const updatedVal = currentVal + amount;
+    const updatedVal = Math.max(1, Math.round((currentVal + amount) * 10) / 10);
 
     const updatedStats: CharacterStats = {
       ...currentStats,
@@ -328,6 +328,17 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         power: newPower,
         rank: newRank,
       },
+    });
+
+    const targetId = character?.id || getStoredCharacterId();
+    if (!targetId) return;
+
+    syncCharacterProgression(targetId, {
+      stats: { [lowerStat]: updatedVal },
+      power: newPower,
+      rank: newRank,
+    }).catch((err) => {
+      console.error("[useCharacterStore] Stat sync failed:", err);
     });
   },
 

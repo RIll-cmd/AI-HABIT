@@ -3,6 +3,7 @@
 import React from "react";
 import { Target, Sparkles, Plus, ShieldCheck, Flame, Zap, Compass, CheckCircle2 } from "lucide-react";
 import { KanbanQuestBoard } from "@/features/habits/components/KanbanQuestBoard";
+import { DailyWeeklyBonusDrawer } from "@/features/habits/components/DailyWeeklyBonusDrawer";
 import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
 
 export default function MissionsPage() {
@@ -10,6 +11,9 @@ export default function MissionsPage() {
     <div className="space-y-6 pb-12 text-slate-100 font-sans animate-in fade-in duration-300 relative">
       {/* Background Floating Runes & Particle Field */}
       <FloatingRuneField density="low" className="opacity-60" />
+
+      {/* Floating Side Drawer Trigger for Daily Bonuses & Weekly Quests */}
+      <DailyWeeklyBonusDrawer />
 
       {/* ========================================================= */}
       {/* HEADER SECTION: SYSTEM MISSION & DIRECTIVE HUB */}

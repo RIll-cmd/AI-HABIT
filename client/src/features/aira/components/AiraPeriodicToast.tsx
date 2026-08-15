@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AiraAvatar, AiraMood } from "@/components/ui/AiraAvatar";
 import { useAiraStore } from "../store";
+import { Sparkles, X } from "lucide-react";
 
 export function AiraPeriodicToast() {
   const { activePeriodicToast, dismissPeriodicToast, currentMood } = useAiraStore();
@@ -11,10 +12,10 @@ export function AiraPeriodicToast() {
   useEffect(() => {
     if (!activePeriodicToast) return;
 
-    // Auto-dismiss toast after 8 seconds
+    // Auto-dismiss toast after 9 seconds
     const timer = setTimeout(() => {
       dismissPeriodicToast();
-    }, 8000);
+    }, 9000);
 
     return () => clearTimeout(timer);
   }, [activePeriodicToast, dismissPeriodicToast]);
@@ -24,30 +25,54 @@ export function AiraPeriodicToast() {
       {activePeriodicToast && (
         <motion.div
           key={activePeriodicToast.id}
-          initial={{ opacity: 0, scale: 0.85, y: -15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.85, y: -15 }}
+          initial={{ opacity: 0, scale: 0.85, y: -20, filter: "blur(6px)" }}
+          animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, scale: 0.85, y: -20, filter: "blur(6px)" }}
           style={{ transformOrigin: "top right" }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed top-20 right-4 sm:right-6 z-50 max-w-sm w-full font-mono select-none"
+          className="fixed top-16 sm:top-20 right-3 sm:right-6 z-50 max-w-md w-[calc(100vw-24px)] sm:w-full font-mono select-none"
         >
           <div
             onClick={dismissPeriodicToast}
-            className="bg-[#0B1020]/95 border border-cyan-500/40 rounded-2xl p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.3)] backdrop-blur-md relative overflow-hidden group cursor-pointer hover:border-cyan-400/70 transition-all flex items-center gap-3.5"
+            className="bg-[#0B1020]/95 border border-cyan-500/40 rounded-2xl p-4 shadow-[0_0_40px_rgba(6,182,212,0.35)] backdrop-blur-xl relative overflow-hidden group cursor-pointer hover:border-cyan-400/80 transition-all flex items-start gap-3.5"
           >
             {/* Background Holographic Ambient Glow */}
-            <div className="absolute top-0 right-0 w-28 h-28 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-cyan-400 to-purple-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-cyan-400 via-indigo-500 to-purple-500" />
 
             {/* Glowing Orb Avatar */}
-            <div className="flex-shrink-0 w-11 h-11 rounded-full overflow-hidden ring-2 ring-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.5)] bg-slate-900 relative ml-1">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden ring-2 ring-cyan-500/50 shadow-[0_0_18px_rgba(6,182,212,0.6)] bg-slate-900 relative mt-0.5">
               <AiraAvatar mood={currentMood as AiraMood} className="w-full h-full rounded-none border-none shadow-none" />
             </div>
 
-            {/* Status Message Text */}
-            <p className="text-xs text-slate-100 font-sans leading-relaxed flex-1 pr-1 font-medium">
-              {activePeriodicToast.text}
-            </p>
+            {/* Content Container */}
+            <div className="flex-1 min-w-0 pr-4">
+              {/* Category Pill Tag */}
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 font-mono">
+                  AIRA // {activePeriodicToast.category}
+                </span>
+              </div>
+
+              {/* Status Message Text */}
+              <p className="text-xs text-slate-100 font-sans leading-relaxed font-medium">
+                {activePeriodicToast.text}
+              </p>
+            </div>
+
+            {/* Dismiss Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissPeriodicToast();
+              }}
+              className="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              aria-label="Dismiss notification"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </motion.div>
       )}
