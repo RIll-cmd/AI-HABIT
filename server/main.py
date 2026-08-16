@@ -39,6 +39,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def ensure_db_connected_middleware(request: Request, call_next):
+    if not db.is_connected():
+        try:
+            await db.connect()
+        except Exception as e:
+            # If already connected concurrently in async loop, continue cleanly
+            pass
+    response = await call_next(request)
+    return response
+
 @app.exception_handler(RecordNotFoundError)
 async def prisma_record_not_found_handler(request: Request, exc: RecordNotFoundError):
     return JSONResponse(
