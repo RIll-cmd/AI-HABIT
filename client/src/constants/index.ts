@@ -1,19 +1,16 @@
 export const APP_NAME = "Ascend OS";
 
 const getApiBaseUrl = () => {
-  // If explicitly overridden in environment to an external host
+  // If explicitly overridden via environment variable
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
   }
-  // If running in browser on Vercel deployment without custom env var
-  if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
-    return "https://ai-habit-omega-backend.onrender.com";
-  }
-  // In the browser locally, an empty string routes through Next.js proxy rewrites
+  // In the browser (both Vercel serverless deployment and local dev proxy),
+  // an empty string routes through relative /api paths on the current origin
   if (typeof window !== "undefined") {
     return "";
   }
-  // Server-side default
+  // Server-side default during SSR/build
   return "http://127.0.0.1:8000";
 };
 

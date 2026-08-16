@@ -1,9 +1,0 @@
-{
-  "framework": "nextjs",
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://ai-habit-omega-backend.onrender.com/api/:path*"
-    }
-  ]
-}

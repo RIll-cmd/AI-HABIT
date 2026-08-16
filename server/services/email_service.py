@@ -12,7 +12,15 @@ import smtplib
 logger = logging.getLogger("ascend_email_service")
 logger.setLevel(logging.INFO)
 
-DB_PATH = os.getenv("DATABASE_PATH", r"d:\real ascend os\server\prisma\dev.db")
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+SERVER_DIR = os.path.dirname(CURRENT_DIR)
+DEFAULT_DB_PATH = os.path.join(SERVER_DIR, "prisma", "dev.db")
+if not os.path.exists(DEFAULT_DB_PATH):
+    alt_path = os.path.join(SERVER_DIR, "dev.db")
+    if os.path.exists(alt_path):
+        DEFAULT_DB_PATH = alt_path
+
+DB_PATH = os.getenv("DATABASE_PATH", DEFAULT_DB_PATH)
 
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -22,6 +30,8 @@ SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "system@ascend-os.neural")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Ascend OS Neural Gateway")
 
 def get_db_connection():
+    # Ensure directory exists if needed
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
