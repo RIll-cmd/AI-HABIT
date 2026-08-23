@@ -54,19 +54,39 @@ Ascend OS includes 20 live captured module walkthroughs showcasing every interfa
 
 <br>
 
-### 📸 Live In-Game HUD Previews
+### 📸 High-Resolution HUD & Module Showcase
+
+<div align="center">
+
+| 🖥️ Main Dashboard Overview | 🩻 16-Muscle Recovery Heatmap & Workout |
+| :---: | :---: |
+| <img src="client/public/previews/main-dashboard.png" width="450" alt="Main Dashboard Overview" /> | <img src="client/public/previews/workout.png" width="450" alt="Workout & Recovery Heatmap" /> |
+| *7-Stat radar, rank telemetry, active quests & beast companion* | *16-muscle anatomical time-decay silhouette & 1RM gym logger* |
+
+| ⚔️ Tower of Ascension Gauntlet | 🏆 Boss PR Breakthrough Arena |
+| :---: | :---: |
+| <img src="client/public/previews/tower.png" width="450" alt="Tower of Ascension" /> | <img src="client/public/previews/boss-pr.png" width="450" alt="Boss PR Arena" /> |
+| *20-Floor auto-combat simulator & AIRA defeat analysis* | *Transform compound lift PRs into titanic boss battles* |
+
+| 🔁 Habit Mastery & Continuous Math | 🎯 Kanban Quests & Multi-Step Checklists |
+| :---: | :---: |
+| <img src="client/public/previews/habits.png" width="450" alt="Habit Mastery" /> | <img src="client/public/previews/missions.png" width="450" alt="Missions & Kanban" /> |
+| *3-Tier sizing, 365-day heatmap & streak freeze shields* | *Organized task workflow with dynamic progress tracking* |
+
+| 🐉 Beast Incubation & 20 Dragons | 🧙 9-Slot PaperDoll Equipment & Lore |
+| :---: | :---: |
+| <img src="client/public/previews/beasts.png" width="450" alt="Beast Incubation" /> | <img src="client/public/previews/inventory.png" width="450" alt="Inventory & PaperDoll" /> |
+| *Real-world step incubation & 20 animated elemental dragons* | *9-Slot equipment grid, item inspect tooltips, & item lore* |
 
 | ⚡ Daily System Surges & Boosts | 👑 Weekly Epic Directives Hub |
 | :---: | :---: |
-| <img src="client/public/screenshots/daily-bonuses.png" width="420" alt="Daily Bonuses Hub" /> | <img src="client/public/screenshots/weekly-quests.png" width="420" alt="Weekly Quests Hub" /> |
+| <img src="client/public/screenshots/daily-bonuses.png" width="450" alt="Daily Bonuses Hub" /> | <img src="client/public/screenshots/weekly-quests.png" width="450" alt="Weekly Quests Hub" /> |
 | *Auto-applying 2x Habit, Learning & Workout Surges + Free Egg Claim* | *Weekly PR Boss confrontation, 40k step quotas, & Tower trials* |
 
-<br>
-
-| 🤖 AIRA Proactive Contextual Briefings & Real-Time Telemetry |
+| 🤖 AIRA Neural System & Timely Briefings |
 | :---: |
-| <img src="client/public/screenshots/aira-notifications.png" width="550" alt="AIRA Notifications" /> |
-| *Proactive clinical notifications monitoring habit execution, recovery metrics, and combat readiness* |
+| <img src="client/public/previews/aira-system.png" width="700" alt="AIRA System Terminal" /> |
+| *Conversational AI administrator, tool calling, and live contextual system briefings* |
 
 </div>
 
@@ -276,6 +296,10 @@ $$S_t = S_{t-1} + C_t \cdot \alpha \cdot (1 - S_{t-1}) - (1 - C_t) \cdot (1 - \d
 ---
 
 ## 🤖 18. AIRA System Administrator, AI Engine & Timely Notifications
+
+<div align="center">
+  <img src="client/public/screenshots/aira-notifications.png" width="550" alt="AIRA Contextual Notification Toast" />
+</div>
 
 - **Persona & Architecture:** Modeled after *Raphael / Ciel* and the *Solo Leveling System*; delivers unemotional, clinical, and data-driven guidance without filler.
 - **Proactive Floating Contextual Notifications:** Integrated real-time toast alert engine (`client/src/features/aira/useAiraNotification.ts`) that autonomously evaluates user state and pops high-tech system directives:
@@ -546,6 +570,9 @@ npm run lint
 
 # Compile production Next.js build
 npm run build
+
+# Capture automated high-res documentation screenshots (Playwright)
+npm run screenshots
 ```
 
 ---
