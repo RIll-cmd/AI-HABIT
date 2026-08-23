@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Dict, Any, Optional
 import random
+import uuid
+import time
 from datetime import datetime
 from db import db
 from db_utils import ensure_character_exists
@@ -392,6 +394,67 @@ async def calculate_passive_buffs(character_id: str) -> Dict[str, float]:
 
     return buffs
 
+def to_egg_response(e) -> Optional[EggResponse]:
+    if not e:
+        return None
+    get_fn = lambda k, d=None: e.get(k, d) if isinstance(e, dict) else getattr(e, k, d)
+    t_steps = get_fn("targetSteps") or get_fn("targetEnergy") or 5000
+    c_steps = get_fn("currentSteps") or get_fn("currentEnergy") or 0
+    return EggResponse(
+        id=str(get_fn("id")),
+        name=str(get_fn("name")),
+        eggType=str(get_fn("eggType", "ELEMENTAL") or "ELEMENTAL"),
+        sprite=str(get_fn("sprite", "/eggs/egg_1.png") or "/eggs/egg_1.png"),
+        rarity=str(get_fn("rarity", "COMMON") or "COMMON"),
+        targetSteps=int(t_steps),
+        currentSteps=int(c_steps),
+        targetEnergy=int(t_steps),
+        currentEnergy=int(c_steps),
+        target_steps=int(t_steps),
+        current_steps=int(c_steps),
+        status=str(get_fn("status")),
+        characterId=str(get_fn("characterId")),
+        user_id=str(get_fn("characterId")),
+        hatchedBeastId=get_fn("hatchedBeastId"),
+        hatchedAt=get_fn("hatchedAt"),
+        createdAt=get_fn("createdAt") or datetime.utcnow(),
+        updatedAt=get_fn("updatedAt") or datetime.utcnow(),
+    )
+
+def to_beast_response(b) -> Optional[BeastResponse]:
+    if not b:
+        return None
+    get_fn = lambda k, d=None: b.get(k, d) if isinstance(b, dict) else getattr(b, k, d)
+    b_type = str(get_fn("passiveBuffType") or get_fn("statBonusType") or "EXP_BOOST")
+    b_val = float(get_fn("passiveBuffValue") or get_fn("statBonusValue") or 5.0)
+    s_path = str(get_fn("spritePath") or get_fn("sprite_path") or "/beasts/beast_1.gif")
+    return BeastResponse(
+        id=str(get_fn("id")),
+        name=str(get_fn("name")),
+        species=str(get_fn("species")),
+        element=str(get_fn("element", "FIRE") or "FIRE"),
+        rarity=str(get_fn("rarity", "COMMON") or "COMMON"),
+        spritePath=s_path,
+        sprite_path=s_path,
+        statBonusType=b_type,
+        statBonusValue=b_val,
+        passiveBuffType=b_type,
+        passiveBuffValue=b_val,
+        passive_buff_type=b_type,
+        passive_buff_value=b_val,
+        description=get_fn("description"),
+        lore=get_fn("lore"),
+        level=int(get_fn("level", 1) or 1),
+        accumulatedSteps=int(get_fn("accumulatedSteps", 0) or 0),
+        stepUpgradeReq=int(get_fn("stepUpgradeReq", 5000) or 5000),
+        goldUpgradeReq=int(get_fn("goldUpgradeReq", 1000) or 1000),
+        isEquipped=bool(get_fn("isEquipped", False)),
+        is_equipped=bool(get_fn("isEquipped", False)),
+        characterId=str(get_fn("characterId")),
+        user_id=str(get_fn("characterId")),
+        unlockedAt=get_fn("unlockedAt") or datetime.utcnow(),
+    )
+
 # =======================================================================
 # 🌐 API ROUTE HANDLERS
 # =======================================================================
@@ -437,7 +500,19 @@ async def get_beast_collection(
         )
         owned_eggs = [starter_egg]
 
-    active_egg = next((e for e in owned_eggs if e.status in ["INCUBATING", "READY_TO_HATCH"]), None)
+    incubating_eggs = [e for e in owned_eggs if e.status in ["INCUBATING", "READY_TO_HATCH"]]
+    if len(incubating_eggs) > 1:
+        active_egg = incubating_eggs[0]
+        stale_ids = [e.id for e in incubating_eggs[1:]]
+        await db.egg.update_many(
+            where={"id": {"in": stale_ids}},
+            data={"status": "STORAGE"}
+        )
+    elif len(incubating_eggs) == 1:
+        active_egg = incubating_eggs[0]
+    else:
+        active_egg = None
+
     equipped_beast = next((b for b in unlocked_beasts if b.isEquipped), None)
 
     unlocked_map = {}
@@ -485,50 +560,27 @@ async def get_beast_collection(
     discovered_count = len(set(b.species for b in unlocked_beasts))
     passive_buffs = await calculate_passive_buffs(char_id)
 
-    def to_egg_resp(e) -> EggResponse:
-        t_steps = getattr(e, "targetSteps", None) or getattr(e, "targetEnergy", 5000) or 5000
-        c_steps = getattr(e, "currentSteps", None) or getattr(e, "currentEnergy", 0) or 0
-        d = e.dict() if hasattr(e, "dict") else dict(e)
-        d["targetSteps"] = t_steps
-        d["currentSteps"] = c_steps
-        d["target_steps"] = t_steps
-        d["current_steps"] = c_steps
-        d["targetEnergy"] = t_steps
-        d["currentEnergy"] = c_steps
-        d["user_id"] = e.characterId
-        return EggResponse(**d)
-
-    def to_beast_resp(b) -> BeastResponse:
-        d = b.dict() if hasattr(b, "dict") else dict(b)
-        b_type = getattr(b, "passiveBuffType", None) or getattr(b, "statBonusType", "EXP_BOOST")
-        b_val = getattr(b, "passiveBuffValue", None) or getattr(b, "statBonusValue", 5.0)
-        d["passiveBuffType"] = b_type
-        d["passiveBuffValue"] = b_val
-        d["passive_buff_type"] = b_type
-        d["passive_buff_value"] = b_val
-        d["statBonusType"] = b_type
-        d["statBonusValue"] = b_val
-        d["sprite_path"] = getattr(b, "spritePath", "/beasts/beast_1.gif")
-        d["is_equipped"] = getattr(b, "isEquipped", False)
-        d["level"] = getattr(b, "level", 1) or 1
-        d["accumulatedSteps"] = getattr(b, "accumulatedSteps", 0) or 0
-        d["stepUpgradeReq"] = getattr(b, "stepUpgradeReq", 5000) or 5000
-        d["goldUpgradeReq"] = getattr(b, "goldUpgradeReq", 1000) or 1000
-        d["user_id"] = getattr(b, "characterId", char_id)
-        return BeastResponse(**d)
-
-    daily_steps = getattr(character, "dailySteps", 0) or 0
-    daily_goal = getattr(character, "dailyStepGoal", 10000) or 10000
+    try:
+        rows = await db.query_raw('SELECT "dailySteps", "dailyStepGoal" FROM "Character" WHERE "id" = ?', char_id)
+        if rows and len(rows) > 0:
+            daily_steps = int(rows[0].get("dailySteps") or 0)
+            daily_goal = int(rows[0].get("dailyStepGoal") or 10000)
+        else:
+            daily_steps = int(getattr(character, "dailySteps", 0) or 0)
+            daily_goal = int(getattr(character, "dailyStepGoal", 10000) or 10000)
+    except Exception:
+        daily_steps = int(getattr(character, "dailySteps", 0) or 0)
+        daily_goal = int(getattr(character, "dailyStepGoal", 10000) or 10000)
 
     return BeastCollectionResponse(
         characterId=char_id,
         user_id=char_id,
         dailySteps=daily_steps,
         dailyStepGoal=daily_goal,
-        activeEgg=to_egg_resp(active_egg) if active_egg else None,
-        ownedEggs=[to_egg_resp(e) for e in owned_eggs],
-        unlockedBeasts=[to_beast_resp(b) for b in unlocked_beasts],
-        equippedBeast=to_beast_resp(equipped_beast) if equipped_beast else None,
+        activeEgg=to_egg_response(active_egg) if active_egg else None,
+        ownedEggs=[to_egg_response(e) for e in owned_eggs if e is not None],
+        unlockedBeasts=[to_beast_response(b) for b in unlocked_beasts if b is not None],
+        equippedBeast=to_beast_response(equipped_beast) if equipped_beast else None,
         totalDiscovered=discovered_count,
         totalSpecies=len(BESTIARY_CATALOG),
         bestiary=bestiary_summary,
@@ -540,110 +592,167 @@ async def get_beast_collection(
 # =======================================================================
 @router.post("/steps/sync", response_model=StepSyncResponse)
 async def sync_steps(req: StepSyncRequest):
-    char_id = req.characterId or req.user_id
-    if not char_id:
-        raise HTTPException(status_code=400, detail="characterId or user_id required")
-
-    steps = req.stepCount if req.stepCount is not None else (req.step_count or 0)
-    if steps <= 0:
-        raise HTTPException(status_code=400, detail="stepCount must be greater than 0")
-
-    character = await ensure_character_exists(char_id)
-
-    # 1. Update character dailySteps
-    cur_daily = getattr(character, "dailySteps", 0) or 0
-    new_daily = cur_daily + steps
-    await db.character.update(
-        where={"id": character.id},
-        data={"dailySteps": new_daily}
-    )
-
-    # 2. Record in DailyStepLog
     try:
-        await db.dailysteplog.create(
+        char_id = req.characterId or req.user_id
+        if not char_id:
+            raise HTTPException(status_code=400, detail="characterId or user_id required")
+
+        steps = req.stepCount if req.stepCount is not None else (req.step_count or 0)
+        if steps <= 0:
+            raise HTTPException(status_code=400, detail="stepCount must be greater than 0")
+
+        character = await ensure_character_exists(char_id)
+
+        # 1. Update character dailySteps
+        cur_daily = 0
+        daily_goal = 10000
+        try:
+            rows = await db.query_raw('SELECT "dailySteps", "dailyStepGoal" FROM "Character" WHERE "id" = ?', character.id)
+            if rows and len(rows) > 0:
+                cur_daily = int(rows[0].get("dailySteps") or 0)
+                daily_goal = int(rows[0].get("dailyStepGoal") or 10000)
+            else:
+                cur_daily = int(getattr(character, "dailySteps", 0) or 0)
+                daily_goal = int(getattr(character, "dailyStepGoal", 10000) or 10000)
+        except Exception:
+            cur_daily = int(getattr(character, "dailySteps", 0) or 0)
+            daily_goal = int(getattr(character, "dailyStepGoal", 10000) or 10000)
+
+        new_daily = cur_daily + steps
+
+        try:
+            await db.character.update(
+                where={"id": character.id},
+                data={"dailySteps": new_daily}
+            )
+        except Exception:
+            try:
+                await db.execute_raw(
+                    'UPDATE "Character" SET "dailySteps" = ? WHERE "id" = ?',
+                    new_daily,
+                    character.id
+                )
+            except Exception as dbe:
+                print("Character dailySteps update error (non-fatal):", dbe)
+
+        # 2. Record in DailyStepLog
+        try:
+            await db.dailysteplog.create(
+                data={
+                    "characterId": character.id,
+                    "stepCount": steps,
+                    "date": datetime.utcnow()
+                }
+            )
+        except Exception as e:
+            print("DailyStepLog error (non-fatal):", e)
+
+        # 3. Increment steps on equipped beast
+        try:
+            equipped_beast = await db.beast.find_first(
+                where={"characterId": character.id, "isEquipped": True}
+            )
+            if equipped_beast:
+                old_b_steps = getattr(equipped_beast, "accumulatedSteps", 0) or 0
+                new_b_steps = old_b_steps + steps
+                await db.execute_raw(
+                    'UPDATE "Beast" SET "accumulatedSteps" = ? WHERE "id" = ?',
+                    new_b_steps,
+                    equipped_beast.id
+                )
+        except Exception as be:
+            print("Equipped beast step update error (non-fatal):", be)
+
+        # 4. Find active incubating egg
+        active_egg = await db.egg.find_first(
+            where={"characterId": character.id, "status": "INCUBATING"}
+        )
+
+        if not active_egg:
+            # Check if there is an egg ready to hatch
+            active_egg = await db.egg.find_first(
+                where={"characterId": character.id, "status": "READY_TO_HATCH"}
+            )
+
+        if not active_egg:
+            # Check if there is an egg in storage to activate
+            stored = await db.egg.find_first(
+                where={"characterId": character.id, "status": "STORAGE"}
+            )
+            if stored:
+                active_egg = stored
+                st_steps = getattr(stored, "targetSteps", 5000) or getattr(stored, "targetEnergy", 5000) or 5000
+                sc_steps = getattr(stored, "currentSteps", 0) or getattr(stored, "currentEnergy", 0) or 0
+                s_status = "READY_TO_HATCH" if sc_steps >= st_steps else "INCUBATING"
+                await db.egg.update(where={"id": stored.id}, data={"status": s_status})
+            else:
+                # Auto-create starter egg for this character so steps are immediately applied
+                active_egg = await db.egg.create(
+                    data={
+                        "name": "Verdant Core Egg",
+                        "eggType": "NATURE",
+                        "sprite": "/eggs/egg_1.png",
+                        "rarity": "COMMON",
+                        "targetSteps": 3000,
+                        "currentSteps": 0,
+                        "targetEnergy": 3000,
+                        "currentEnergy": 0,
+                        "status": "INCUBATING",
+                        "characterId": character.id
+                    }
+                )
+
+        if active_egg.status == "READY_TO_HATCH":
+            t_steps = getattr(active_egg, "targetSteps", 5000) or getattr(active_egg, "targetEnergy", 5000) or 5000
+            c_steps = getattr(active_egg, "currentSteps", 0) or getattr(active_egg, "currentEnergy", 0) or 0
+            return StepSyncResponse(
+                characterId=character.id,
+                stepsAdded=steps,
+                currentSteps=c_steps,
+                targetSteps=t_steps,
+                dailySteps=new_daily,
+                dailyStepGoal=daily_goal,
+                isReadyToHatch=True,
+                status="READY_TO_HATCH",
+                progressPercent=100,
+                egg=to_egg_response(active_egg),
+                message="⚡ EGG READY TO HATCH! The shell is bursting with radiant light!"
+            )
+
+        t_steps = getattr(active_egg, "targetSteps", 5000) or getattr(active_egg, "targetEnergy", 5000) or 5000
+        old_steps = getattr(active_egg, "currentSteps", 0) or getattr(active_egg, "currentEnergy", 0) or 0
+        new_steps = old_steps + steps
+        new_status = "READY_TO_HATCH" if new_steps >= t_steps else "INCUBATING"
+
+        updated = await db.egg.update(
+            where={"id": active_egg.id},
             data={
-                "characterId": character.id,
-                "stepCount": steps,
-                "date": datetime.utcnow()
+                "currentSteps": new_steps,
+                "currentEnergy": new_steps,
+                "status": new_status
             }
         )
-    except Exception as e:
-        print("DailyStepLog error:", e)
 
-    # 3. Increment steps on equipped beast
-    equipped_beast = await db.beast.find_first(
-        where={"characterId": character.id, "isEquipped": True}
-    )
-    if equipped_beast:
-        old_b_steps = getattr(equipped_beast, "accumulatedSteps", 0) or 0
-        await db.beast.update(
-            where={"id": equipped_beast.id},
-            data={"accumulatedSteps": old_b_steps + steps}
-        )
+        progress_pct = min(100, int((new_steps / t_steps) * 100))
 
-    # 4. Find active incubating egg
-    active_egg = await db.egg.find_first(
-        where={"characterId": character.id, "status": "INCUBATING"}
-    )
-
-    if not active_egg:
-        ready_egg = await db.egg.find_first(
-            where={"characterId": character.id, "status": "READY_TO_HATCH"}
-        )
-        t_steps = getattr(ready_egg, "targetSteps", 5000) if ready_egg else 5000
-        c_steps = getattr(ready_egg, "currentSteps", 0) if ready_egg else 0
         return StepSyncResponse(
             characterId=character.id,
             stepsAdded=steps,
-            currentSteps=c_steps,
+            currentSteps=new_steps,
             targetSteps=t_steps,
             dailySteps=new_daily,
-            dailyStepGoal=getattr(character, "dailyStepGoal", 10000) or 10000,
-            isReadyToHatch=ready_egg is not None,
-            status="READY_TO_HATCH" if ready_egg else "IDLE",
-            progressPercent=100 if ready_egg else 0,
-            egg=None,
-            message="Steps successfully synchronized to your neural core & companion!"
+            dailyStepGoal=daily_goal,
+            isReadyToHatch=new_status == "READY_TO_HATCH",
+            status=new_status,
+            progressPercent=progress_pct,
+            egg=to_egg_response(updated),
+            message=f"Synced +{steps:,} steps! Progress: {progress_pct}%" if new_status == "INCUBATING" else "⚡ EGG READY TO HATCH! The shell is bursting with light!"
         )
-
-    t_steps = getattr(active_egg, "targetSteps", 5000) or getattr(active_egg, "targetEnergy", 5000) or 5000
-    old_steps = getattr(active_egg, "currentSteps", 0) or getattr(active_egg, "currentEnergy", 0) or 0
-    new_steps = old_steps + steps
-    new_status = "READY_TO_HATCH" if new_steps >= t_steps else "INCUBATING"
-
-    updated = await db.egg.update(
-        where={"id": active_egg.id},
-        data={
-            "currentSteps": new_steps,
-            "currentEnergy": new_steps,
-            "status": new_status
-        }
-    )
-
-    progress_pct = min(100, int((new_steps / t_steps) * 100))
-
-    d = updated.dict() if hasattr(updated, "dict") else dict(updated)
-    d["targetSteps"] = t_steps
-    d["currentSteps"] = new_steps
-    d["target_steps"] = t_steps
-    d["current_steps"] = new_steps
-    d["targetEnergy"] = t_steps
-    d["currentEnergy"] = new_steps
-    d["user_id"] = updated.characterId
-
-    return StepSyncResponse(
-        characterId=character.id,
-        stepsAdded=steps,
-        currentSteps=new_steps,
-        targetSteps=t_steps,
-        dailySteps=new_daily,
-        dailyStepGoal=getattr(character, "dailyStepGoal", 10000) or 10000,
-        isReadyToHatch=new_status == "READY_TO_HATCH",
-        status=new_status,
-        progressPercent=progress_pct,
-        egg=EggResponse(**d),
-        message=f"Synced +{steps:,} steps! Progress: {progress_pct}%" if new_status == "INCUBATING" else "⚡ EGG READY TO HATCH! The shell is bursting with light!"
-    )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print("Fatal error in sync_steps:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/steps/set-daily")
 async def set_daily_steps(req: SetDailyStepsRequest):
@@ -655,13 +764,24 @@ async def set_daily_steps(req: SetDailyStepsRequest):
     steps_val = max(0, req.steps)
     goal_val = req.goal if (req.goal and req.goal > 0) else getattr(character, "dailyStepGoal", 10000) or 10000
 
-    await db.character.update(
-        where={"id": character.id},
-        data={
-            "dailySteps": steps_val,
-            "dailyStepGoal": goal_val
-        }
-    )
+    try:
+        await db.character.update(
+            where={"id": character.id},
+            data={
+                "dailySteps": steps_val,
+                "dailyStepGoal": goal_val
+            }
+        )
+    except Exception:
+        try:
+            await db.execute_raw(
+                'UPDATE "Character" SET "dailySteps" = ?, "dailyStepGoal" = ? WHERE "id" = ?',
+                steps_val,
+                goal_val,
+                character.id
+            )
+        except Exception as ee:
+            print("Set daily steps raw error:", ee)
 
     try:
         await db.dailysteplog.create(
@@ -689,10 +809,21 @@ async def modify_step_goal(req: ModifyStepGoalRequest):
 
     character = await ensure_character_exists(char_id)
     goal = max(1000, req.goal)
-    await db.character.update(
-        where={"id": character.id},
-        data={"dailyStepGoal": goal}
-    )
+    try:
+        await db.character.update(
+            where={"id": character.id},
+            data={"dailyStepGoal": goal}
+        )
+    except Exception:
+        try:
+            await db.execute_raw(
+                'UPDATE "Character" SET "dailyStepGoal" = ? WHERE "id" = ?',
+                goal,
+                character.id
+            )
+        except Exception as ee:
+            print("Modify step goal raw error:", ee)
+
     return {"success": True, "dailyStepGoal": goal, "message": f"Daily step target set to {goal:,} steps!"}
 
 @router.post("/eggs/feed-energy")
@@ -706,41 +837,132 @@ async def feed_energy(req: FeedEnergyRequest):
 # =======================================================================
 @router.post("/eggs/hatch")
 async def hatch_egg(req: HatchEggRequest):
-    char_id = req.characterId or req.user_id
-    egg_id = req.eggId or req.egg_id
-    if not char_id or not egg_id:
-        raise HTTPException(status_code=400, detail="characterId and eggId required")
+    try:
+        char_id = req.characterId or req.user_id
+        egg_id = req.eggId or req.egg_id
+        if not char_id or not egg_id:
+            raise HTTPException(status_code=400, detail="characterId and eggId required")
 
-    egg = await db.egg.find_unique(where={"id": egg_id})
-    if not egg or egg.characterId != char_id:
-        raise HTTPException(status_code=404, detail="Egg not found")
-    if egg.status == "HATCHED":
-        raise HTTPException(status_code=400, detail="Egg has already hatched")
+        character = await ensure_character_exists(char_id)
 
-    t_steps = getattr(egg, "targetSteps", 5000) or getattr(egg, "targetEnergy", 5000) or 5000
-    c_steps = getattr(egg, "currentSteps", 0) or getattr(egg, "currentEnergy", 0) or 0
+        egg = await db.egg.find_unique(where={"id": egg_id})
+        valid_ids = [character.id, getattr(character, "userId", None), char_id]
+        if not egg or egg.characterId not in valid_ids:
+            raise HTTPException(status_code=404, detail="Egg not found")
+        if egg.status == "HATCHED":
+            raise HTTPException(status_code=400, detail="Egg has already hatched")
 
-    if c_steps < t_steps and egg.status != "READY_TO_HATCH":
-        raise HTTPException(status_code=400, detail=f"Egg requires {t_steps - c_steps:,} more steps to hatch")
+        t_steps = getattr(egg, "targetSteps", 5000) or getattr(egg, "targetEnergy", 5000) or 5000
+        c_steps = getattr(egg, "currentSteps", 0) or getattr(egg, "currentEnergy", 0) or 0
 
-    beast_spec = roll_hatch_beast(egg.eggType, egg.rarity)
+        if c_steps < t_steps and egg.status != "READY_TO_HATCH":
+            raise HTTPException(status_code=400, detail=f"Egg requires {t_steps - c_steps:,} more steps to hatch")
 
-    current_equipped = await db.beast.find_first(
-        where={"characterId": char_id, "isEquipped": True}
-    )
-    should_auto_equip = current_equipped is None
+        beast_spec = roll_hatch_beast(egg.eggType, egg.rarity)
 
-    new_beast = await db.beast.create(
-        data={
+        # Check if user already has an equipped beast
+        current_equipped = await db.beast.find_first(
+            where={"characterId": character.id, "isEquipped": True}
+        )
+        should_auto_equip = current_equipped is None
+
+        beast_id = str(uuid.uuid4())
+        now_ms = int(time.time() * 1000)
+
+        # Insert new beast record directly
+        await db.execute_raw(
+            '''
+            INSERT INTO "Beast" (
+                "id", "name", "species", "element", "rarity", "spritePath",
+                "passiveBuffType", "passiveBuffValue", "statBonusType", "statBonusValue",
+                "description", "lore", "level", "accumulatedSteps", "stepUpgradeReq",
+                "goldUpgradeReq", "isEquipped", "characterId", "unlockedAt"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            beast_id,
+            beast_spec["name"],
+            beast_spec["species"],
+            beast_spec["element"],
+            beast_spec["rarity"],
+            beast_spec["spritePath"],
+            beast_spec["statBonusType"],
+            float(beast_spec["statBonusValue"]),
+            beast_spec["statBonusType"],
+            float(beast_spec["statBonusValue"]),
+            beast_spec["description"],
+            beast_spec["lore"],
+            1,
+            0,
+            5000,
+            1000,
+            1 if should_auto_equip else 0,
+            character.id,
+            now_ms
+        )
+
+        # Update egg status to HATCHED
+        await db.execute_raw(
+            'UPDATE "Egg" SET "status" = ?, "hatchedBeastId" = ?, "hatchedAt" = ?, "updatedAt" = ? WHERE "id" = ?',
+            "HATCHED",
+            beast_id,
+            now_ms,
+            now_ms,
+            egg.id
+        )
+
+        if should_auto_equip:
+            try:
+                await db.execute_raw(
+                    'UPDATE "Character" SET "equippedBeastId" = ? WHERE "id" = ?',
+                    beast_id,
+                    character.id
+                )
+            except Exception as ce:
+                print("EquippedBeastId update error:", ce)
+
+        # Promote any stored egg to active incubator
+        stored_egg = await db.egg.find_first(
+            where={"characterId": character.id, "status": "STORAGE"}
+        )
+        if stored_egg:
+            st_steps = getattr(stored_egg, "targetSteps", 5000) or getattr(stored_egg, "targetEnergy", 5000) or 5000
+            sc_steps = getattr(stored_egg, "currentSteps", 0) or getattr(stored_egg, "currentEnergy", 0) or 0
+            s_status = "READY_TO_HATCH" if sc_steps >= st_steps else "INCUBATING"
+            await db.execute_raw(
+                'UPDATE "Egg" SET "status" = ? WHERE "id" = ?',
+                s_status,
+                stored_egg.id
+            )
+
+        egg_dict = {
+            "id": egg.id,
+            "name": egg.name,
+            "eggType": getattr(egg, "eggType", "ELEMENTAL") or "ELEMENTAL",
+            "sprite": getattr(egg, "sprite", "/eggs/egg_1.png") or "/eggs/egg_1.png",
+            "rarity": getattr(egg, "rarity", "COMMON") or "COMMON",
+            "targetSteps": t_steps,
+            "currentSteps": c_steps,
+            "targetEnergy": t_steps,
+            "currentEnergy": c_steps,
+            "status": "HATCHED",
+            "characterId": character.id,
+            "hatchedBeastId": beast_id,
+            "hatchedAt": datetime.utcnow(),
+            "createdAt": getattr(egg, "createdAt", datetime.utcnow()) or datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+
+        beast_dict = {
+            "id": beast_id,
             "name": beast_spec["name"],
             "species": beast_spec["species"],
             "element": beast_spec["element"],
             "rarity": beast_spec["rarity"],
             "spritePath": beast_spec["spritePath"],
-            "passiveBuffType": beast_spec["statBonusType"],
-            "passiveBuffValue": float(beast_spec["statBonusValue"]),
             "statBonusType": beast_spec["statBonusType"],
             "statBonusValue": float(beast_spec["statBonusValue"]),
+            "passiveBuffType": beast_spec["statBonusType"],
+            "passiveBuffValue": float(beast_spec["statBonusValue"]),
             "description": beast_spec["description"],
             "lore": beast_spec["lore"],
             "level": 1,
@@ -748,205 +970,188 @@ async def hatch_egg(req: HatchEggRequest):
             "stepUpgradeReq": 5000,
             "goldUpgradeReq": 1000,
             "isEquipped": should_auto_equip,
-            "characterId": char_id
+            "characterId": character.id,
+            "unlockedAt": datetime.utcnow()
         }
-    )
 
-    updated_egg = await db.egg.update(
-        where={"id": egg.id},
-        data={
-            "status": "HATCHED",
-            "hatchedBeastId": new_beast.id,
-            "hatchedAt": datetime.utcnow()
+        return {
+            "success": True,
+            "message": f"Congratulations! Your {egg.name} hatched into {beast_spec['name']} the {beast_spec['species']}!",
+            "beast": to_beast_response(beast_dict),
+            "egg": to_egg_response(egg_dict),
+            "isFirstBeast": should_auto_equip
         }
-    )
-
-    if should_auto_equip:
-        await db.character.update(
-            where={"id": char_id},
-            data={"equippedBeastId": new_beast.id}
-        )
-
-    b_dict = new_beast.dict() if hasattr(new_beast, "dict") else dict(new_beast)
-    b_dict["passive_buff_type"] = new_beast.passiveBuffType
-    b_dict["passive_buff_value"] = new_beast.passiveBuffValue
-    b_dict["sprite_path"] = new_beast.spritePath
-    b_dict["is_equipped"] = new_beast.isEquipped
-    b_dict["level"] = 1
-    b_dict["accumulatedSteps"] = 0
-    b_dict["stepUpgradeReq"] = 5000
-    b_dict["goldUpgradeReq"] = 1000
-    b_dict["user_id"] = char_id
-
-    e_dict = updated_egg.dict() if hasattr(updated_egg, "dict") else dict(updated_egg)
-    e_dict["target_steps"] = t_steps
-    e_dict["current_steps"] = c_steps
-    e_dict["user_id"] = char_id
-
-    return {
-        "success": True,
-        "message": f"Congratulations! Your {egg.name} hatched into {new_beast.name} the {new_beast.species}!",
-        "beast": BeastResponse(**b_dict),
-        "egg": EggResponse(**e_dict),
-        "isFirstBeast": should_auto_equip
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print("Fatal error in hatch_egg:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 # =======================================================================
 # ⚔️ EQUIP COMPANION ENDPOINT
 # =======================================================================
 @router.post("/equip")
 async def equip_beast(req: EquipBeastRequest):
-    char_id = req.characterId or req.user_id
-    beast_id = req.beastId or req.beast_id
-    if not char_id:
-        raise HTTPException(status_code=400, detail="characterId required")
+    try:
+        char_id = req.characterId or req.user_id
+        beast_id = req.beastId or req.beast_id
+        if not char_id:
+            raise HTTPException(status_code=400, detail="characterId required")
 
-    character = await db.character.find_unique(where={"id": char_id})
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+        character = await ensure_character_exists(char_id)
 
-    if beast_id:
-        beast = await db.beast.find_unique(where={"id": beast_id})
-        if not beast or beast.characterId != char_id:
-            raise HTTPException(status_code=404, detail="Beast not found in user collection")
+        if beast_id:
+            beast = await db.beast.find_unique(where={"id": beast_id})
+            valid_ids = [character.id, getattr(character, "userId", None), char_id]
+            if not beast or beast.characterId not in valid_ids:
+                raise HTTPException(status_code=404, detail="Beast not found in user collection")
 
-        await db.beast.update_many(
-            where={"characterId": char_id},
-            data={"isEquipped": False}
-        )
+            await db.execute_raw('UPDATE "Beast" SET "isEquipped" = 0 WHERE "characterId" = ?', character.id)
+            await db.execute_raw('UPDATE "Beast" SET "isEquipped" = 1 WHERE "id" = ?', beast_id)
+            try:
+                await db.execute_raw('UPDATE "Character" SET "equippedBeastId" = ? WHERE "id" = ?', beast_id, character.id)
+            except Exception as ce:
+                print("Equip beast char update error:", ce)
 
-        updated_beast = await db.beast.update(
-            where={"id": beast_id},
-            data={"isEquipped": True}
-        )
+            updated_beast = await db.beast.find_unique(where={"id": beast_id})
 
-        await db.character.update(
-            where={"id": char_id},
-            data={"equippedBeastId": beast_id}
-        )
-
-        b_dict = updated_beast.dict() if hasattr(updated_beast, "dict") else dict(updated_beast)
-        b_dict["passive_buff_type"] = updated_beast.passiveBuffType
-        b_dict["passive_buff_value"] = updated_beast.passiveBuffValue
-        b_dict["sprite_path"] = updated_beast.spritePath
-        b_dict["is_equipped"] = True
-        b_dict["level"] = getattr(updated_beast, "level", 1) or 1
-        b_dict["accumulatedSteps"] = getattr(updated_beast, "accumulatedSteps", 0) or 0
-        b_dict["stepUpgradeReq"] = getattr(updated_beast, "stepUpgradeReq", 5000) or 5000
-        b_dict["goldUpgradeReq"] = getattr(updated_beast, "goldUpgradeReq", 1000) or 1000
-        b_dict["user_id"] = char_id
-
-        return {
-            "success": True,
-            "message": f"{updated_beast.name} is now your active companion!",
-            "equippedBeast": BeastResponse(**b_dict)
-        }
-    else:
-        await db.beast.update_many(
-            where={"characterId": char_id},
-            data={"isEquipped": False}
-        )
-        await db.character.update(
-            where={"id": char_id},
-            data={"equippedBeastId": None}
-        )
-        return {"success": True, "message": "Companion unequipped", "equippedBeast": None}
+            return {
+                "success": True,
+                "message": f"{updated_beast.name if updated_beast else 'Companion'} is now your active companion!",
+                "equippedBeast": to_beast_response(updated_beast)
+            }
+        else:
+            await db.execute_raw('UPDATE "Beast" SET "isEquipped" = 0 WHERE "characterId" = ?', character.id)
+            try:
+                await db.execute_raw('UPDATE "Character" SET "equippedBeastId" = NULL WHERE "id" = ?', character.id)
+            except Exception as ce:
+                print("Unequip beast char update error:", ce)
+            return {"success": True, "message": "Companion unequipped", "equippedBeast": None}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # =======================================================================
 # ⚡ BEAST UPGRADE & ASCENSION ENDPOINT
 # =======================================================================
 @router.post("/upgrade")
 async def upgrade_beast(req: UpgradeBeastRequest):
-    char_id = req.characterId or req.user_id
-    if not char_id or not req.beastId:
-        raise HTTPException(status_code=400, detail="characterId and beastId required")
-
-    character = await ensure_character_exists(char_id)
-    beast = await db.beast.find_unique(where={"id": req.beastId})
-    if not beast or beast.characterId != character.id:
-        raise HTTPException(status_code=404, detail="Beast not found in your collection")
-
-    cur_level = getattr(beast, "level", 1) or 1
-    if cur_level >= 10:
-        raise HTTPException(status_code=400, detail=f"{beast.name} has already reached maximum Ascension Level 10!")
-
-    step_req = getattr(beast, "stepUpgradeReq", cur_level * 5000) or (cur_level * 5000)
-    gold_req = getattr(beast, "goldUpgradeReq", cur_level * 1000) or (cur_level * 1000)
-    accum_steps = getattr(beast, "accumulatedSteps", 0) or 0
-    daily_steps = getattr(character, "dailySteps", 0) or 0
-
-    effective_steps = max(accum_steps, daily_steps)
-    if effective_steps < step_req:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Insufficient steps. Requires {step_req - effective_steps:,} more steps to level up ({step_req:,} required)."
-        )
-
-    if character.gold < gold_req:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Insufficient gold. Requires {gold_req - character.gold:,} more gold ({gold_req:,} Gold required)."
-        )
-
-    new_level = cur_level + 1
-    old_bonus = getattr(beast, "statBonusValue", 5.0) or 5.0
-    new_bonus = round(old_bonus * 1.2 + 2.0, 1)
-    new_step_req = new_level * 5000
-    new_gold_req = new_level * 1000
-    new_accum_steps = max(0, accum_steps - step_req)
-
-    await db.character.update(
-        where={"id": character.id},
-        data={"gold": character.gold - gold_req}
-    )
-
-    updated_beast = await db.beast.update(
-        where={"id": beast.id},
-        data={
-            "level": new_level,
-            "accumulatedSteps": new_accum_steps,
-            "stepUpgradeReq": new_step_req,
-            "goldUpgradeReq": new_gold_req,
-            "statBonusValue": new_bonus,
-            "passiveBuffValue": new_bonus
-        }
-    )
-
     try:
-        await db.economylog.create(
-            data={
-                "characterId": character.id,
-                "currency": "GOLD",
-                "amount": -gold_req,
-                "reason": f"Ascended {beast.name} to Level {new_level}",
-                "source": "BEAST_UPGRADE"
-            }
+        char_id = req.characterId or req.user_id
+        if not char_id or not req.beastId:
+            raise HTTPException(status_code=400, detail="characterId and beastId required")
+
+        character = await ensure_character_exists(char_id)
+        beast = await db.beast.find_unique(where={"id": req.beastId})
+        valid_ids = [character.id, getattr(character, "userId", None), char_id]
+        if not beast or beast.characterId not in valid_ids:
+            raise HTTPException(status_code=404, detail="Beast not found in your collection")
+
+        cur_level = getattr(beast, "level", 1) or 1
+        if cur_level >= 10:
+            raise HTTPException(status_code=400, detail=f"{beast.name} has already reached maximum Ascension Level 10!")
+
+        step_req = getattr(beast, "stepUpgradeReq", cur_level * 5000) or (cur_level * 5000)
+        gold_req = getattr(beast, "goldUpgradeReq", cur_level * 1000) or (cur_level * 1000)
+        accum_steps = getattr(beast, "accumulatedSteps", 0) or 0
+        
+        # Check character dailySteps
+        cur_daily = 0
+        try:
+            rows = await db.query_raw('SELECT "dailySteps" FROM "Character" WHERE "id" = ?', character.id)
+            if rows and len(rows) > 0:
+                cur_daily = int(rows[0].get("dailySteps") or 0)
+            else:
+                cur_daily = int(getattr(character, "dailySteps", 0) or 0)
+        except Exception:
+            cur_daily = int(getattr(character, "dailySteps", 0) or 0)
+
+        effective_steps = max(accum_steps, cur_daily)
+        if effective_steps < step_req:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient steps. Requires {step_req - effective_steps:,} more steps to level up ({step_req:,} required)."
+            )
+
+        if character.gold < gold_req:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient gold. Requires {gold_req - character.gold:,} more gold ({gold_req:,} Gold required)."
+            )
+
+        new_level = cur_level + 1
+        old_bonus = getattr(beast, "statBonusValue", 5.0) or 5.0
+        new_bonus = round(old_bonus * 1.2 + 2.0, 1)
+        new_step_req = new_level * 5000
+        new_gold_req = new_level * 1000
+        new_accum_steps = max(0, accum_steps - step_req)
+
+        await db.character.update(
+            where={"id": character.id},
+            data={"gold": character.gold - gold_req}
         )
+
+        try:
+            await db.execute_raw(
+                '''
+                UPDATE "Beast" SET
+                    "level" = ?,
+                    "accumulatedSteps" = ?,
+                    "stepUpgradeReq" = ?,
+                    "goldUpgradeReq" = ?,
+                    "statBonusValue" = ?,
+                    "passiveBuffValue" = ?
+                WHERE "id" = ?
+                ''',
+                new_level,
+                new_accum_steps,
+                new_step_req,
+                new_gold_req,
+                new_bonus,
+                new_bonus,
+                beast.id
+            )
+        except Exception as ue:
+            print("Beast update raw error:", ue)
+
+        updated_beast = await db.beast.find_unique(where={"id": beast.id})
+
+        try:
+            await db.economylog.create(
+                data={
+                    "characterId": character.id,
+                    "currency": "GOLD",
+                    "amount": -gold_req,
+                    "reason": f"Ascended {beast.name} to Level {new_level}",
+                    "source": "BEAST_UPGRADE"
+                }
+            )
+        except Exception as e:
+            print("EconomyLog error:", e)
+
+        return {
+            "success": True,
+            "message": f"⚡ {beast.name} ascended to Level {new_level}! Passive bonus surged to +{new_bonus}%!",
+            "beast": to_beast_response(updated_beast) if updated_beast else None,
+            "characterGold": character.gold - gold_req
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        print("EconomyLog error:", e)
-
-    b_dict = updated_beast.dict() if hasattr(updated_beast, "dict") else dict(updated_beast)
-    b_dict["passive_buff_type"] = updated_beast.passiveBuffType
-    b_dict["passive_buff_value"] = updated_beast.passiveBuffValue
-    b_dict["sprite_path"] = updated_beast.spritePath
-    b_dict["is_equipped"] = updated_beast.isEquipped
-    b_dict["level"] = new_level
-    b_dict["accumulatedSteps"] = new_accum_steps
-    b_dict["stepUpgradeReq"] = new_step_req
-    b_dict["goldUpgradeReq"] = new_gold_req
-    b_dict["user_id"] = character.id
-
-    return {
-        "success": True,
-        "message": f"⚡ {beast.name} ascended to Level {new_level}! Passive bonus surged to +{new_bonus}%!",
-        "beast": BeastResponse(**b_dict),
-        "characterGold": character.gold - gold_req
-    }
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # =======================================================================
 # 🏪 EGG MARKET & STORAGE ENDPOINTS
 # =======================================================================
 @router.post("/eggs/buy")
+@router.post("/market/buy")
 async def buy_egg(req: BuyEggRequest):
     char_id = req.characterId or req.user_id
     egg_type = (req.eggType or req.egg_type or "").upper()
@@ -957,9 +1162,7 @@ async def buy_egg(req: BuyEggRequest):
         raise HTTPException(status_code=400, detail=f"Invalid egg type. Valid types: {list(EGG_SHOP_CATALOG.keys())}")
 
     egg_config = EGG_SHOP_CATALOG[egg_type]
-    character = await db.character.find_unique(where={"id": char_id})
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+    character = await ensure_character_exists(char_id)
 
     currency = req.currencyType.upper()
     if currency == "GEMS":
@@ -967,7 +1170,7 @@ async def buy_egg(req: BuyEggRequest):
         if cost <= 0 or character.gems < cost:
             raise HTTPException(status_code=400, detail=f"Insufficient Gems (Requires {cost} Gems)")
         await db.character.update(
-            where={"id": char_id},
+            where={"id": character.id},
             data={"gems": character.gems - cost}
         )
     else:
@@ -975,14 +1178,18 @@ async def buy_egg(req: BuyEggRequest):
         if character.gold < cost:
             raise HTTPException(status_code=400, detail=f"Insufficient Gold (Requires {cost} Gold)")
         await db.character.update(
-            where={"id": char_id},
+            where={"id": character.id},
             data={"gold": character.gold - cost}
         )
 
-    existing_incubating = await db.egg.find_first(
-        where={"characterId": char_id, "status": "INCUBATING"}
+    # If character already has an incubating or ready egg, put newly purchased egg in STORAGE
+    existing_active = await db.egg.find_first(
+        where={
+            "characterId": character.id,
+            "status": {"in": ["INCUBATING", "READY_TO_HATCH"]}
+        }
     )
-    status = "INCUBATING" if not existing_incubating else "INCUBATING"
+    egg_status = "STORAGE" if existing_active else "INCUBATING"
 
     new_egg = await db.egg.create(
         data={
@@ -994,15 +1201,15 @@ async def buy_egg(req: BuyEggRequest):
             "currentSteps": 0,
             "targetEnergy": egg_config["targetSteps"],
             "currentEnergy": 0,
-            "status": status,
-            "characterId": char_id
+            "status": egg_status,
+            "characterId": character.id
         }
     )
 
     try:
         await db.economylog.create(
             data={
-                "characterId": char_id,
+                "characterId": character.id,
                 "currency": currency,
                 "amount": -cost,
                 "reason": f"Purchased {egg_config['name']}",
@@ -1015,7 +1222,7 @@ async def buy_egg(req: BuyEggRequest):
     return {
         "success": True,
         "message": f"Purchased {egg_config['name']}!",
-        "egg": new_egg
+        "egg": to_egg_response(new_egg)
     }
 
 @router.post("/eggs/incubate")
@@ -1025,20 +1232,34 @@ async def incubate_egg(req: IncubateEggRequest):
     if not char_id or not egg_id:
         raise HTTPException(status_code=400, detail="characterId and eggId required")
 
+    character = await ensure_character_exists(char_id)
+
     egg = await db.egg.find_unique(where={"id": egg_id})
-    if not egg or egg.characterId != char_id:
+    if not egg or egg.characterId != character.id:
         raise HTTPException(status_code=404, detail="Egg not found")
     if egg.status == "HATCHED":
         raise HTTPException(status_code=400, detail="Egg has already hatched")
 
+    # 1. Put all other unhatched eggs for this character into STORAGE
+    await db.egg.update_many(
+        where={
+            "characterId": character.id,
+            "id": {"not": egg_id},
+            "status": {"not": "HATCHED"}
+        },
+        data={"status": "STORAGE"}
+    )
+
     t_steps = getattr(egg, "targetSteps", 5000) or getattr(egg, "targetEnergy", 5000) or 5000
     c_steps = getattr(egg, "currentSteps", 0) or getattr(egg, "currentEnergy", 0) or 0
 
+    # 2. Set selected egg as the active incubating egg
+    new_status = "READY_TO_HATCH" if c_steps >= t_steps else "INCUBATING"
     updated_egg = await db.egg.update(
         where={"id": egg_id},
-        data={"status": "READY_TO_HATCH" if c_steps >= t_steps else "INCUBATING"}
+        data={"status": new_status}
     )
-    return {"message": "Egg placed in active incubator", "egg": updated_egg}
+    return {"success": True, "message": "Egg placed in active incubator", "egg": to_egg_response(updated_egg)}
 
 # =======================================================================
 # 🎁 DAILY SCALED FREE MYSTERY EGG CLAIM
@@ -1072,6 +1293,14 @@ async def claim_daily_egg(req: ClaimDailyEggInput):
 
     egg_config = EGG_SHOP_CATALOG[egg_type]
 
+    existing_active = await db.egg.find_first(
+        where={
+            "characterId": character.id,
+            "status": {"in": ["INCUBATING", "READY_TO_HATCH"]}
+        }
+    )
+    egg_status = "STORAGE" if existing_active else "INCUBATING"
+
     new_egg = await db.egg.create(
         data={
             "name": f"Daily {egg_config['name']}",
@@ -1082,7 +1311,7 @@ async def claim_daily_egg(req: ClaimDailyEggInput):
             "currentSteps": 0,
             "targetEnergy": egg_config["targetSteps"],
             "currentEnergy": 0,
-            "status": "INCUBATING",
+            "status": egg_status,
             "characterId": character.id
         }
     )
@@ -1090,6 +1319,6 @@ async def claim_daily_egg(req: ClaimDailyEggInput):
     return {
         "success": True,
         "message": f"Claimed Daily Free {egg_config['name']} ({egg_config['rarity']} Tier)!",
-        "egg": new_egg
+        "egg": to_egg_response(new_egg)
     }
 

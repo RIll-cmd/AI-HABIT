@@ -4,12 +4,66 @@ from db import db
 async def ensure_character_exists(character_id: str, user_id: str = None, username: str = None):
     """
     Ensures that a Character record with the given character_id exists in SQLite.
-    If missing, creates a default User and Character.
+    Resolves gracefully whether character_id is a Character.id, User.id, or username.
     """
+    if not character_id:
+        character_id = "char-id-123"
+
+    # 1. Direct character ID lookup
     character = await db.character.find_unique(where={"id": character_id})
     if character:
         return character
 
+    # 2. Lookup by userId on Character table
+    character_by_user = await db.character.find_unique(where={"userId": character_id})
+    if character_by_user:
+        return character_by_user
+
+    # 3. Lookup user by ID, username, or email
+    user = await db.user.find_first(
+        where={
+            "OR": [
+                {"id": character_id},
+                {"username": character_id},
+                {"email": character_id}
+            ]
+        },
+        include={"character": True}
+    )
+    if user and user.character:
+        return user.character
+
+    # 4. User exists but has no character -> Create character for existing user
+    if user:
+        character = await db.character.create(
+            data={
+                "id": f"char-{user.id}",
+                "userId": user.id,
+                "name": user.username or "Shadow Monarch",
+                "title": "Shadow Seeker",
+                "avatar": "/avatars/shadow-monarch.png",
+                "theme": "dark-rpg",
+                "level": 1,
+                "exp": 0,
+                "power": 50,
+                "rank": "F",
+                "gold": 0,
+                "stats": {
+                    "create": {
+                        "strength": 1,
+                        "knowledge": 1,
+                        "discipline": 1,
+                        "focus": 1,
+                        "endurance": 1,
+                        "recovery": 1,
+                        "consistency": 1,
+                    }
+                },
+            }
+        )
+        return character
+
+    # 5. Create default User and Character if not found
     if not user_id:
         user_id = f"user-{character_id}"
     

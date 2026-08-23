@@ -31,7 +31,7 @@ export default function BeastsPage() {
   const { character } = useCharacterStore();
   const { collection, isLoading, fetchCollection } = useBeastStore();
 
-  const characterId = user?.id || character?.id || "";
+  const characterId = character?.id || user?.id || "char-id-123";
 
   useEffect(() => {
     if (characterId) {
@@ -57,14 +57,14 @@ export default function BeastsPage() {
   const passiveBuffs = collection?.passiveBuffs || {};
 
   return (
-    <div className="max-w-7xl mx-auto w-full space-y-8 font-sans relative text-slate-100 pb-20 animate-in fade-in duration-300">
+    <div suppressHydrationWarning className="max-w-7xl mx-auto w-full space-y-8 font-sans relative text-slate-100 pb-20 animate-in fade-in duration-300">
       {/* Background Floating Runes */}
       <FloatingRuneField density="low" className="opacity-40" />
 
       {/* ========================================================= */}
       {/* 1. TOP CINEMATIC HERO BANNER */}
       {/* ========================================================= */}
-      <div className="relative rounded-[28px] bg-gradient-to-br from-[#070D1E]/98 via-[#0E1630]/95 to-[#0A1024]/98 border border-cyan-500/30 p-6 md:p-8 shadow-[0_0_50px_rgba(6,182,212,0.2)] overflow-hidden backdrop-blur-2xl shrink-0">
+      <div suppressHydrationWarning className="relative rounded-[28px] bg-gradient-to-br from-[#070D1E]/98 via-[#0E1630]/95 to-[#0A1024]/98 border border-cyan-500/30 p-6 md:p-8 shadow-[0_0_50px_rgba(6,182,212,0.2)] overflow-hidden backdrop-blur-2xl shrink-0">
         {/* Glow & Runes */}
         <FloatingRuneField density="medium" />
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -73,7 +73,7 @@ export default function BeastsPage() {
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             {/* Holographic Egg / Dragon Pedestal */}
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-[#0f1a3d] to-[#070c20] border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] shrink-0 relative overflow-hidden group">
+            <div suppressHydrationWarning className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-[#0f1a3d] to-[#070c20] border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] shrink-0 relative overflow-hidden group">
               <div className="absolute inset-0 bg-cyan-500/10 pointer-events-none" />
               <img
                 src={equippedBeast?.spritePath ? equippedBeast.spritePath.replace('.png', '.gif') : "/beasts/beast_1.gif"}

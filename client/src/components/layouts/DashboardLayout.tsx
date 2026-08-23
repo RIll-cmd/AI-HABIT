@@ -15,6 +15,11 @@ const RUNE_GLYPHS = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ", "�
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Initialize global AIRA 60-second periodic briefing hook
   useAiraNotification();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div suppressHydrationWarning className="flex h-screen h-[100dvh] min-h-screen w-full bg-[#030712] text-slate-100 overflow-hidden font-sans relative scan-lines">
@@ -32,7 +37,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div suppressHydrationWarning className="absolute top-[70%] left-[10%] w-[350px] h-[350px] bg-cyan-400/[0.02] rounded-full blur-[120px] animate-float-slow pointer-events-none" style={{ animationDelay: '-7s' }} />
         
         {/* Floating Particles — small energy dots */}
-        {[...Array(12)].map((_, i) => (
+        {mounted && [...Array(12)].map((_, i) => (
           <div 
             key={`particle-${i}`}
             suppressHydrationWarning
@@ -47,7 +52,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         ))}
         
         {/* Floating Rune Glyphs — arcane symbols drifting upward */}
-        {RUNE_GLYPHS.slice(0, 10).map((rune, i) => (
+        {mounted && RUNE_GLYPHS.slice(0, 10).map((rune, i) => (
           <span
             key={`rune-bg-${i}`}
             suppressHydrationWarning
@@ -65,7 +70,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         ))}
         
         {/* Additional drifting runes with purple tint */}
-        {RUNE_GLYPHS.slice(10, 16).map((rune, i) => (
+        {mounted && RUNE_GLYPHS.slice(10, 16).map((rune, i) => (
           <span
             key={`rune-drift-${i}`}
             suppressHydrationWarning

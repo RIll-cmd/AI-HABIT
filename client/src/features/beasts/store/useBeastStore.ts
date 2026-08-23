@@ -108,6 +108,15 @@ interface BeastState {
   closeCelebrationModal: () => void;
 }
 
+const resolveCharId = (charId?: string): string => {
+  if (charId && charId.trim().length > 0) return charId.trim();
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("ascend_character_id");
+    if (stored) return stored;
+  }
+  return "char-id-123";
+};
+
 export const useBeastStore = create<BeastState>((set, get) => ({
   collection: null,
   isLoading: false,
@@ -122,11 +131,11 @@ export const useBeastStore = create<BeastState>((set, get) => ({
     data: null
   },
 
-  fetchCollection: async (characterId: string) => {
-    if (!characterId) return;
+  fetchCollection: async (characterId?: string) => {
+    const targetId = resolveCharId(characterId);
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE_URL}/api/beasts/collection/${characterId}`);
+      const res = await fetch(`${API_BASE_URL}/api/beasts/collection/${targetId}`);
       if (res.ok) {
         const data = await res.json();
         set({ collection: data });
@@ -139,13 +148,14 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   syncSteps: async (characterId: string, stepCount: number, source = "PEDOMETER_SYNC") => {
-    if (!characterId || stepCount <= 0) return false;
+    const targetId = resolveCharId(characterId);
+    if (stepCount <= 0) return false;
     set({ isSyncingSteps: true });
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/steps/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, stepCount, source }),
+        body: JSON.stringify({ characterId: targetId, stepCount, source }),
       });
       if (res.ok) {
         const result: StepSyncResult = await res.json();
@@ -155,7 +165,7 @@ export const useBeastStore = create<BeastState>((set, get) => ({
             ? "⚡ EGG READY TO HATCH! The shell is bursting with radiant light!"
             : `Incubation Progress: ${result.progressPercent}% (${result.currentSteps.toLocaleString()} / ${result.targetSteps.toLocaleString()} steps)`,
         });
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       } else {
         const err = await res.json().catch(() => ({ detail: "Failed to sync steps" }));
@@ -171,18 +181,18 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   setDailySteps: async (characterId: string, steps: number, goal?: number) => {
-    if (!characterId) return false;
+    const targetId = resolveCharId(characterId);
     playUIMenuSFX("confirm");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/steps/set-daily`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, steps, goal }),
+        body: JSON.stringify({ characterId: targetId, steps, goal }),
       });
       if (res.ok) {
         playBuffSFX("buff");
         toast.success(`Daily steps updated to ${steps.toLocaleString()} steps!`);
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       } else {
         toast.error("Failed to update daily steps");
@@ -195,17 +205,18 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   setStepGoal: async (characterId: string, goal: number) => {
-    if (!characterId || goal <= 0) return false;
+    const targetId = resolveCharId(characterId);
+    if (goal <= 0) return false;
     playUIMenuSFX("confirm");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/steps/goal`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, goal }),
+        body: JSON.stringify({ characterId: targetId, goal }),
       });
       if (res.ok) {
         toast.success(`Daily step goal set to ${goal.toLocaleString()} steps!`);
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       }
       return false;
@@ -216,20 +227,21 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   upgradeBeast: async (characterId: string, beastId: string) => {
-    if (!characterId || !beastId) return false;
+    const targetId = resolveCharId(characterId);
+    if (!beastId) return false;
     set({ isUpgrading: true });
     playUIMenuSFX("confirm");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/upgrade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, beastId }),
+        body: JSON.stringify({ characterId: targetId, beastId }),
       });
       if (res.ok) {
         const result = await res.json();
         playBuffSFX("levelup");
         toast.success(result.message || "Companion Ascended!");
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       } else {
         const err = await res.json().catch(() => ({ detail: "Failed to upgrade beast" }));
@@ -249,14 +261,15 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   hatchEgg: async (characterId: string, eggId: string) => {
-    if (!characterId || !eggId) return false;
+    const targetId = resolveCharId(characterId);
+    if (!eggId) return false;
     set({ isHatching: true });
     playBuffSFX("levelup");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/eggs/hatch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, eggId }),
+        body: JSON.stringify({ characterId: targetId, eggId }),
       });
       if (res.ok) {
         const result = await res.json();
@@ -270,7 +283,7 @@ export const useBeastStore = create<BeastState>((set, get) => ({
             }
           }
         });
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       } else {
         const err = await res.json().catch(() => ({ detail: "Failed to hatch egg" }));
@@ -286,20 +299,20 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   equipBeast: async (characterId: string, beastId: string | null) => {
-    if (!characterId) return false;
+    const targetId = resolveCharId(characterId);
     set({ isEquipping: true });
     playUIMenuSFX("confirm");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/equip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, beastId }),
+        body: JSON.stringify({ characterId: targetId, beastId }),
       });
       if (res.ok) {
         const result = await res.json();
         playBuffSFX("speed");
         toast.success(result.message || "Companion updated!");
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       } else {
         toast.error("Failed to update companion");
@@ -314,20 +327,21 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   buyEgg: async (characterId: string, eggType: string, currencyType = "GOLD") => {
-    if (!characterId || !eggType) return false;
+    const targetId = resolveCharId(characterId);
+    if (!eggType) return false;
     set({ isBuying: true });
     playUIMenuSFX("confirm");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/eggs/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, eggType, currencyType }),
+        body: JSON.stringify({ characterId: targetId, eggType, currencyType }),
       });
       if (res.ok) {
         const result = await res.json();
         playBuffSFX("levelup");
         toast.success(result.message || "Mystery Egg acquired!");
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       } else {
         const err = await res.json().catch(() => ({ detail: "Failed to purchase egg" }));
@@ -343,17 +357,18 @@ export const useBeastStore = create<BeastState>((set, get) => ({
   },
 
   incubateEgg: async (characterId: string, eggId: string) => {
-    if (!characterId || !eggId) return false;
+    const targetId = resolveCharId(characterId);
+    if (!eggId) return false;
     playUIMenuSFX("confirm");
     try {
       const res = await fetch(`${API_BASE_URL}/api/beasts/eggs/incubate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId, eggId }),
+        body: JSON.stringify({ characterId: targetId, eggId }),
       });
       if (res.ok) {
         toast.success("Egg placed in active incubator!");
-        await get().fetchCollection(characterId);
+        await get().fetchCollection(targetId);
         return true;
       }
       return false;

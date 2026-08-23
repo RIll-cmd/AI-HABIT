@@ -58,6 +58,11 @@ const containerVariants = {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const sidebarNav = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -91,7 +96,7 @@ export function Sidebar() {
       <div suppressHydrationWarning className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-purple-500/[0.03] to-transparent pointer-events-none" />
       
       {/* Floating runes in sidebar */}
-      {SIDEBAR_RUNES.map((rune, i) => (
+      {mounted && SIDEBAR_RUNES.map((rune, i) => (
         <span
           key={`sidebar-rune-${i}`}
           suppressHydrationWarning
