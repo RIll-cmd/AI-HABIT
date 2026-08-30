@@ -10,67 +10,79 @@ router = APIRouter()
 
 @router.post("/{character_id}", response_model=BossSchema)
 async def create_boss(character_id: str, payload: BossCreate):
-    # Verify character exists or auto-create
-    character = await db.character.find_unique(where={"id": character_id})
-    if not character:
+    try:
         character = await ensure_character_exists(character_id)
+        char_id = character.id if character else character_id
         
-    # Calculate HP based on difficulty
-    max_hp = calculate_boss_hp(payload.difficulty)
-    
-    # Create the Boss
-    boss = await db.boss.create(
-        data={
-            "characterId": character.id,
-            "name": payload.name,
-            "description": payload.description,
-            "category": payload.category,
-            "difficulty": payload.difficulty,
-            "maxHp": max_hp,
-            "currentHp": max_hp,
-            "deadline": payload.deadline,
-            "status": "ACTIVE"
-        }
-    )
-    
-    # Create phases
-    await generate_boss_phases(db, boss.id, max_hp)
-    
-    # Create linked activities
-    for activity in payload.activities:
-        await db.bossactivity.create(
+        # Calculate HP based on difficulty
+        max_hp = calculate_boss_hp(payload.difficulty)
+        
+        # Create the Boss
+        boss = await db.boss.create(
             data={
-                "bossId": boss.id,
-                "activityType": activity.activityType,
-                "referenceId": activity.referenceId,
-                "damageValue": activity.damageValue
+                "characterId": char_id,
+                "name": payload.name,
+                "description": payload.description,
+                "category": payload.category,
+                "difficulty": payload.difficulty,
+                "maxHp": max_hp,
+                "currentHp": max_hp,
+                "deadline": payload.deadline,
+                "status": "ACTIVE"
             }
         )
         
-    # Fetch complete boss with relations
-    complete_boss = await db.boss.find_unique(
-        where={"id": boss.id},
-        include={
-            "phases": {"order": {"orderIndex": "asc"}},
-            "activities": True,
-            "damageLogs": True
-        }
-    )
-    
-    return complete_boss
+        # Create phases
+        await generate_boss_phases(db, boss.id, max_hp)
+        
+        # Create linked activities
+        for activity in payload.activities:
+            await db.bossactivity.create(
+                data={
+                    "bossId": boss.id,
+                    "activityType": activity.activityType,
+                    "referenceId": activity.referenceId,
+                    "damageValue": activity.damageValue
+                }
+            )
+            
+        # Fetch complete boss with relations
+        complete_boss = await db.boss.find_unique(
+            where={"id": boss.id},
+            include={
+                "phases": {"order": {"orderIndex": "asc"}},
+                "activities": True,
+                "damageLogs": True
+            }
+        )
+        return complete_boss
+    except Exception as e:
+        print(f"[Bosses API Error] create_boss failed for {character_id}: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to create boss: {str(e)}")
 
 @router.get("/{character_id}", response_model=List[BossSchema])
 async def get_bosses(character_id: str):
-    await ensure_character_exists(character_id)
-    bosses = await db.boss.find_many(
-        where={"characterId": character_id},
-        include={
-            "phases": {"order": {"orderIndex": "asc"}},
-            "activities": True,
-            "damageLogs": {"order": {"createdAt": "desc"}}
-        },
-        order={"createdAt": "desc"}
-    )
-    
-    return bosses
+    try:
+        char = await ensure_character_exists(character_id)
+        lookup_id = char.id if char else character_id
+        
+        bosses = await db.boss.find_many(
+            where={
+                "OR": [
+                    {"characterId": character_id},
+                    {"characterId": lookup_id}
+                ]
+            },
+            include={
+                "phases": {"order": {"orderIndex": "asc"}},
+                "activities": True,
+                "damageLogs": {"order": {"createdAt": "desc"}}
+            },
+            order={"createdAt": "desc"}
+        )
+        return bosses or []
+    except Exception as e:
+        print(f"[Bosses API Warning] Error fetching bosses for {character_id}: {e}")
+        return []
+
 

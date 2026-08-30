@@ -603,22 +603,34 @@ async def get_muscle_status(character_id: str):
     """
     Returns real-time computed muscle recovery freshness %, fatigue levels,
     hours until full recovery, and summary counts for all 16 muscle groups.
+    Never throws 404 for missing/guest users, returns default 100% fresh status.
     """
-    # Verify character exists
-    character = await db.character.find_unique(where={"id": character_id})
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
-        
-    return await compute_muscle_status_dict(character_id)
+    try:
+        from db_utils import ensure_character_exists
+        char = await ensure_character_exists(character_id)
+        cid = char.id if char else character_id
+        return await compute_muscle_status_dict(cid)
+    except Exception as e:
+        print(f"[Workouts API Warning] get_muscle_status fallback for {character_id}: {e}")
+        return await compute_muscle_status_dict(character_id)
 
 @router.post("/reset-recovery/{character_id}")
 async def reset_muscle_recovery(character_id: str):
     """
     Utility endpoint: Resets all muscle fatigue levels to 0% (100% Fresh).
     """
+    cid = character_id
+    try:
+        from db_utils import ensure_character_exists
+        char = await ensure_character_exists(character_id)
+        if char:
+            cid = char.id
+    except Exception:
+        pass
+
     if db.is_connected():
         try:
-            await db.musclerecoverystate.delete_many(where={"characterId": character_id})
+            await db.musclerecoverystate.delete_many(where={"characterId": cid})
         except Exception:
             pass
 
@@ -626,7 +638,7 @@ async def reset_muscle_recovery(character_id: str):
         db_path = get_db_path()
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
-        c.execute("DELETE FROM MuscleRecoveryState WHERE characterId = ?", (character_id,))
+        c.execute("DELETE FROM MuscleRecoveryState WHERE characterId = ?", (cid,))
         conn.commit()
         conn.close()
     except Exception:
@@ -634,7 +646,7 @@ async def reset_muscle_recovery(character_id: str):
     
     return {
         "message": "All muscle groups reset to 100% Fresh.",
-        "status": await compute_muscle_status_dict(character_id)
+        "status": await compute_muscle_status_dict(cid)
     }
 
 
@@ -644,18 +656,18 @@ async def log_workout(data: WorkoutLogInput):
     Logs a workout session, computes 1RM PRs, applies Boss damage,
     updates muscle recovery fatigue and timestamps, and rewards character stats & EXP.
     """
-    # Verify character exists
-    character = await db.character.find_unique(where={"id": data.characterId})
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
-        
+    from db_utils import ensure_character_exists
+    character = await ensure_character_exists(data.characterId)
+    char_id = character.id if character else data.characterId
+    
     # Create the WorkoutSession
     session = await db.workoutsession.create(
         data={
-            "characterId": data.characterId,
+            "characterId": char_id,
             "durationSeconds": data.durationSeconds
         }
     )
+
     
     results = []
     exercise_set_counts: Dict[str, int] = {}
