@@ -69,9 +69,9 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
                 system_instruction=AIRA_SYSTEM_PROMPT
             )
             for model_name in [
-                "gemini-2.0-flash",
-                "gemini-2.0-flash-lite",
-                "gemini-1.5-flash",
+                "gemini-3.6-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-flash-latest",
             ]:
                 try:
                     chat = client.chats.create(model=model_name, config=config)
@@ -91,7 +91,7 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
                 system_instruction=AIRA_SYSTEM_PROMPT
             )
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-3.6-flash",
                 contents=prompt,
                 config=config,
             )
@@ -122,7 +122,7 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
 
 async def call_gemini_with_tools_async(client, full_prompt: str, character_id: str) -> Dict[str, Any]:
     """
-    Calls Gemini utilizing client.chats.create() and chat.send_message() for Automatic Function Calling (AFC),
+    Calls Gemini utilizing client.aio.chats.create() and await chat.send_message() for Automatic Function Calling (AFC),
     intercepting mutative actions for user confirmation.
     """
     try:
@@ -137,16 +137,20 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         )
         
         fallback_models = [
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash"
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-flash-latest"
         ]
 
-        
         chat = None
+        aio_client = getattr(client, "aio", None) or client
+
         for m in fallback_models:
             try:
-                chat = client.chats.create(model=m, config=config)
+                if hasattr(aio_client, "chats"):
+                    chat = aio_client.chats.create(model=m, config=config)
+                else:
+                    chat = client.chats.create(model=m, config=config)
                 break
             except Exception as e:
                 print(f"[AIRA Service Debug] Failed to create chat session with model {m}: {e}")
@@ -154,9 +158,13 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         if not chat:
             text_res = call_gemini_generate(client, full_prompt)
             return {"response": text_res or "Analysis failed.", "pending_action": None}
+
             
         # Send initial message through chat session
-        response = chat.send_message(full_prompt)
+        if inspect.iscoroutinefunction(chat.send_message):
+            response = await chat.send_message(full_prompt)
+        else:
+            response = chat.send_message(full_prompt)
         
         # Check if the model called a function
         MUTATIVE_TOOLS = ["log_completed_workout", "complete_daily_mission", "create_new_mission", "generate_progression_plan"]
@@ -200,18 +208,32 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
                     
                     # Send tool execution result back to chat session
                     tool_resp_payload = result if isinstance(result, dict) else {"result": result}
-                    response = chat.send_message(
-                        types.Part.from_function_response(
-                            name=fn_name,
-                            response=tool_resp_payload
+                    if inspect.iscoroutinefunction(chat.send_message):
+                        response = await chat.send_message(
+                            types.Part.from_function_response(
+                                name=fn_name,
+                                response=tool_resp_payload
+                            )
                         )
-                    )
+                    else:
+                        response = chat.send_message(
+                            types.Part.from_function_response(
+                                name=fn_name,
+                                response=tool_resp_payload
+                            )
+                        )
         
         if response and response.text:
             return {"response": response.text.strip(), "pending_action": None}
             
         text_res = call_gemini_generate(client, full_prompt)
         return {"response": text_res or "Analysis failed.", "pending_action": None}
+        
+    except Exception as e:
+        print(f"[AIRA Service Warning] call_gemini_with_tools_async failed: {e}")
+        text_res = call_gemini_generate(client, full_prompt)
+        return {"response": text_res or "Analysis failed.", "pending_action": None}
+
         
     except Exception as e:
         print(f"[AIRA Service Warning] call_gemini_with_tools_async failed: {e}")
