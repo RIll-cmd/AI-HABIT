@@ -49,7 +49,13 @@ origins = [
     "http://localhost:3002",
     "http://127.0.0.1:3002",
     "https://ai-habit-omega.vercel.app",
+    "https://ai-habit.vercel.app",
 ]
+
+# Allow dynamic frontend URL overrides from environment
+frontend_env = os.getenv("FRONTEND_URL", "").strip()
+if frontend_env and frontend_env not in origins:
+    origins.append(frontend_env)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +65,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 
