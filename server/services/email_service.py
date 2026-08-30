@@ -29,6 +29,8 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "system@ascend-os.neural")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Ascend OS Neural Gateway")
 
+from db import db
+
 def get_db_connection():
     # Ensure directory exists if needed
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -55,105 +57,185 @@ def verify_otp_hash(otp: str, stored_hash: str) -> bool:
     except Exception:
         return False
 
-def can_request_otp(email: str) -> Tuple[bool, str]:
+async def can_request_otp(email: str) -> Tuple[bool, str]:
     """Check if the email has exceeded rate limits (max 3 requests in 15 minutes)."""
     email_clean = email.strip().lower()
-    window_start = (datetime.utcnow() - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+    window_start = datetime.utcnow() - timedelta(minutes=15)
     
-    conn = get_db_connection()
-    c = conn.cursor()
-    try:
-        c.execute(
-            "SELECT COUNT(*) as count FROM EmailVerificationToken WHERE LOWER(email) = ? AND createdAt >= ?",
-            (email_clean, window_start)
-        )
-        row = c.fetchone()
-        count = row["count"] if row else 0
-        if count >= 3:
-            return False, "Rate limit exceeded. Maximum 3 verification codes per 15 minutes. Please try again later."
-        return True, ""
-    finally:
-        conn.close()
+    if db.is_connected():
+        try:
+            count = await db.emailverificationtoken.count(
+                where={
+                    "email": email_clean,
+                    "createdAt": {"gte": window_start}
+                }
+            )
+            if count >= 3:
+                return False, "Rate limit exceeded. Maximum 3 verification codes per 15 minutes. Please try again later."
+            return True, ""
+        except Exception as e:
+            logger.warning(f"Prisma OTP rate limit check fallback: {e}")
 
-def create_and_store_otp(email: str, user_id: Optional[str] = None) -> Tuple[str, str]:
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            window_str = window_start.strftime("%Y-%m-%d %H:%M:%S")
+            c.execute(
+                "SELECT COUNT(*) as count FROM EmailVerificationToken WHERE LOWER(email) = ? AND createdAt >= ?",
+                (email_clean, window_str)
+            )
+            row = c.fetchone()
+            count = row["count"] if row else 0
+            if count >= 3:
+                return False, "Rate limit exceeded. Maximum 3 verification codes per 15 minutes. Please try again later."
+            return True, ""
+        finally:
+            conn.close()
+    except Exception:
+        return True, ""
+
+async def create_and_store_otp(email: str, user_id: Optional[str] = None) -> Tuple[str, str]:
     """Create a new 6-digit OTP and store its hash in the database."""
     email_clean = email.strip().lower()
     otp = generate_otp()
     otp_h = hash_otp(otp)
     token_id = f"evt-{secrets.token_hex(10)}"
-    expires_at = (datetime.utcnow() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
-    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+    
+    if db.is_connected():
+        try:
+            await db.emailverificationtoken.delete_many(where={"email": email_clean})
+            await db.emailverificationtoken.create(
+                data={
+                    "id": token_id,
+                    "userId": user_id,
+                    "email": email_clean,
+                    "otpHash": otp_h,
+                    "expiresAt": expires_at,
+                    "attempts": 0,
+                }
+            )
+            return token_id, otp
+        except Exception as e:
+            logger.warning(f"Prisma OTP store fallback: {e}")
 
-    conn = get_db_connection()
-    c = conn.cursor()
     try:
-        # Invalidate existing pending tokens for this email
-        c.execute("DELETE FROM EmailVerificationToken WHERE LOWER(email) = ?", (email_clean,))
-        c.execute(
-            """
-            INSERT INTO EmailVerificationToken (id, userId, email, otpHash, expiresAt, attempts, createdAt)
-            VALUES (?, ?, ?, ?, ?, 0, ?)
-            """,
-            (token_id, user_id, email_clean, otp_h, expires_at, now_str)
-        )
-        conn.commit()
-    finally:
-        conn.close()
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            exp_str = expires_at.strftime("%Y-%m-%d %H:%M:%S")
+            c.execute("DELETE FROM EmailVerificationToken WHERE LOWER(email) = ?", (email_clean,))
+            c.execute(
+                """
+                INSERT INTO EmailVerificationToken (id, userId, email, otpHash, expiresAt, attempts, createdAt)
+                VALUES (?, ?, ?, ?, ?, 0, ?)
+                """,
+                (token_id, user_id, email_clean, otp_h, exp_str, now_str)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.error(f"Fallback SQLite OTP store error: {e}")
 
     return token_id, otp
 
-def validate_otp_code(email: str, otp: str, user_id: Optional[str] = None) -> Tuple[bool, str]:
+async def validate_otp_code(email: str, otp: str, user_id: Optional[str] = None) -> Tuple[bool, str]:
     """Validate submitted 6-digit OTP code against the latest valid record."""
     email_clean = email.strip().lower()
     otp_clean = otp.strip()
-    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    now_dt = datetime.utcnow()
 
-    conn = get_db_connection()
-    c = conn.cursor()
+    if db.is_connected():
+        try:
+            tokens = await db.emailverificationtoken.find_many(
+                where={"email": email_clean},
+                order={"createdAt": "desc"},
+                take=1
+            )
+            if not tokens:
+                return False, "No active verification code found for this email. Please request a new code."
+
+            token = tokens[0]
+            token_id = token.id
+            stored_hash = token.otpHash
+            expires_at = token.expiresAt
+            attempts = token.attempts
+
+            if attempts >= 5:
+                await db.emailverificationtoken.delete(where={"id": token_id})
+                return False, "Too many failed verification attempts. Please request a new verification code."
+
+            # Normalize timezone comparison
+            exp_naive = expires_at.replace(tzinfo=None) if expires_at.tzinfo else expires_at
+            if exp_naive < now_dt:
+                await db.emailverificationtoken.delete(where={"id": token_id})
+                return False, "Verification code has expired. Please request a new 5-minute code."
+
+            if not verify_otp_hash(otp_clean, stored_hash):
+                await db.emailverificationtoken.update(
+                    where={"id": token_id},
+                    data={"attempts": attempts + 1}
+                )
+                remaining = 5 - (attempts + 1)
+                return False, f"Incorrect verification code. {remaining} attempts remaining."
+
+            await db.emailverificationtoken.delete(where={"id": token_id})
+            return True, "Verification successful."
+        except Exception as e:
+            logger.warning(f"Prisma OTP validation fallback: {e}")
+
     try:
-        c.execute(
-            """
-            SELECT id, otpHash, expiresAt, attempts, userId 
-            FROM EmailVerificationToken 
-            WHERE LOWER(email) = ? 
-            ORDER BY createdAt DESC 
-            LIMIT 1
-            """,
-            (email_clean,)
-        )
-        row = c.fetchone()
-        if not row:
-            return False, "No active verification code found for this email. Please request a new code."
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+            c.execute(
+                """
+                SELECT id, otpHash, expiresAt, attempts, userId 
+                FROM EmailVerificationToken 
+                WHERE LOWER(email) = ? 
+                ORDER BY createdAt DESC 
+                LIMIT 1
+                """,
+                (email_clean,)
+            )
+            row = c.fetchone()
+            if not row:
+                return False, "No active verification code found for this email. Please request a new code."
 
-        token_id = row["id"]
-        stored_hash = row["otpHash"]
-        expires_at = row["expiresAt"]
-        attempts = row["attempts"]
+            token_id = row["id"]
+            stored_hash = row["otpHash"]
+            expires_at = row["expiresAt"]
+            attempts = row["attempts"]
 
-        if attempts >= 5:
+            if attempts >= 5:
+                c.execute("DELETE FROM EmailVerificationToken WHERE id = ?", (token_id,))
+                conn.commit()
+                return False, "Too many failed verification attempts. Please request a new verification code."
+
+            if str(expires_at) < now_str:
+                c.execute("DELETE FROM EmailVerificationToken WHERE id = ?", (token_id,))
+                conn.commit()
+                return False, "Verification code has expired. Please request a new 5-minute code."
+
+            if not verify_otp_hash(otp_clean, stored_hash):
+                c.execute("UPDATE EmailVerificationToken SET attempts = attempts + 1 WHERE id = ?", (token_id,))
+                conn.commit()
+                remaining = 5 - (attempts + 1)
+                return False, f"Incorrect verification code. {remaining} attempts remaining."
+
             c.execute("DELETE FROM EmailVerificationToken WHERE id = ?", (token_id,))
             conn.commit()
-            return False, "Too many failed verification attempts. Please request a new verification code."
+            return True, "Verification successful."
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.error(f"Fallback SQLite OTP validation error: {e}")
+        return False, "Verification system error."
 
-        # Check expiration
-        if str(expires_at) < now_str:
-            c.execute("DELETE FROM EmailVerificationToken WHERE id = ?", (token_id,))
-            conn.commit()
-            return False, "Verification code has expired. Please request a new 5-minute code."
-
-        # Verify OTP Hash
-        if not verify_otp_hash(otp_clean, stored_hash):
-            c.execute("UPDATE EmailVerificationToken SET attempts = attempts + 1 WHERE id = ?", (token_id,))
-            conn.commit()
-            remaining = 5 - (attempts + 1)
-            return False, f"Incorrect verification code. {remaining} attempts remaining."
-
-        # Success - clean up used token
-        c.execute("DELETE FROM EmailVerificationToken WHERE id = ?", (token_id,))
-        conn.commit()
-        return True, "Verification successful."
-    finally:
-        conn.close()
 
 def send_verification_email(email: str, otp: str, context: str = "Account Verification") -> bool:
     """Send cyberpunk-themed HTML email with 6-digit OTP code."""

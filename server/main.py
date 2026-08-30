@@ -81,12 +81,17 @@ def read_root():
 def health_check():
     return {
         "status": "healthy",
-        "database": "sqlite",
+        "database": "postgresql (neon)",
         "services": {
             "api": "operational",
-            "orm": "prisma"
+            "orm": "prisma",
+            "neon": {
+                "projectId": "silent-grass-83641044",
+                "orgId": "org-calm-art-43579859"
+            }
         }
     }
+
 
 @app.get("/api/user/{user_id_or_email}")
 async def get_user(user_id_or_email: str):

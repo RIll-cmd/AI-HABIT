@@ -27,6 +27,11 @@ prisma/dev.db-journal
 .env
 .env.local
 .env.*
+!.env.example
+.neon
+.neon.*
+
+
 
 # IDE & OS Files
 .vscode/

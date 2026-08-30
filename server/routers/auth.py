@@ -66,46 +66,125 @@ class UpdateUsernameInput(BaseModel):
 
 
 # =========================================================================
-# FAST DIRECT SQLITE USER QUERIES
+# USER QUERIES (PRISMA POSTGRESQL WITH FALLBACK)
 # =========================================================================
 
-def get_all_users() -> List[Dict[str, Any]]:
-    conn = get_db_connection()
-    c = conn.cursor()
-    try:
-        c.execute("SELECT id, username, email, password, isEmailVerified FROM User")
-        rows = c.fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
+async def get_all_users() -> List[Dict[str, Any]]:
+    if db.is_connected():
+        try:
+            users = await db.user.find_many()
+            return [
+                {
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "password": u.password,
+                    "isEmailVerified": bool(u.isEmailVerified),
+                }
+                for u in users
+            ]
+        except Exception:
+            pass
 
-def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
-    conn = get_db_connection()
-    c = conn.cursor()
     try:
-        c.execute("SELECT id, username, email, password, isEmailVerified FROM User WHERE id = ?", (user_id,))
-        row = c.fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            c.execute("SELECT id, username, email, password, isEmailVerified FROM User")
+            rows = c.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+    except Exception:
+        return []
 
-def get_user_by_identifier(ident: str) -> Optional[Dict[str, Any]]:
-    conn = get_db_connection()
-    c = conn.cursor()
+async def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    if db.is_connected():
+        try:
+            u = await db.user.find_unique(where={"id": user_id})
+            if u:
+                return {
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "password": u.password,
+                    "isEmailVerified": bool(u.isEmailVerified),
+                }
+        except Exception:
+            pass
+
     try:
-        c.execute(
-            "SELECT id, username, email, password, isEmailVerified FROM User WHERE LOWER(username) = ? OR LOWER(email) = ?",
-            (ident.lower(), ident.lower())
-        )
-        row = c.fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            c.execute("SELECT id, username, email, password, isEmailVerified FROM User WHERE id = ?", (user_id,))
+            row = c.fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+    except Exception:
+        return None
 
-def insert_user(user_id: str, username: str, email: Optional[str], password_hash: str, is_verified: bool = False) -> Dict[str, Any]:
+async def get_user_by_identifier(ident: str) -> Optional[Dict[str, Any]]:
+    if db.is_connected():
+        try:
+            u = await db.user.find_first(
+                where={
+                    "OR": [
+                        {"username": ident},
+                        {"email": ident.lower()}
+                    ]
+                }
+            )
+            if u:
+                return {
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "password": u.password,
+                    "isEmailVerified": bool(u.isEmailVerified),
+                }
+        except Exception:
+            pass
+
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            c.execute(
+                "SELECT id, username, email, password, isEmailVerified FROM User WHERE LOWER(username) = ? OR LOWER(email) = ?",
+                (ident.lower(), ident.lower())
+            )
+            row = c.fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+async def insert_user(user_id: str, username: str, email: Optional[str], password_hash: str, is_verified: bool = False) -> Dict[str, Any]:
+    if db.is_connected():
+        try:
+            u = await db.user.create(
+                data={
+                    "id": user_id,
+                    "username": username,
+                    "email": email,
+                    "password": password_hash,
+                    "isEmailVerified": is_verified,
+                }
+            )
+            return {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "isEmailVerified": bool(u.isEmailVerified),
+            }
+        except Exception:
+            pass
+
     conn = get_db_connection()
     c = conn.cursor()
-    now_str = os.getenv("CURRENT_TIMESTAMP", None)
     try:
         c.execute(
             """
@@ -124,7 +203,20 @@ def insert_user(user_id: str, username: str, email: Optional[str], password_hash
     finally:
         conn.close()
 
-def update_user_email(user_id: str, email: str, is_verified: bool = True):
+async def update_user_email(user_id: str, email: str, is_verified: bool = True):
+    if db.is_connected():
+        try:
+            await db.user.update(
+                where={"id": user_id},
+                data={
+                    "email": email,
+                    "isEmailVerified": is_verified,
+                }
+            )
+            return
+        except Exception:
+            pass
+
     conn = get_db_connection()
     c = conn.cursor()
     try:
@@ -133,7 +225,17 @@ def update_user_email(user_id: str, email: str, is_verified: bool = True):
     finally:
         conn.close()
 
-def update_user_username(user_id: str, username: str):
+async def update_user_username(user_id: str, username: str):
+    if db.is_connected():
+        try:
+            await db.user.update(
+                where={"id": user_id},
+                data={"username": username}
+            )
+            return
+        except Exception:
+            pass
+
     conn = get_db_connection()
     c = conn.cursor()
     try:
@@ -141,6 +243,7 @@ def update_user_username(user_id: str, username: str):
         conn.commit()
     finally:
         conn.close()
+
 
 
 # =========================================================================
@@ -186,7 +289,7 @@ async def check_availability(data: CheckAvailabilityInput):
         "emailError": None,
     }
 
-    all_users = get_all_users()
+    all_users = await get_all_users()
 
     if data.username is not None:
         u_clean = data.username.strip()
@@ -234,11 +337,11 @@ async def send_otp(data: SendOtpInput):
     email_clean = data.email.strip().lower()
     validate_email_format(email_clean)
 
-    allowed, rate_msg = can_request_otp(email_clean)
+    allowed, rate_msg = await can_request_otp(email_clean)
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_msg)
 
-    token_id, otp = create_and_store_otp(email_clean)
+    token_id, otp = await create_and_store_otp(email_clean)
     send_verification_email(email_clean, otp, context=data.context or "Verification")
 
     return {
@@ -258,7 +361,7 @@ async def verify_otp(data: VerifyOtpInput):
     if not otp_clean or len(otp_clean) != 6:
         raise HTTPException(status_code=400, detail="Please enter a valid 6-digit verification code.")
 
-    is_valid, msg = validate_otp_code(email_clean, otp_clean)
+    is_valid, msg = await validate_otp_code(email_clean, otp_clean)
     if not is_valid:
         raise HTTPException(status_code=400, detail=msg)
 
@@ -274,7 +377,7 @@ async def register(data: RegisterInput, response: Response):
     password = data.password.strip()
     validate_password_strength(password)
 
-    all_users = get_all_users()
+    all_users = await get_all_users()
 
     # --- PATH B: EMAIL-FIRST WITH OTP ---
     if data.email:
@@ -289,7 +392,7 @@ async def register(data: RegisterInput, response: Response):
         if not data.otp or len(data.otp.strip()) != 6:
             raise HTTPException(status_code=400, detail="A 6-digit OTP code is required for email registration.")
 
-        is_valid, otp_msg = validate_otp_code(email_clean, data.otp.strip())
+        is_valid, otp_msg = await validate_otp_code(email_clean, data.otp.strip())
         if not is_valid:
             raise HTTPException(status_code=400, detail=otp_msg)
 
@@ -305,7 +408,7 @@ async def register(data: RegisterInput, response: Response):
         new_user_id = f"user-{str(uuid.uuid4())[:8]}"
         hashed_pwd = hash_password(password)
 
-        user = insert_user(new_user_id, assigned_username, email_clean, hashed_pwd, is_verified=True)
+        user = await insert_user(new_user_id, assigned_username, email_clean, hashed_pwd, is_verified=True)
 
         character_id = f"char-{user['id']}"
         character = await ensure_character_exists(character_id, user["id"], user["username"])
@@ -339,7 +442,7 @@ async def register(data: RegisterInput, response: Response):
         new_user_id = f"user-{str(uuid.uuid4())[:8]}"
         hashed_pwd = hash_password(password)
 
-        user = insert_user(new_user_id, username_clean, None, hashed_pwd, is_verified=False)
+        user = await insert_user(new_user_id, username_clean, None, hashed_pwd, is_verified=False)
 
         character_id = f"char-{user['id']}"
         character = await ensure_character_exists(character_id, user["id"], user["username"])
@@ -378,7 +481,7 @@ async def login(data: LoginInput, response: Response):
     if not ident:
         raise HTTPException(status_code=400, detail="Hunter identifier or email is required.")
 
-    user = get_user_by_identifier(ident)
+    user = await get_user_by_identifier(ident)
 
     if not user:
         raise HTTPException(status_code=404, detail=f"Account '{ident}' not found. Please check your credentials or register.")
@@ -395,7 +498,7 @@ async def login(data: LoginInput, response: Response):
     token = create_access_token(data={"sub": user["id"], "username": user["username"]})
     response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
 
-    is_email_verified = bool(user.get("isEmailVerified", 0))
+    is_email_verified = bool(user.get("isEmailVerified", False))
 
     return {
         "message": "Authentication successful.",
@@ -422,7 +525,7 @@ async def guest_login(response: Response):
     guest_id = f"Guest_{str(uuid.uuid4())[:4]}"
     new_user_id = f"user-{guest_id}"
 
-    user = insert_user(new_user_id, guest_id, None, "", is_verified=False)
+    user = await insert_user(new_user_id, guest_id, None, "", is_verified=False)
 
     character_id = f"char-{user['id']}"
     character = await ensure_character_exists(character_id, user["id"], guest_id)
@@ -451,11 +554,18 @@ async def delete_account(data: AccountDeleteInput, current_user: dict = Depends(
     if current_user.get("username", "").lower() != username.lower():
         raise HTTPException(status_code=403, detail="Unauthorized to delete this account.")
 
-    all_users = get_all_users()
+    all_users = await get_all_users()
     user = next((u for u in all_users if u["username"] and u["username"].lower() == username.lower()), None)
 
     if not user:
         raise HTTPException(status_code=404, detail="Account not found.")
+
+    if db.is_connected():
+        try:
+            await db.user.delete(where={"id": user["id"]})
+            return {"message": "Account successfully terminated."}
+        except Exception:
+            pass
 
     conn = get_db_connection()
     c = conn.cursor()
@@ -474,7 +584,7 @@ async def logout(response: Response):
 
 @router.get("/api/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    user = get_user_by_id(current_user["id"])
+    user = await get_user_by_id(current_user["id"])
     if not user:
         return {"user": None, "character": None}
 
@@ -484,7 +594,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         await process_midnight_decay(db, character.id)
         character = await db.character.find_first(where={"userId": current_user["id"]})
 
-    is_verified = bool(user.get("isEmailVerified", 0))
+    is_verified = bool(user.get("isEmailVerified", False))
 
     return {
         "user": {
@@ -509,15 +619,15 @@ async def link_email_request_otp(data: LinkEmailRequestInput, current_user: dict
     email_clean = data.email.strip().lower()
     validate_email_format(email_clean)
 
-    all_users = get_all_users()
+    all_users = await get_all_users()
     if any(u["email"] and u["email"].lower() == email_clean and u["id"] != current_user["id"] for u in all_users):
         raise HTTPException(status_code=400, detail=f"Email '{email_clean}' is already linked to another account.")
 
-    allowed, rate_msg = can_request_otp(email_clean)
+    allowed, rate_msg = await can_request_otp(email_clean)
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_msg)
 
-    token_id, otp = create_and_store_otp(email_clean, user_id=current_user["id"])
+    token_id, otp = await create_and_store_otp(email_clean, user_id=current_user["id"])
     send_verification_email(email_clean, otp, context="Email Account Linking")
 
     return {
@@ -533,16 +643,16 @@ async def link_email_verify(data: LinkEmailVerifyInput, current_user: dict = Dep
     email_clean = data.email.strip().lower()
     validate_email_format(email_clean)
 
-    all_users = get_all_users()
+    all_users = await get_all_users()
     if any(u["email"] and u["email"].lower() == email_clean and u["id"] != current_user["id"] for u in all_users):
         raise HTTPException(status_code=400, detail=f"Email '{email_clean}' is already linked to another account.")
 
-    is_valid, msg = validate_otp_code(email_clean, data.otp.strip(), user_id=current_user["id"])
+    is_valid, msg = await validate_otp_code(email_clean, data.otp.strip(), user_id=current_user["id"])
     if not is_valid:
         raise HTTPException(status_code=400, detail=msg)
 
     # Update User Record
-    update_user_email(current_user["id"], email_clean, is_verified=True)
+    await update_user_email(current_user["id"], email_clean, is_verified=True)
 
     return {
         "message": "Email successfully linked and verified.",
@@ -558,11 +668,11 @@ async def update_username(data: UpdateUsernameInput, current_user: dict = Depend
     new_username = data.username.strip()
     validate_username_format(new_username)
 
-    all_users = get_all_users()
+    all_users = await get_all_users()
     if any(u["username"] and u["username"].lower() == new_username.lower() and u["id"] != current_user["id"] for u in all_users):
         raise HTTPException(status_code=400, detail=f"Username '{new_username}' is already taken. Please choose another username.")
 
-    update_user_username(current_user["id"], new_username)
+    await update_user_username(current_user["id"], new_username)
 
     # Also update Character name
     character = await db.character.find_first(where={"userId": current_user["id"]})
@@ -576,3 +686,4 @@ async def update_username(data: UpdateUsernameInput, current_user: dict = Depend
         "message": "Hunter handle successfully updated.",
         "username": new_username
     }
+

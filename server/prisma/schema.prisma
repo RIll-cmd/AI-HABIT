@@ -5,9 +5,11 @@ generator pyclient {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
+
 
 model User {
   id              String   @id @default(uuid())
@@ -740,5 +742,7 @@ model DailyStepLog {
   date        DateTime  @default(now())
   createdAt   DateTime  @default(now())
 }
+
+
 
 

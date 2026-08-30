@@ -89,47 +89,67 @@ def get_db_path() -> str:
     return p2
 
 # =======================================================================
-# ⚙️ DYNAMIC REAL-TIME MUSCLE RECOVERY ENGINE
+# ⚙️ DYNAMIC REAL-TIME MUSCLE RECOVERY ENGINE (PRISMA POSTGRESQL & HYBRID)
 # =======================================================================
-def compute_muscle_status_dict(character_id: str) -> Dict[str, Any]:
+async def compute_muscle_status_dict(character_id: str) -> Dict[str, Any]:
     """
     Computes real-time dynamic time-decay recovery values on fetch.
     Zero background cron required.
     """
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    
-    c.execute(
-        "SELECT muscleGroup, initialFatigue, lastTrainedAt, fullRecoveryHours FROM MuscleRecoveryState WHERE characterId = ?",
-        (character_id,)
-    )
-    rows = c.fetchall()
-    conn.close()
-    
-    now = datetime.now(timezone.utc)
     tracked = {}
+    now = datetime.now(timezone.utc)
     
-    for mg, ifat, lt_str, rec_h in rows:
+    if db.is_connected():
         try:
-            if isinstance(lt_str, str):
-                if "T" in lt_str:
-                    lt = datetime.fromisoformat(lt_str.replace("Z", "+00:00"))
+            states = await db.musclerecoverystate.find_many(where={"characterId": character_id})
+            for s in states:
+                lt = s.lastTrainedAt
+                if isinstance(lt, datetime):
+                    lt = lt.replace(tzinfo=timezone.utc) if lt.tzinfo is None else lt
                 else:
-                    lt = datetime.strptime(lt_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-            elif isinstance(lt_str, datetime):
-                lt = lt_str.replace(tzinfo=timezone.utc) if lt_str.tzinfo is None else lt_str
-            else:
-                lt = now
+                    lt = now
+                tracked[s.muscleGroup.upper()] = {
+                    "initialFatigue": float(s.initialFatigue or 0.0),
+                    "lastTrainedAt": lt,
+                    "fullRecoveryHours": float(s.fullRecoveryHours or 48.0)
+                }
         except Exception:
-            lt = now
-            
-        tracked[mg.upper()] = {
-            "initialFatigue": float(ifat or 0.0),
-            "lastTrainedAt": lt,
-            "fullRecoveryHours": float(rec_h or 48.0)
-        }
-        
+            pass
+
+    if not tracked:
+        try:
+            db_path = get_db_path()
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            c.execute(
+                "SELECT muscleGroup, initialFatigue, lastTrainedAt, fullRecoveryHours FROM MuscleRecoveryState WHERE characterId = ?",
+                (character_id,)
+            )
+            rows = c.fetchall()
+            conn.close()
+
+            for mg, ifat, lt_str, rec_h in rows:
+                try:
+                    if isinstance(lt_str, str):
+                        if "T" in lt_str:
+                            lt = datetime.fromisoformat(lt_str.replace("Z", "+00:00"))
+                        else:
+                            lt = datetime.strptime(lt_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                    elif isinstance(lt_str, datetime):
+                        lt = lt_str.replace(tzinfo=timezone.utc) if lt_str.tzinfo is None else lt_str
+                    else:
+                        lt = now
+                except Exception:
+                    lt = now
+                    
+                tracked[mg.upper()] = {
+                    "initialFatigue": float(ifat or 0.0),
+                    "lastTrainedAt": lt,
+                    "fullRecoveryHours": float(rec_h or 48.0)
+                }
+        except Exception:
+            pass
+
     muscles_data = {}
     most_recent_train = None
     
@@ -193,20 +213,16 @@ def compute_muscle_status_dict(character_id: str) -> Dict[str, Any]:
         }
     }
 
-def update_character_muscle_fatigue(character_id: str, exercise_set_counts: Dict[str, int]):
+async def update_character_muscle_fatigue(character_id: str, exercise_set_counts: Dict[str, int]):
     """
     Increases fatigue for trained primary and secondary muscles and resets their lastTrainedAt.
     """
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
     
     # Calculate target fatigue deltas
     fatigue_deltas: Dict[str, float] = {}
     
     for ex_id, sets_count in exercise_set_counts.items():
-        # Find exercise in default list or DB
         ex_meta = None
         for ex in DEFAULT_EXERCISES:
             if ex["id"] == ex_id or ex["name"].lower() == ex_id.lower():
@@ -215,7 +231,6 @@ def update_character_muscle_fatigue(character_id: str, exercise_set_counts: Dict
                 
         if ex_meta:
             primary = normalize_muscle_key(ex_meta.get("primaryMuscle", "CHEST"))
-            # Primary gets +35% baseline + 7% per set
             p_fatigue = min(90.0, 35.0 + sets_count * 7.0)
             fatigue_deltas[primary] = max(fatigue_deltas.get(primary, 0.0), p_fatigue)
             
@@ -228,41 +243,78 @@ def update_character_muscle_fatigue(character_id: str, exercise_set_counts: Dict
                     
             for sec in secondaries:
                 s_key = normalize_muscle_key(sec)
-                # Secondary gets +15% baseline + 4% per set
                 s_fatigue = min(60.0, 15.0 + sets_count * 4.0)
                 fatigue_deltas[s_key] = max(fatigue_deltas.get(s_key, 0.0), s_fatigue)
         else:
             primary = "CHEST"
             fatigue_deltas[primary] = max(fatigue_deltas.get(primary, 0.0), 40.0)
             
-    # Apply to database
-    for m_key, add_fatigue in fatigue_deltas.items():
-        c.execute(
-            "SELECT id, initialFatigue, fullRecoveryHours FROM MuscleRecoveryState WHERE characterId = ? AND muscleGroup = ?",
-            (character_id, m_key)
-        )
-        row = c.fetchone()
-        rec_hours = CANONICAL_MUSCLES.get(m_key, {}).get("recoveryHours", 48.0)
-        
-        if row:
-            row_id, cur_ifat, cur_rh = row
-            # New fatigue: capped at 100%
-            new_fatigue = min(100.0, max(add_fatigue, float(cur_ifat or 0.0) * 0.4 + add_fatigue))
+    # Apply to Prisma
+    if db.is_connected():
+        try:
+            for m_key, add_fatigue in fatigue_deltas.items():
+                rec_hours = CANONICAL_MUSCLES.get(m_key, {}).get("recoveryHours", 48.0)
+                existing = await db.musclerecoverystate.find_first(
+                    where={"characterId": character_id, "muscleGroup": m_key}
+                )
+                if existing:
+                    new_fatigue = min(100.0, max(add_fatigue, float(existing.initialFatigue or 0.0) * 0.4 + add_fatigue))
+                    await db.musclerecoverystate.update(
+                        where={"id": existing.id},
+                        data={
+                            "initialFatigue": new_fatigue,
+                            "lastTrainedAt": now,
+                            "fullRecoveryHours": rec_hours,
+                        }
+                    )
+                else:
+                    new_fatigue = min(100.0, add_fatigue)
+                    await db.musclerecoverystate.create(
+                        data={
+                            "characterId": character_id,
+                            "muscleGroup": m_key,
+                            "initialFatigue": new_fatigue,
+                            "lastTrainedAt": now,
+                            "fullRecoveryHours": rec_hours,
+                        }
+                    )
+            return
+        except Exception:
+            pass
+
+    # Fallback to local SQLite if not connected to Prisma
+    try:
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        now_iso = now.isoformat()
+        for m_key, add_fatigue in fatigue_deltas.items():
             c.execute(
-                "UPDATE MuscleRecoveryState SET initialFatigue = ?, lastTrainedAt = ?, fullRecoveryHours = ?, updatedAt = ? WHERE id = ?",
-                (new_fatigue, now_iso, rec_hours, now_iso, row_id)
+                "SELECT id, initialFatigue, fullRecoveryHours FROM MuscleRecoveryState WHERE characterId = ? AND muscleGroup = ?",
+                (character_id, m_key)
             )
-        else:
-            import uuid
-            new_id = str(uuid.uuid4())
-            new_fatigue = min(100.0, add_fatigue)
-            c.execute(
-                "INSERT INTO MuscleRecoveryState (id, characterId, muscleGroup, initialFatigue, lastTrainedAt, fullRecoveryHours, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (new_id, character_id, m_key, new_fatigue, now_iso, rec_hours, now_iso, now_iso)
-            )
-            
-    conn.commit()
-    conn.close()
+            row = c.fetchone()
+            rec_hours = CANONICAL_MUSCLES.get(m_key, {}).get("recoveryHours", 48.0)
+            if row:
+                row_id, cur_ifat, cur_rh = row
+                new_fatigue = min(100.0, max(add_fatigue, float(cur_ifat or 0.0) * 0.4 + add_fatigue))
+                c.execute(
+                    "UPDATE MuscleRecoveryState SET initialFatigue = ?, lastTrainedAt = ?, fullRecoveryHours = ?, updatedAt = ? WHERE id = ?",
+                    (new_fatigue, now_iso, rec_hours, now_iso, row_id)
+                )
+            else:
+                import uuid
+                new_id = str(uuid.uuid4())
+                new_fatigue = min(100.0, add_fatigue)
+                c.execute(
+                    "INSERT INTO MuscleRecoveryState (id, characterId, muscleGroup, initialFatigue, lastTrainedAt, fullRecoveryHours, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (new_id, character_id, m_key, new_fatigue, now_iso, rec_hours, now_iso, now_iso)
+                )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
 
 # =======================================================================
 # 📋 EXERCISE LIBRARY (ENRICHED CATALOG)
@@ -557,24 +609,34 @@ async def get_muscle_status(character_id: str):
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
         
-    return compute_muscle_status_dict(character_id)
+    return await compute_muscle_status_dict(character_id)
 
 @router.post("/reset-recovery/{character_id}")
 async def reset_muscle_recovery(character_id: str):
     """
     Utility endpoint: Resets all muscle fatigue levels to 0% (100% Fresh).
     """
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("DELETE FROM MuscleRecoveryState WHERE characterId = ?", (character_id,))
-    conn.commit()
-    conn.close()
+    if db.is_connected():
+        try:
+            await db.musclerecoverystate.delete_many(where={"characterId": character_id})
+        except Exception:
+            pass
+
+    try:
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute("DELETE FROM MuscleRecoveryState WHERE characterId = ?", (character_id,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
     
     return {
         "message": "All muscle groups reset to 100% Fresh.",
-        "status": compute_muscle_status_dict(character_id)
+        "status": await compute_muscle_status_dict(character_id)
     }
+
 
 @router.post("/log")
 async def log_workout(data: WorkoutLogInput):
@@ -655,7 +717,8 @@ async def log_workout(data: WorkoutLogInput):
         })
         
     # Update Real-Time Muscle Recovery Fatigue
-    update_character_muscle_fatigue(data.characterId, exercise_set_counts)
+    await update_character_muscle_fatigue(data.characterId, exercise_set_counts)
+
     
     # Calculate Stat Rewards based on Muscle Groups logged
     strength_inc = 0
