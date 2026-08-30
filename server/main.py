@@ -75,6 +75,29 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def db_connection_lifecycle_middleware(request: Request, call_next):
+    from db import ensure_db_connected, db
+    try:
+        if not db.is_connected():
+            await db.connect()
+    except Exception:
+        pass
+
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as exc:
+        err_str = str(exc)
+        if "Closed" in err_str or "connection" in err_str.lower() or "quaint" in err_str.lower():
+            print(f"[Prisma Connection Lifecycle] Re-establishing dropped database connection: {exc}")
+            try:
+                if db.is_connected():
+                    await db.disconnect()
+                await db.connect()
+            except Exception as re_err:
+                print(f"[Prisma Reconnect Error]: {re_err}")
+        raise exc
 
 
 @app.exception_handler(RecordNotFoundError)
@@ -83,6 +106,7 @@ async def prisma_record_not_found_handler(request: Request, exc: RecordNotFoundE
         status_code=404,
         content={"detail": "The requested resource was not found in the database."}
     )
+
 
 # Register Domain Routers
 app.include_router(auth.router)

@@ -56,42 +56,52 @@ def get_gemini_client():
 
 def call_gemini_generate(client, prompt: str) -> Optional[str]:
     """
-    Calls client.models.generate_content (google-genai) or GenerativeModel.generate_content (google.generativeai) lazily.
+    Generates content using modern client.chats.create() and chat.send_message() lazily.
     """
     if not client:
         return None
 
-    # 1. google-genai SDK
-    if hasattr(client, "models"):
+    # 1. Modern google.genai SDK
+    if hasattr(client, "chats"):
         try:
             from google.genai import types
             config = types.GenerateContentConfig(
                 system_instruction=AIRA_SYSTEM_PROMPT
             )
             for model_name in [
-                "gemini-flash-latest",
-                "gemini-flash-lite-latest",
-                "gemini-3.6-flash",
-                "gemini-3.5-flash-lite",
-                "gemini-2.0-flash-lite",
+                "gemini-2.5-flash",
                 "gemini-2.0-flash",
+                "gemini-flash-latest",
+                "gemini-2.0-flash-lite",
             ]:
                 try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                        config=config,
-                    )
+                    chat = client.chats.create(model=model_name, config=config)
+                    response = chat.send_message(prompt)
                     if response and response.text:
-                        print(f"[AIRA Service Success] Response generated using model '{model_name}'.")
                         return response.text.strip()
-                except Exception as e:
-                    print(f"[AIRA Service Debug] Model '{model_name}' failed: {type(e).__name__}: {e}")
+                except Exception:
                     continue
         except Exception as e:
-            print(f"[AIRA Service Warning] google-genai call failed: {e}")
+            print(f"[AIRA Service Warning] google-genai chat failed: {e}")
 
-    # 2. google.generativeai SDK
+    # Fallback: models.generate_content (without tools)
+    if hasattr(client, "models"):
+        try:
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                system_instruction=AIRA_SYSTEM_PROMPT
+            )
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=config,
+            )
+            if response and response.text:
+                return response.text.strip()
+        except Exception:
+            pass
+
+    # 2. Legacy google.generativeai SDK fallback
     if hasattr(client, "GenerativeModel"):
         try:
             for model_name in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]:
@@ -102,27 +112,23 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
                     )
                     response = model.generate_content(prompt)
                     if response and response.text:
-                        print(f"[AIRA Service Success] Response generated using legacy model '{model_name}'.")
                         return response.text.strip()
-                except Exception as e:
-                    print(f"[AIRA Service Debug] Legacy model '{model_name}' failed: {type(e).__name__}: {e}")
+                except Exception:
                     continue
         except Exception as e:
-            print(f"[AIRA Service Warning] google.generativeai call failed: {e}")
+            print(f"[AIRA Service Warning] legacy google.generativeai call failed: {e}")
 
     return None
 
 
 async def call_gemini_with_tools_async(client, full_prompt: str, character_id: str) -> Dict[str, Any]:
     """
-    Calls Gemini, provides the tools, and manually executes function calls if requested.
+    Calls Gemini utilizing client.chats.create() and chat.send_message() for Automatic Function Calling (AFC),
+    intercepting mutative actions for user confirmation.
     """
     try:
         from google.genai import types
         
-        # We need a wrapper for each tool to automatically inject the character_id
-        # since the LLM doesn't know it, but we can also just tell the LLM the ID.
-        # It's easier to tell the LLM the ID in the system prompt or just provide it.
         system_instruction = AIRA_SYSTEM_PROMPT + f"\n[CRITICAL]: The Master's character_id is '{character_id}'. Pass this exact string to any tool you call."
         
         config = types.GenerateContentConfig(
@@ -131,8 +137,6 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
             temperature=0.7
         )
         
-        model_name = "gemini-2.5-flash" # Try a default modern one, fallback later if needed
-        # Or let's use the loop for resilience
         fallback_models = [
             "gemini-2.5-flash",
             "gemini-2.0-flash",
@@ -142,17 +146,16 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         chat = None
         for m in fallback_models:
             try:
-                # Use client.chats.create if available, otherwise just generate_content
                 chat = client.chats.create(model=m, config=config)
                 break
             except Exception as e:
-                print(f"Failed to create chat with {m}: {e}")
+                print(f"[AIRA Service Debug] Failed to create chat session with model {m}: {e}")
                 
         if not chat:
             text_res = call_gemini_generate(client, full_prompt)
             return {"response": text_res or "Analysis failed.", "pending_action": None}
             
-        # Send initial message
+        # Send initial message through chat session
         response = chat.send_message(full_prompt)
         
         # Check if the model called a function
@@ -161,7 +164,7 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         if hasattr(response, 'function_calls') and response.function_calls:
             for fn_call in response.function_calls:
                 fn_name = fn_call.name
-                fn_args = fn_call.args
+                fn_args = fn_call.args or {}
                 
                 print(f"[AIRA Tool Call] Executing {fn_name} with args {fn_args}")
                 
@@ -188,7 +191,6 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
                 # Find the tool (for read-only tools)
                 tool_func = next((t for t in AIRA_TOOLS if t.__name__ == fn_name), None)
                 if tool_func:
-                    # Execute
                     if inspect.iscoroutinefunction(tool_func):
                         result = await tool_func(**fn_args)
                     else:
@@ -196,11 +198,12 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
                         
                     print(f"[AIRA Tool Response] {fn_name} returned: {result}")
                     
-                    # Send response back to chat
+                    # Send tool execution result back to chat session
+                    tool_resp_payload = result if isinstance(result, dict) else {"result": result}
                     response = chat.send_message(
                         types.Part.from_function_response(
                             name=fn_name,
-                            response=result
+                            response=tool_resp_payload
                         )
                     )
         
@@ -214,6 +217,7 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         print(f"[AIRA Service Warning] call_gemini_with_tools_async failed: {e}")
         text_res = call_gemini_generate(client, full_prompt)
         return {"response": text_res or "Analysis failed.", "pending_action": None}
+
 
 
 def format_character_context(character_context: Dict[str, Any]) -> str:
