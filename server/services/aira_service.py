@@ -21,7 +21,8 @@ CRITICAL INSTRUCTIONS FOR RESPONSES:
 
 def get_gemini_client():
     """
-    Loads GEMINI_API_KEY from environment and initializes the new google-genai Client.
+    Lazy-loads GEMINI_API_KEY from environment and initializes Gemini client
+    on-demand inside the function scope to minimize startup memory overhead.
     """
     load_dotenv(override=True)
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
@@ -30,48 +31,87 @@ def get_gemini_client():
         print("[AIRA Service Warning] GEMINI_API_KEY missing or invalid in server/.env. Using local Ciel fallback persona.")
         return None
 
+    # 1. Modern google.genai SDK
     try:
         from google import genai
         client = genai.Client(api_key=api_key)
         return client
+    except ImportError:
+        pass
     except Exception as e:
         print(f"[AIRA Service Warning] Failed to initialize google.genai Client: {e}")
-        return None
+
+    # 2. Legacy google.generativeai SDK fallback
+    try:
+        import google.generativeai as legacy_genai
+        legacy_genai.configure(api_key=api_key)
+        return legacy_genai
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"[AIRA Service Warning] Failed to configure google.generativeai: {e}")
+
+    return None
 
 
 def call_gemini_generate(client, prompt: str) -> Optional[str]:
     """
-    Calls client.models.generate_content using google-genai SDK.
+    Calls client.models.generate_content (google-genai) or GenerativeModel.generate_content (google.generativeai) lazily.
     """
-    try:
-        from google.genai import types
-        config = types.GenerateContentConfig(
-            system_instruction=AIRA_SYSTEM_PROMPT
-        )
-        for model_name in [
-            "gemini-flash-latest",
-            "gemini-flash-lite-latest",
-            "gemini-3.6-flash",
-            "gemini-3.5-flash-lite",
-            "gemini-2.0-flash-lite",
-            "gemini-2.0-flash",
-        ]:
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=config,
-                )
-                if response and response.text:
-                    print(f"[AIRA Service Success] Response generated using model '{model_name}'.")
-                    return response.text.strip()
-            except Exception as e:
-                print(f"[AIRA Service Debug] Model '{model_name}' failed: {type(e).__name__}: {e}")
-                continue
+    if not client:
         return None
-    except Exception as e:
-        print(f"[AIRA Service Warning] google-genai call failed: {e}")
-        return None
+
+    # 1. google-genai SDK
+    if hasattr(client, "models"):
+        try:
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                system_instruction=AIRA_SYSTEM_PROMPT
+            )
+            for model_name in [
+                "gemini-flash-latest",
+                "gemini-flash-lite-latest",
+                "gemini-3.6-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-2.0-flash-lite",
+                "gemini-2.0-flash",
+            ]:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=config,
+                    )
+                    if response and response.text:
+                        print(f"[AIRA Service Success] Response generated using model '{model_name}'.")
+                        return response.text.strip()
+                except Exception as e:
+                    print(f"[AIRA Service Debug] Model '{model_name}' failed: {type(e).__name__}: {e}")
+                    continue
+        except Exception as e:
+            print(f"[AIRA Service Warning] google-genai call failed: {e}")
+
+    # 2. google.generativeai SDK
+    if hasattr(client, "GenerativeModel"):
+        try:
+            for model_name in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]:
+                try:
+                    model = client.GenerativeModel(
+                        model_name=model_name,
+                        system_instruction=AIRA_SYSTEM_PROMPT
+                    )
+                    response = model.generate_content(prompt)
+                    if response and response.text:
+                        print(f"[AIRA Service Success] Response generated using legacy model '{model_name}'.")
+                        return response.text.strip()
+                except Exception as e:
+                    print(f"[AIRA Service Debug] Legacy model '{model_name}' failed: {type(e).__name__}: {e}")
+                    continue
+        except Exception as e:
+            print(f"[AIRA Service Warning] google.generativeai call failed: {e}")
+
+    return None
+
 
 async def call_gemini_with_tools_async(client, full_prompt: str, character_id: str) -> Dict[str, Any]:
     """

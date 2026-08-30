@@ -8,10 +8,16 @@ from routers import auth, character, habits, missions, progression, achievements
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await db.connect()
-    yield
-    if db.is_connected():
-        await db.disconnect()
+    # Startup: Connect to database via modern lifespan context manager
+    if not db.is_connected():
+        await db.connect()
+    try:
+        yield
+    finally:
+        # Shutdown: Gracefully disconnect database client
+        if db.is_connected():
+            await db.disconnect()
+
 
 app = FastAPI(
     title="Ascend OS Core Server",
