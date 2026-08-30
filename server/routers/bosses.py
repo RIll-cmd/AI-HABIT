@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from prisma import Prisma
 from db import db
+from db_utils import ensure_character_exists
 from schemas.bosses import BossCreate, BossSchema
 from services.boss_engine import calculate_boss_hp, generate_boss_phases
 
@@ -9,10 +10,10 @@ router = APIRouter()
 
 @router.post("/{character_id}", response_model=BossSchema)
 async def create_boss(character_id: str, payload: BossCreate):
-    # Verify character exists
+    # Verify character exists or auto-create
     character = await db.character.find_unique(where={"id": character_id})
     if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+        character = await ensure_character_exists(character_id)
         
     # Calculate HP based on difficulty
     max_hp = calculate_boss_hp(payload.difficulty)
@@ -20,7 +21,7 @@ async def create_boss(character_id: str, payload: BossCreate):
     # Create the Boss
     boss = await db.boss.create(
         data={
-            "characterId": character_id,
+            "characterId": character.id,
             "name": payload.name,
             "description": payload.description,
             "category": payload.category,
@@ -60,6 +61,7 @@ async def create_boss(character_id: str, payload: BossCreate):
 
 @router.get("/{character_id}", response_model=List[BossSchema])
 async def get_bosses(character_id: str):
+    await ensure_character_exists(character_id)
     bosses = await db.boss.find_many(
         where={"characterId": character_id},
         include={
@@ -71,3 +73,4 @@ async def get_bosses(character_id: str):
     )
     
     return bosses
+
