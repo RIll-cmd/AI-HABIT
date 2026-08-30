@@ -10,28 +10,53 @@ router = APIRouter(prefix="/api/skills", tags=["skills"])
 async def get_skills(character_id: str):
     """
     Fetches all global SkillDefinition records and the specific PlayerSkill records for the character.
-    Returns an object with 'definitions' and 'playerSkills'.
+    Returns the complete catalog of base skills alongside unlocked/mastered statuses.
     """
     await ensure_character_exists(character_id)
     
-    definitions = await db.skilldefinition.find_many()
+    definitions = await db.skilldefinition.find_many(order={"tier": "asc"})
     if not definitions:
         try:
             from scripts.seed_skills import seed_skills
-            await seed_skills()
-            definitions = await db.skilldefinition.find_many()
+            await seed_skills(db)
+            definitions = await db.skilldefinition.find_many(order={"tier": "asc"})
         except Exception as e:
-            print(f"Auto-seed skills exception: {e}")
+            print(f"[Skills API] Auto-seed error: {e}")
 
-    player_skills = await db.playerskill.find_many(
-        where={"characterId": character_id},
-        include={"skillDefinition": True}
-    )
+    # Fallback to local JSON definitions if database is unreachable or empty
+    if not definitions:
+        from scripts.seed_skills import load_skills_data, determine_element_path
+        raw = load_skills_data()
+        definitions = [
+            {
+                "id": s.get("id"),
+                "name": s.get("name"),
+                "description": s.get("description"),
+                "elementPath": determine_element_path(s.get("id")),
+                "tier": s.get("tier", 1),
+                "maxLevel": 5,
+                "skillType": s.get("type", "Active").upper(),
+                "baseCostSP": 1,
+                "statRequirements": json.dumps(s.get("requirements", {})),
+                "icon": s.get("icon"),
+            }
+            for s in raw if s.get("id")
+        ]
+
+    player_skills = []
+    try:
+        player_skills = await db.playerskill.find_many(
+            where={"characterId": character_id},
+            include={"skillDefinition": True}
+        )
+    except Exception as e:
+        print(f"[Skills API] Warning fetching player skills: {e}")
     
     return {
-        "definitions": definitions,
-        "playerSkills": player_skills
+        "definitions": definitions or [],
+        "playerSkills": player_skills or []
     }
+
 
 @router.post("/{character_id}/unlock", response_model=SkillUnlockResponseSchema)
 async def unlock_skill(character_id: str, request: SkillUnlockRequestSchema):

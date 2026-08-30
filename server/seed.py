@@ -32,7 +32,12 @@ async def main() -> None:
     if user.character:
         print(f"Character: Name={user.character.name}, Title={user.character.title}")
 
+    print("Seeding baseline SkillDefinitions...")
+    from scripts.seed_skills import seed_skills
+    await seed_skills(db)
+
     await db.disconnect()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

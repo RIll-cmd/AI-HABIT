@@ -27,11 +27,19 @@ async def lifespan(app: FastAPI):
     if not db.is_connected():
         await db.connect()
     try:
+        # Auto-seed baseline skills if table is empty
+        try:
+            from scripts.seed_skills import seed_skills_if_empty
+            await seed_skills_if_empty(db)
+        except Exception as e:
+            print(f"[Startup Warning] Skill seeder error: {e}")
+
         yield
     finally:
         # Shutdown: Gracefully disconnect database client
         if db.is_connected():
             await db.disconnect()
+
 
 
 app = FastAPI(
