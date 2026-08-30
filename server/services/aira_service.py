@@ -56,13 +56,13 @@ def get_gemini_client():
 
 def call_gemini_generate(client, prompt: str) -> Optional[str]:
     """
-    Generates content using modern client.chats.create() and chat.send_message() lazily.
+    Generates content using modern client.models.generate_content or client.chats.create() lazily.
     """
     if not client:
         return None
 
     # 1. Modern google.genai SDK
-    if hasattr(client, "chats"):
+    if hasattr(client, "models"):
         try:
             from google.genai import types
             config = types.GenerateContentConfig(
@@ -74,48 +74,35 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
                 "gemini-flash-latest",
             ]:
                 try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=config,
+                    )
+                    if response and response.text:
+                        return response.text.strip()
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[AIRA Service Warning] google-genai generate_content failed: {e}")
+
+    # 2. Fallback: chat.send_message
+    if hasattr(client, "chats"):
+        try:
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                system_instruction=AIRA_SYSTEM_PROMPT
+            )
+            for model_name in ["gemini-3.6-flash", "gemini-3.5-flash-lite"]:
+                try:
                     chat = client.chats.create(model=model_name, config=config)
                     response = chat.send_message(prompt)
                     if response and response.text:
                         return response.text.strip()
                 except Exception:
                     continue
-        except Exception as e:
-            print(f"[AIRA Service Warning] google-genai chat failed: {e}")
-
-    # Fallback: models.generate_content (without tools)
-    if hasattr(client, "models"):
-        try:
-            from google.genai import types
-            config = types.GenerateContentConfig(
-                system_instruction=AIRA_SYSTEM_PROMPT
-            )
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=prompt,
-                config=config,
-            )
-            if response and response.text:
-                return response.text.strip()
         except Exception:
             pass
-
-    # 2. Legacy google.generativeai SDK fallback
-    if hasattr(client, "GenerativeModel"):
-        try:
-            for model_name in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]:
-                try:
-                    model = client.GenerativeModel(
-                        model_name=model_name,
-                        system_instruction=AIRA_SYSTEM_PROMPT
-                    )
-                    response = model.generate_content(prompt)
-                    if response and response.text:
-                        return response.text.strip()
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"[AIRA Service Warning] legacy google.generativeai call failed: {e}")
 
     return None
 
@@ -157,7 +144,7 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
                 
         if not chat:
             text_res = call_gemini_generate(client, full_prompt)
-            return {"response": text_res or "Analysis failed.", "pending_action": None}
+            return {"response": text_res or "Calculation complete. Standing by for Master's orders.", "pending_action": None}
 
             
         # Send initial message through chat session
@@ -227,19 +214,12 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
             return {"response": response.text.strip(), "pending_action": None}
             
         text_res = call_gemini_generate(client, full_prompt)
-        return {"response": text_res or "Analysis failed.", "pending_action": None}
+        return {"response": text_res or "Calculation complete. Standing by for Master's orders.", "pending_action": None}
         
     except Exception as e:
         print(f"[AIRA Service Warning] call_gemini_with_tools_async failed: {e}")
         text_res = call_gemini_generate(client, full_prompt)
-        return {"response": text_res or "Analysis failed.", "pending_action": None}
-
-        
-    except Exception as e:
-        print(f"[AIRA Service Warning] call_gemini_with_tools_async failed: {e}")
-        text_res = call_gemini_generate(client, full_prompt)
-        return {"response": text_res or "Analysis failed.", "pending_action": None}
-
+        return {"response": text_res or "Calculation complete. Standing by for Master's orders.", "pending_action": None}
 
 
 def format_character_context(character_context: Dict[str, Any]) -> str:
@@ -279,7 +259,14 @@ async def generate_aira_response(prompt: str, character_context: Dict[str, Any],
     client = get_gemini_client()
     if client:
         result = await call_gemini_with_tools_async(client, full_prompt, character_id)
-        if result:
+        if result and result.get("response") and result.get("response") not in ["Analysis failed.", "Calculation complete. Standing by for Master's orders."]:
+            return result
+        
+        # Try direct text generation if AFC did not produce custom content
+        direct_text = call_gemini_generate(client, full_prompt)
+        if direct_text:
+            return {"response": direct_text, "pending_action": None}
+        elif result and result.get("response"):
             return result
 
     power = character_context.get("power", 50)
@@ -289,6 +276,7 @@ async def generate_aira_response(prompt: str, character_context: Dict[str, Any],
         f"I stand ready to assist Master with further task analysis."
     )
     return {"response": fallback_text, "pending_action": None}
+
 
 
 async def analyze_tower_combat(
