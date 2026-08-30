@@ -130,14 +130,9 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         ]
 
         chat = None
-        aio_client = getattr(client, "aio", None) or client
-
         for m in fallback_models:
             try:
-                if hasattr(aio_client, "chats"):
-                    chat = aio_client.chats.create(model=m, config=config)
-                else:
-                    chat = client.chats.create(model=m, config=config)
+                chat = client.chats.create(model=m, config=config)
                 break
             except Exception as e:
                 print(f"[AIRA Service Debug] Failed to create chat session with model {m}: {e}")
@@ -146,12 +141,9 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
             text_res = call_gemini_generate(client, full_prompt)
             return {"response": text_res or "Calculation complete. Standing by for Master's orders.", "pending_action": None}
 
-            
         # Send initial message through chat session
-        if inspect.iscoroutinefunction(chat.send_message):
-            response = await chat.send_message(full_prompt)
-        else:
-            response = chat.send_message(full_prompt)
+        response = chat.send_message(full_prompt)
+
         
         # Check if the model called a function
         MUTATIVE_TOOLS = ["log_completed_workout", "complete_daily_mission", "create_new_mission", "generate_progression_plan"]

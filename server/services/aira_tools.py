@@ -1,15 +1,30 @@
 from typing import Dict, Any, List
+import asyncio
+import concurrent.futures
 from db import db, ensure_db_connected
 from db_utils import ensure_character_exists
 
-async def get_character_stats(character_id: str) -> Dict[str, Any]:
-    """
-    Fetches the core stats, level, and power of the character.
-    Use this to answer questions about the user's current attributes or status.
-    
-    Args:
-        character_id: The ID of the character to look up.
-    """
+def _run_sync(coro):
+    """Safely runs an async coroutine synchronously inside any event loop context."""
+    try:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, coro).result(timeout=10)
+        elif loop:
+            return loop.run_until_complete(coro)
+        else:
+            return asyncio.run(coro)
+    except Exception as e:
+        print(f"[AIRA Tool Sync Runner Warning]: {e}")
+        return {}
+
+
+async def _async_get_character_stats(character_id: str) -> Dict[str, Any]:
     try:
         await ensure_db_connected()
         character = await ensure_character_exists(character_id)
@@ -30,20 +45,23 @@ async def get_character_stats(character_id: str) -> Dict[str, Any]:
         print(f"[AIRA Tool get_character_stats Warning]: {e}")
         return {"name": "Master", "level": 1, "power": 50, "stats": {"strength": 1, "knowledge": 1, "recovery": 1, "focus": 1, "discipline": 1, "endurance": 1, "consistency": 1}}
 
-async def get_today_missions(character_id: str) -> List[Dict[str, Any]]:
+def get_character_stats(character_id: str) -> Dict[str, Any]:
     """
-    Fetches the user's missions (habits/tasks) for the current day and their completion status.
-    Use this when the user asks what they should do today, or asks about their pending/completed tasks.
+    Fetches the core stats, level, and power of the character.
+    Use this to answer questions about the user's current attributes or status.
     
     Args:
         character_id: The ID of the character to look up.
     """
+    return _run_sync(_async_get_character_stats(character_id))
+
+
+async def _async_get_today_missions(character_id: str) -> List[Dict[str, Any]]:
     try:
         await ensure_db_connected()
         missions = await db.mission.find_many(
             where={"characterId": character_id}
         )
-        
         result = []
         for m in (missions or []):
             result.append({
@@ -60,14 +78,18 @@ async def get_today_missions(character_id: str) -> List[Dict[str, Any]]:
         print(f"[AIRA Tool get_today_missions Warning]: {e}")
         return []
 
-async def get_active_bosses(character_id: str) -> List[Dict[str, Any]]:
+def get_today_missions(character_id: str) -> List[Dict[str, Any]]:
     """
-    Fetches the user's active, undefeated bosses.
-    Use this when the user asks about their ongoing major goals or bosses.
+    Fetches the user's missions (habits/tasks) for the current day and their completion status.
+    Use this when the user asks what they should do today, or asks about their pending/completed tasks.
     
     Args:
         character_id: The ID of the character to look up.
     """
+    return _run_sync(_async_get_today_missions(character_id)) or []
+
+
+async def _async_get_active_bosses(character_id: str) -> List[Dict[str, Any]]:
     try:
         await ensure_db_connected()
         bosses = await db.boss.find_many(
@@ -76,7 +98,6 @@ async def get_active_bosses(character_id: str) -> List[Dict[str, Any]]:
                 "isDefeated": False
             }
         )
-        
         result = []
         for b in (bosses or []):
             result.append({
@@ -90,8 +111,18 @@ async def get_active_bosses(character_id: str) -> List[Dict[str, Any]]:
         print(f"[AIRA Tool get_active_bosses Warning]: {e}")
         return []
 
+def get_active_bosses(character_id: str) -> List[Dict[str, Any]]:
+    """
+    Fetches the user's active, undefeated bosses.
+    Use this when the user asks about their ongoing major goals or bosses.
+    
+    Args:
+        character_id: The ID of the character to look up.
+    """
+    return _run_sync(_async_get_active_bosses(character_id)) or []
 
-async def log_completed_workout(character_id: str, exercise_name: str, sets: int, reps: int, weight: float) -> Dict[str, Any]:
+
+def log_completed_workout(character_id: str, exercise_name: str, sets: int, reps: int, weight: float) -> Dict[str, Any]:
     """
     Logs a completed workout for the user. Call this when the user says they completed an exercise.
     
@@ -104,7 +135,7 @@ async def log_completed_workout(character_id: str, exercise_name: str, sets: int
     """
     return {"status": "pending_confirmation", "message": "Workout log requires user confirmation."}
 
-async def complete_daily_mission(character_id: str, mission_id: str, mission_title: str) -> Dict[str, Any]:
+def complete_daily_mission(character_id: str, mission_id: str, mission_title: str) -> Dict[str, Any]:
     """
     Marks a daily mission or habit as completed. Call this when the user says they finished a specific habit.
     
@@ -115,7 +146,7 @@ async def complete_daily_mission(character_id: str, mission_id: str, mission_tit
     """
     return {"status": "pending_confirmation", "message": "Mission completion requires user confirmation."}
 
-async def create_new_mission(character_id: str, title: str, description: str, stat_type: str) -> Dict[str, Any]:
+def create_new_mission(character_id: str, title: str, description: str, stat_type: str) -> Dict[str, Any]:
     """
     Creates a new mission based on the user's goals. Call this when proposing a new habit to the user.
     
@@ -127,7 +158,7 @@ async def create_new_mission(character_id: str, title: str, description: str, st
     """
     return {"status": "pending_confirmation", "message": "Mission creation requires user confirmation."}
 
-async def generate_progression_plan(character_id: str, goal_description: str) -> Dict[str, Any]:
+def generate_progression_plan(character_id: str, goal_description: str) -> Dict[str, Any]:
     """
     Formulates a structured JSON payload containing 2-3 recommended Habits based on a high-level goal.
     Call this when the user says they want to get better at something or achieve a long-term goal.
@@ -136,17 +167,10 @@ async def generate_progression_plan(character_id: str, goal_description: str) ->
         character_id: The ID of the character.
         goal_description: The user's high-level goal (e.g., "I want to get better at programming").
     """
-    # This tool will be intercepted by the middleware to return a pending_plan payload.
     return {"status": "pending_confirmation", "message": "Progression plan requires user confirmation."}
 
-async def analyze_tower_readiness(character_id: str, floor_number: int) -> Dict[str, Any]:
-    """
-    Analyzes if a player is ready to beat a specific Tower floor based on their stats and equipment.
-    
-    Args:
-        character_id: The ID of the character.
-        floor_number: The tower floor number to analyze.
-    """
+
+async def _async_analyze_tower_readiness(character_id: str, floor_number: int) -> Dict[str, Any]:
     try:
         await ensure_db_connected()
         character = await ensure_character_exists(character_id)
@@ -220,13 +244,18 @@ async def analyze_tower_readiness(character_id: str, floor_number: int) -> Dict[
         print(f"[AIRA Tool analyze_tower_readiness Warning]: {e}")
         return {"floor_analyzed": floor_number, "readiness_summary": "Ready", "critical_weaknesses": []}
 
-async def compare_equipment(character_id: str) -> Dict[str, Any]:
+def analyze_tower_readiness(character_id: str, floor_number: int) -> Dict[str, Any]:
     """
-    Analyzes player's inventory to recommend best gear for their lowest stats.
+    Analyzes if a player is ready to beat a specific Tower floor based on their stats and equipment.
     
     Args:
         character_id: The ID of the character.
+        floor_number: The tower floor number to analyze.
     """
+    return _run_sync(_async_analyze_tower_readiness(character_id, floor_number))
+
+
+async def _async_compare_equipment(character_id: str) -> Dict[str, Any]:
     try:
         await ensure_db_connected()
         character = await ensure_character_exists(character_id)
@@ -244,7 +273,6 @@ async def compare_equipment(character_id: str) -> Dict[str, Any]:
         if not char_record or not char_record.stats:
             return {"recommendation": "Complete quests to acquire higher tier gear."}
 
-        # Find lowest base stat
         stats_dict = {
             "strength": char_record.stats.strength,
             "endurance": char_record.stats.endurance,
@@ -275,8 +303,6 @@ async def compare_equipment(character_id: str) -> Dict[str, Any]:
             else:
                 unequipped.append(item_data)
 
-
-        # Sort unequipped by the bonus it gives to the lowest stat
         unequipped.sort(key=lambda x: x["bonus_to_lowest_stat"], reverse=True)
 
         recommendations = []
@@ -297,8 +323,16 @@ async def compare_equipment(character_id: str) -> Dict[str, Any]:
         print(f"[AIRA Tool compare_equipment Warning]: {e}")
         return {"recommendation": "Maintain daily habit completion to unlock new gear."}
 
+def compare_equipment(character_id: str) -> Dict[str, Any]:
+    """
+    Analyzes player's inventory to recommend best gear for their lowest stats.
+    
+    Args:
+        character_id: The ID of the character.
+    """
+    return _run_sync(_async_compare_equipment(character_id))
 
-# Expose a list of tools for the LLM
+
 AIRA_TOOLS = [
     get_character_stats, 
     get_today_missions, 
