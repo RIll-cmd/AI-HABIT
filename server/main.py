@@ -1,10 +1,25 @@
+import os
+from pathlib import Path
 from contextlib import asynccontextmanager
+
+# Auto-detect bundled Prisma query engine binary on Linux/Render
+server_dir = Path(__file__).resolve().parent
+for engine_candidate in [
+    server_dir / "prisma-query-engine-debian-openssl-3.0.x",
+    server_dir / "prisma-query-engine-rhel-openssl-3.0.x",
+    Path.cwd() / "prisma-query-engine-debian-openssl-3.0.x",
+]:
+    if engine_candidate.exists() and engine_candidate.is_file():
+        os.environ.setdefault("PRISMA_QUERY_ENGINE_BINARY", str(engine_candidate.resolve()))
+        break
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from prisma.errors import RecordNotFoundError
 from db import db
 from routers import auth, character, habits, missions, progression, achievements, analytics, tower, inventory, aira, fitness, skills, bosses, workouts, shop, season_pass, crafting, beasts
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
