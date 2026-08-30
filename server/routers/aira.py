@@ -16,19 +16,34 @@ router = APIRouter(prefix="/api/aira", tags=["aira"])
 
 async def get_character_context_dict(character_id: str) -> dict:
     """Helper to fetch full character dictionary including stats for AIRA context."""
-    character = await db.character.find_unique(
-        where={"id": character_id},
-        include={"stats": True},
-    )
-    if not character:
+    try:
+        from db import ensure_db_connected
+        await ensure_db_connected()
         character = await ensure_character_exists(character_id)
-        character = await db.character.find_unique(
-            where={"id": character_id},
-            include={"stats": True},
-        )
+        if character:
+            if not getattr(character, "stats", None):
+                reloaded = await db.character.find_unique(
+                    where={"id": character.id},
+                    include={"stats": True}
+                )
+                if reloaded:
+                    character = reloaded
+            return character.model_dump() if hasattr(character, "model_dump") else dict(character)
+    except Exception as e:
+        print(f"[AIRA Router get_character_context_dict Warning]: {e}")
 
-    char_dict = character.model_dump() if hasattr(character, "model_dump") else dict(character)
-    return char_dict
+    return {
+        "name": "Master",
+        "level": 1,
+        "power": 50,
+        "rank": "F",
+        "gold": 0,
+        "stats": {
+            "strength": 1, "knowledge": 1, "recovery": 1,
+            "focus": 1, "discipline": 1, "endurance": 1, "consistency": 1
+        }
+    }
+
 
 
 @router.post("/chat", response_model=AIRAChatResponseSchema)
