@@ -16,6 +16,10 @@ for engine_candidate in [
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from prisma.errors import RecordNotFoundError
 from db import db
 from routers import auth, character, habits, missions, progression, achievements, analytics, tower, inventory, aira, fitness, skills, bosses, workouts, shop, season_pass, crafting, beasts
@@ -42,12 +46,30 @@ async def lifespan(app: FastAPI):
 
 
 
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+
 app = FastAPI(
     title="Ascend OS Core Server",
     description="Backend API service for Ascend OS SaaS Architecture",
     version="2.0.0",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+
+
+def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Too Many Requests",
+            "detail": f"Rate limit exceeded: {exc.detail}. Please wait before making further requests.",
+            "response": "<< Warning. >> Rate limit exceeded. Calculation processing paused. Please wait a moment before sending further queries, Master."
+        }
+    )
+
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 
 origins = [
     "http://localhost:3000",

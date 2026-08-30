@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from db import db
 from db_utils import ensure_character_exists
 from schemas.aira import AIRAChatSchema, AIRAChatResponseSchema, AIRAExecuteActionSchema, AIRACombatAnalysisSchema
@@ -11,6 +13,7 @@ from services.aira_service import (
     analyze_shop_efficiency
 )
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/aira", tags=["aira"])
 
 
@@ -47,11 +50,12 @@ async def get_character_context_dict(character_id: str) -> dict:
 
 
 @router.post("/chat", response_model=AIRAChatResponseSchema)
-async def chat_with_aira(payload: AIRAChatSchema):
+@limiter.limit("5/minute")
+async def chat_with_aira(request: Request, payload: AIRAChatSchema):
     """
     POST /api/aira/chat
     Accepts user prompt and character ID, injects current character stats as context,
-    and returns AIRA's Ciel-style response.
+    and returns AIRA's Ciel-style response. Rate-limited to 5 requests per minute.
     """
     character_id = payload.characterId or "char-id-123"
     context_dict = await get_character_context_dict(character_id)
@@ -66,6 +70,7 @@ async def chat_with_aira(payload: AIRAChatSchema):
         "response": response_data.get("response", "Analysis complete."),
         "pending_action": response_data.get("pending_action")
     }
+
 
 @router.post("/execute")
 async def execute_aira_action(payload: AIRAExecuteActionSchema):

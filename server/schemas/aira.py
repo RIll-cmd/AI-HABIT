@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 
 
 class AIRAChatSchema(BaseModel):
-    prompt: str = Field(..., description="User prompt or query for AIRA")
-    characterId: Optional[str] = Field("char-id-123", description="Character ID for context injection")
+    prompt: str = Field(..., max_length=500, description="User prompt or query for AIRA (max 500 characters)")
+    characterId: Optional[str] = Field("char-id-123", max_length=100, description="Character ID for context injection")
 
 
 class AIRAPendingAction(BaseModel):
