@@ -69,10 +69,9 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
                 system_instruction=AIRA_SYSTEM_PROMPT
             )
             for model_name in [
-                "gemini-2.5-flash",
                 "gemini-2.0-flash",
-                "gemini-flash-latest",
                 "gemini-2.0-flash-lite",
+                "gemini-1.5-flash",
             ]:
                 try:
                     chat = client.chats.create(model=model_name, config=config)
@@ -92,7 +91,7 @@ def call_gemini_generate(client, prompt: str) -> Optional[str]:
                 system_instruction=AIRA_SYSTEM_PROMPT
             )
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.0-flash",
                 contents=prompt,
                 config=config,
             )
@@ -138,10 +137,11 @@ async def call_gemini_with_tools_async(client, full_prompt: str, character_id: s
         )
         
         fallback_models = [
-            "gemini-2.5-flash",
             "gemini-2.0-flash",
-            "gemini-flash-latest"
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash"
         ]
+
         
         chat = None
         for m in fallback_models:
