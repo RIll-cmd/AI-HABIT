@@ -9,6 +9,23 @@ export type PomodoroMode = "FOCUS" | "SHORT_BREAK" | "LONG_BREAK" | "CUSTOM";
 export type PomodoroStatus = "IDLE" | "RUNNING" | "PAUSED" | "COMPLETED";
 export type FocusCategory = "STUDY" | "CODING" | "READING" | "WORK" | "CREATIVE" | "GENERAL";
 export type AmbientSoundType = "NONE" | "RAIN" | "SPACE_DRONE" | "LOFI_NOISE" | "BINARY_PULSE";
+export type StatBonusType = "INTELLIGENCE" | "STRENGTH" | "PERCEPTION" | "AGILITY" | "VITALITY" | "CREATIVITY";
+export type SigilArchetype = "ARCH" | "ALCHEMY" | "CROSS" | "GLYPH" | "TREE" | "KEY" | "EYE" | "FILIGREE";
+
+export interface CustomStudyTome {
+  id: string;
+  title: string;
+  category: FocusCategory;
+  statBonus: StatBonusType;
+  sigilType: SigilArchetype;
+  height: number;
+  width: number;
+  targetMinutes: number;
+  totalMinutesStudied: number;
+  totalSessionsCompleted: number;
+  notes?: string;
+  createdAt: string;
+}
 
 export interface FocusSession {
   id: string;
@@ -17,6 +34,8 @@ export interface FocusSession {
   category: FocusCategory;
   linkedHabitId?: string;
   linkedHabitName?: string;
+  linkedTomeId?: string;
+  linkedTomeTitle?: string;
   knoGain: number;
   focGain: number;
   disGain: number;
@@ -41,15 +60,34 @@ export interface LearningState {
   ambientVolume: number;
   focusSessions: FocusSession[];
   
+  // Custom Study Tomes on Bookshelf
+  customTomes: CustomStudyTome[];
+  selectedTomeId: string | null;
+  
+  isArchivistMode: boolean;
+  sessionIntent: string;
+  chronometerType: "CANDLE" | "HOURGLASS";
+  
   // Actions
   openDrawer: () => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
+  setIsArchivistMode: (active: boolean) => void;
+  toggleArchivistMode: () => void;
+  setSessionIntent: (intent: string) => void;
+  setChronometerType: (type: "CANDLE" | "HOURGLASS") => void;
   setMode: (mode: PomodoroMode, customMins?: number) => void;
   setCategory: (cat: FocusCategory) => void;
   setLinkedHabit: (id: string | null, name?: string | null) => void;
   setAmbientSound: (type: AmbientSoundType) => void;
   setAmbientVolume: (vol: number) => void;
+  
+  // Tome CRUD Actions
+  addCustomTome: (tome: Omit<CustomStudyTome, "id" | "totalMinutesStudied" | "totalSessionsCompleted" | "createdAt" | "height" | "width"> & { height?: number; width?: number }) => CustomStudyTome;
+  updateCustomTome: (id: string, updates: Partial<CustomStudyTome>) => void;
+  deleteCustomTome: (id: string) => void;
+  setSelectedTomeId: (id: string | null) => void;
+  startStudyOnTome: (tomeId: string) => void;
   
   startTimer: () => void;
   pauseTimer: () => void;
@@ -65,12 +103,98 @@ export interface LearningState {
 }
 
 const STORAGE_KEY = "ascend_focus_sessions_v1";
+const TOMES_STORAGE_KEY = "ascend_custom_study_tomes_v1";
 
 const DEFAULT_DURATIONS: Record<PomodoroMode, number> = {
   FOCUS: 25 * 60,
   SHORT_BREAK: 5 * 60,
   LONG_BREAK: 15 * 60,
   CUSTOM: 30 * 60,
+};
+
+/**
+ * Calculates physical tome dimensions based on session duration:
+ * - 15m -> Slim Folio (Width: 16px, Height: 76px)
+ * - 25m -> Standard Grimoire (Width: 22px, Height: 88px)
+ * - 45m -> Study Volume (Width: 26px, Height: 100px)
+ * - 60m -> Heavy Treatise (Width: 32px, Height: 110px)
+ * - 90m+ -> Monumental Codex (Width: 38px, Height: 120px)
+ */
+export function getTomeDimensions(targetMinutes: number = 25) {
+  const m = Number(targetMinutes) || 25;
+  if (m <= 15) return { height: 76, width: 16, volumeLabel: "Slim Folio" };
+  if (m <= 25) return { height: 88, width: 22, volumeLabel: "Standard Grimoire" };
+  if (m <= 45) return { height: 100, width: 26, volumeLabel: "Study Volume" };
+  if (m <= 60) return { height: 110, width: 32, volumeLabel: "Heavy Treatise" };
+  return { height: 120, width: 38, volumeLabel: "Monumental Codex" };
+}
+
+const DEFAULT_INITIAL_TOMES: CustomStudyTome[] = [
+  {
+    id: "tome-neural-logic",
+    title: "Codex of Neural Logic",
+    category: "CODING",
+    statBonus: "INTELLIGENCE",
+    sigilType: "KEY",
+    height: 110,
+    width: 32,
+    targetMinutes: 60,
+    totalMinutesStudied: 60,
+    totalSessionsCompleted: 1,
+    notes: "Deep algorithmic reasoning and architecture design.",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "tome-iron-discipline",
+    title: "Treatise on Iron Will",
+    category: "WORK",
+    statBonus: "STRENGTH",
+    sigilType: "CROSS",
+    height: 88,
+    width: 22,
+    targetMinutes: 25,
+    totalMinutesStudied: 25,
+    totalSessionsCompleted: 1,
+    notes: "Unbroken focus rites and physical mastery.",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "tome-unseen-mind",
+    title: "Grimoire of the Unseen Mind",
+    category: "READING",
+    statBonus: "PERCEPTION",
+    sigilType: "EYE",
+    height: 76,
+    width: 16,
+    targetMinutes: 15,
+    totalMinutesStudied: 0,
+    totalSessionsCompleted: 0,
+    notes: "Perception, research, and deep cognitive awareness.",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+const loadInitialTomes = (): CustomStudyTome[] => {
+  if (typeof window === "undefined") return DEFAULT_INITIAL_TOMES;
+  try {
+    const raw = localStorage.getItem(TOMES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((t) => {
+          const dims = getTomeDimensions(t.targetMinutes || 25);
+          return {
+            ...t,
+            height: dims.height,
+            width: dims.width,
+          };
+        });
+      }
+    }
+  } catch (e) {
+    console.error("Error loading custom study tomes", e);
+  }
+  return DEFAULT_INITIAL_TOMES;
 };
 
 const loadInitialSessions = (): FocusSession[] => {
@@ -112,6 +236,11 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   ambientSound: "NONE",
   ambientVolume: 0.5,
   focusSessions: loadInitialSessions(),
+  customTomes: loadInitialTomes(),
+  selectedTomeId: null,
+  isArchivistMode: false,
+  sessionIntent: "",
+  chronometerType: "CANDLE",
 
   openDrawer: () => {
     playUIMenuSFX("confirm");
@@ -123,6 +252,20 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   toggleDrawer: () => {
     playUIMenuSFX("confirm");
     set((state) => ({ isDrawerOpen: !state.isDrawerOpen }));
+  },
+
+  setIsArchivistMode: (isArchivistMode) => set({ isArchivistMode }),
+
+  toggleArchivistMode: () => {
+    playUIMenuSFX("confirm");
+    set((state) => ({ isArchivistMode: !state.isArchivistMode }));
+  },
+
+  setSessionIntent: (sessionIntent) => set({ sessionIntent }),
+
+  setChronometerType: (chronometerType) => {
+    playUIMenuSFX("confirm");
+    set({ chronometerType });
   },
 
   setMode: (mode, customMins) => {
@@ -152,6 +295,114 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   setAmbientSound: (ambientSound) => set({ ambientSound }),
   setAmbientVolume: (ambientVolume) => set({ ambientVolume }),
 
+  // Tome CRUD Actions
+  addCustomTome: (tomeData) => {
+    playBuffSFX("buff");
+    const targetMinutes = tomeData.targetMinutes || 25;
+    const dims = getTomeDimensions(targetMinutes);
+
+    const newTome: CustomStudyTome = {
+      id: `tome-${Date.now()}`,
+      title: tomeData.title.trim() || "Untitled Inscription",
+      category: tomeData.category,
+      statBonus: tomeData.statBonus,
+      sigilType: tomeData.sigilType,
+      height: dims.height,
+      width: dims.width,
+      targetMinutes,
+      totalMinutesStudied: 0,
+      totalSessionsCompleted: 0,
+      notes: tomeData.notes?.trim() || "",
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [...get().customTomes, newTome];
+    set({ customTomes: updated, selectedTomeId: newTome.id });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(TOMES_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Error saving custom tomes", e);
+      }
+    }
+
+    toast.success(`Inscribed "${newTome.title}" onto Shelf!`, {
+      description: `${dims.volumeLabel} (${newTome.targetMinutes}m) bound to enhance +${newTome.statBonus.slice(0, 3)}.`,
+    });
+
+    return newTome;
+  },
+
+  updateCustomTome: (id, updates) => {
+    playUIMenuSFX("confirm");
+    const updated = get().customTomes.map((t) => {
+      if (t.id !== id) return t;
+      const targetMins = updates.targetMinutes ?? t.targetMinutes;
+      const dims = getTomeDimensions(targetMins);
+      return {
+        ...t,
+        ...updates,
+        height: dims.height,
+        width: dims.width,
+      };
+    });
+    set({ customTomes: updated });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(TOMES_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Error updating custom tomes", e);
+      }
+    }
+
+    toast.success("Tome Inscription Updated");
+  },
+
+  deleteCustomTome: (id) => {
+    playUIMenuSFX("click");
+    const target = get().customTomes.find((t) => t.id === id);
+    const updated = get().customTomes.filter((t) => t.id !== id);
+    const newSelectedId = get().selectedTomeId === id ? null : get().selectedTomeId;
+    set({ customTomes: updated, selectedTomeId: newSelectedId });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(TOMES_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Error deleting custom tome", e);
+      }
+    }
+
+    toast.info(`Removed "${target?.title || "Tome"}" from Shelf.`);
+  },
+
+  setSelectedTomeId: (selectedTomeId) => {
+    playUIMenuSFX("confirm");
+    set({ selectedTomeId });
+  },
+
+  startStudyOnTome: (tomeId) => {
+    const tome = get().customTomes.find((t) => t.id === tomeId);
+    if (!tome) return;
+
+    playBuffSFX("buff");
+    set({
+      selectedTomeId: tomeId,
+      sessionIntent: tome.title,
+      selectedCategory: tome.category,
+      mode: "FOCUS",
+      status: "IDLE",
+      timeLeft: (tome.targetMinutes || 25) * 60,
+      totalDuration: (tome.targetMinutes || 25) * 60,
+    });
+
+    toast.success(`Active Study Tome Bound: "${tome.title}"`, {
+      description: `Target: ${tome.targetMinutes}m • Enhances +${tome.statBonus}`,
+    });
+  },
+
   startTimer: () => {
     playUIMenuSFX("confirm");
     set({ status: "RUNNING" });
@@ -168,7 +419,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   },
 
   resetTimer: () => {
-    const { mode, totalDuration } = get();
+    const { totalDuration } = get();
     set({ status: "IDLE", timeLeft: totalDuration });
   },
 
@@ -195,13 +446,37 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   },
 
   completeSession: () => {
-    const { mode, totalDuration, selectedCategory, linkedHabitId, linkedHabitName, completedCycles, focusSessions } = get();
+    const {
+      mode,
+      totalDuration,
+      selectedCategory,
+      linkedHabitId,
+      linkedHabitName,
+      selectedTomeId,
+      customTomes,
+      completedCycles,
+      focusSessions,
+      sessionIntent,
+    } = get();
     const durationMins = Math.round(totalDuration / 60);
 
     if (mode === "FOCUS") {
-      const knoGain = selectedCategory === "STUDY" || selectedCategory === "CODING" || selectedCategory === "READING" ? 0.4 : 0.2;
-      const focGain = 0.4;
-      const disGain = 0.3;
+      const activeTome = customTomes.find((t) => t.id === selectedTomeId);
+
+      // Base Stat gains
+      let knoGain = selectedCategory === "STUDY" || selectedCategory === "CODING" || selectedCategory === "READING" ? 0.4 : 0.2;
+      let focGain = 0.4;
+      let disGain = 0.3;
+
+      // Extra Stat bonus from custom tome archetype
+      if (activeTome) {
+        if (activeTome.statBonus === "INTELLIGENCE") knoGain += 0.3;
+        else if (activeTome.statBonus === "STRENGTH") disGain += 0.3;
+        else if (activeTome.statBonus === "PERCEPTION") focGain += 0.3;
+        else if (activeTome.statBonus === "AGILITY") { focGain += 0.2; disGain += 0.2; }
+        else if (activeTome.statBonus === "VITALITY") disGain += 0.3;
+        else if (activeTome.statBonus === "CREATIVITY") knoGain += 0.3;
+      }
 
       // 2X Daily Learning Double Boost
       const isDoubleBoosted = useDailyBonusStore.getState().consumeLearningCharge();
@@ -221,21 +496,39 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         category: selectedCategory,
         linkedHabitId: linkedHabitId || undefined,
         linkedHabitName: linkedHabitName || undefined,
+        linkedTomeId: activeTome ? activeTome.id : undefined,
+        linkedTomeTitle: activeTome ? activeTome.title : undefined,
         knoGain,
         focGain,
         disGain,
         expAwarded,
         goldAwarded,
+        notes: sessionIntent.trim() || undefined,
         completedAt: new Date().toISOString(),
       };
 
       const updatedSessions = [newSession, ...focusSessions];
 
+      // Update Active Custom Tome Stats
+      let updatedTomes = customTomes;
+      if (activeTome) {
+        updatedTomes = customTomes.map((t) =>
+          t.id === activeTome.id
+            ? {
+                ...t,
+                totalMinutesStudied: t.totalMinutesStudied + durationMins,
+                totalSessionsCompleted: t.totalSessionsCompleted + 1,
+              }
+            : t
+        );
+      }
+
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSessions));
+          localStorage.setItem(TOMES_STORAGE_KEY, JSON.stringify(updatedTomes));
         } catch (e) {
-          console.error("Error saving focus sessions", e);
+          console.error("Error saving learning data", e);
         }
       }
 
@@ -244,7 +537,12 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       charStore.addStat("focus", focGain);
       charStore.addStat("knowledge", knoGain);
       charStore.addStat("discipline", disGain);
-      charStore.gainExp(expAwarded, isDoubleBoosted ? `🧠 [2X BOOST] Focus (${durationMins}m): ${selectedCategory}` : `Pomodoro Focus (${durationMins}m): ${selectedCategory}`);
+      charStore.gainExp(
+        expAwarded,
+        isDoubleBoosted
+          ? `🧠 [2X BOOST] ${activeTome ? activeTome.title : selectedCategory} (${durationMins}m)`
+          : `Pomodoro Focus (${durationMins}m): ${activeTome ? activeTome.title : selectedCategory}`
+      );
       charStore.gainGold(goldAwarded, isDoubleBoosted ? `🧠 [2X BOOST] Cognitive Bounty` : "Cognitive Output Bounty");
 
       // Advance linked habit if applicable
@@ -273,6 +571,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         status: "COMPLETED",
         completedCycles: nextCycles,
         focusSessions: updatedSessions,
+        customTomes: updatedTomes,
       });
 
       // Switch to break

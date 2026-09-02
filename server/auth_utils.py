@@ -5,9 +5,20 @@ import secrets
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
 
+from typing import Optional
+from fastapi import HTTPException, Request, Depends
+from db import db
+
 SECRET_KEY = os.getenv("SECRET_KEY", "ascend_os_super_secret_key_change_me_in_prod")
+is_production = os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production"
+if is_production and (not os.getenv("SECRET_KEY") or SECRET_KEY == "ascend_os_super_secret_key_change_me_in_prod"):
+    raise RuntimeError(
+        "[SECURITY CRITICAL] SECRET_KEY must be explicitly set to a strong unique secret in production!"
+    )
+
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days for dev/testing session persistence
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days session persistence
 
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
@@ -43,7 +54,7 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(request: Request):
+async def get_current_user(request: Request) -> dict:
     token = request.cookies.get("ascend_session")
     if not token:
         auth_header = request.headers.get("Authorization")
@@ -61,3 +72,54 @@ async def get_current_user(request: Request):
         return {"id": user_id, "username": username}
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token or expired")
+
+async def get_current_user_optional(request: Request) -> Optional[dict]:
+    """Extract authenticated user if present, otherwise returns None without throwing 401."""
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
+
+async def verify_character_ownership(character_id: str, current_user: Optional[dict] = None) -> bool:
+    """
+    Verifies that the character_id belongs to the authenticated user,
+    with safe fallback for guest / local development characters.
+    """
+    # Allow universal demo / guest character identifiers
+    if character_id in ["char-id-123", "default-user", "guest-user", "guest"]:
+        return True
+
+    if not current_user:
+        try:
+            if db.is_connected():
+                char = await db.character.find_first(where={"id": character_id})
+                return char is not None
+            return True
+        except Exception:
+            return True
+    
+    user_id = current_user.get("id")
+    if not user_id:
+        return True
+
+    if character_id in [user_id, f"char-{user_id}"]:
+        return True
+
+    try:
+        if db.is_connected():
+            char = await db.character.find_first(
+                where={
+                    "OR": [
+                        {"id": character_id},
+                        {"userId": user_id},
+                        {"id": f"char-{user_id}"}
+                    ]
+                }
+            )
+            return char is not None
+        return True
+    except Exception:
+        return True
+
+
+

@@ -50,14 +50,14 @@ export function AiraPeriodicToast() {
             <div className="flex-1 min-w-0 pr-4">
               {/* Category Pill Tag */}
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 font-mono">
+                <Sparkles className="w-3.5 h-3.5 text-white shrink-0" />
+                <span className="text-xs font-bold uppercase tracking-wider text-white font-pixel">
                   AIRA // {activePeriodicToast.category}
                 </span>
               </div>
 
               {/* Status Message Text */}
-              <p className="text-xs text-slate-100 font-sans leading-relaxed font-medium">
+              <p className="text-xs sm:text-sm text-white font-sans leading-relaxed font-medium">
                 {activePeriodicToast.text}
               </p>
             </div>

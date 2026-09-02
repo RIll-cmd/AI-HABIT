@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, Brain, Zap, Clock, BookOpen, Headphones } from "lucide-react";
+import { X, BookOpen } from "lucide-react";
 import { useLearningStore } from "../store/useLearningStore";
 import { PomodoroTimer } from "./PomodoroTimer";
 import { HabitLinkSelector } from "./HabitLinkSelector";
 import { AmbientSoundPlayer } from "./AmbientSoundPlayer";
 import { FocusStatistics } from "./FocusStatistics";
+import { playUIMenuSFX } from "@/utils/audio";
 
 export const LearningDrawer: React.FC = () => {
   const { isDrawerOpen, closeDrawer } = useLearningStore();
@@ -29,43 +30,49 @@ export const LearningDrawer: React.FC = () => {
   if (!mounted || !isDrawerOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end select-none">
       {/* Backdrop */}
       <div
-        onClick={closeDrawer}
-        className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity animate-in fade-in duration-300"
+        onClick={() => {
+          playUIMenuSFX("confirm");
+          closeDrawer();
+        }}
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
       />
 
       {/* Slide-out Sidebar Drawer */}
       <aside
-        className="relative w-full max-w-xl h-full bg-[#070C18]/98 border-l border-cyan-500/30 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto z-10 space-y-6 animate-in slide-in-from-right duration-300 scan-lines"
+        className="relative w-full max-w-xl h-full bg-[#140a05]/98 border-l-2 border-[#542d17] p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.9)] flex flex-col justify-between overflow-y-auto z-10 space-y-5 animate-in slide-in-from-right duration-300 text-slate-100"
       >
         {/* Top Drawer Controls */}
-        <div className="flex items-center justify-between border-b border-cyan-500/20 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300">
-              <Brain className="w-5 h-5" />
+        <div className="flex items-center justify-between border-b border-[#542d17]/70 pb-3.5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#281308] border border-[#f59e0b] text-[#fbbf24]">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
-                COGNITIVE COMMAND CENTER
+              <span className="text-[10px] font-pixel font-bold text-[#f59e0b] uppercase tracking-widest block">
+                GRAND ARCHIVES CHRONO-CHAMBER
               </span>
-              <h3 className="text-lg font-black font-heading text-white tracking-wide">
-                Learning & Pomodoro Engine
+              <h3 className="text-base sm:text-lg font-pixel font-bold text-white tracking-wide mt-0.5">
+                Scribe Focus & Pomodoro Desk
               </h3>
             </div>
           </div>
 
           <button
-            onClick={closeDrawer}
-            className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
+            onClick={() => {
+              playUIMenuSFX("confirm");
+              closeDrawer();
+            }}
+            className="w-8 h-8 bg-[#251208] border border-[#542d17] text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body Content */}
-        <div className="space-y-6 flex-1">
+        <div className="space-y-5 flex-1">
           <PomodoroTimer className="p-4 sm:p-5" />
           <HabitLinkSelector className="p-4 sm:p-5" />
           <AmbientSoundPlayer className="p-4 sm:p-5" />
@@ -73,10 +80,12 @@ export const LearningDrawer: React.FC = () => {
         </div>
 
         {/* Footer info */}
-        <div className="pt-4 border-t border-white/10 text-center font-mono text-[10px] text-slate-500">
-          Ascend OS Focus Synthesis Engine • Links directly to habits & tasks
+        <div className="pt-3 border-t border-[#542d17]/50 text-center font-pixel text-[10px] text-slate-400">
+          Ascend OS Scribe Focus Engine • Inscribes directly to Character Stats
         </div>
       </aside>
     </div>
   );
 };
+
+export default LearningDrawer;

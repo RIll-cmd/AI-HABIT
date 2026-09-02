@@ -19,7 +19,7 @@ const initialDraft: DraftHabit = {
   name: "",
   description: "",
   category: "Health",
-  primaryStat: "consistency",
+  primaryStat: "discipline",
   difficulty: "EASY",
   scheduleType: "DAILY",
   schedule: {
@@ -31,11 +31,12 @@ const initialDraft: DraftHabit = {
     timezone: null,
   },
   tiers: {
-    MINI: { tier: "MINI", targetType: "", targetValue: null, targetUnit: "", baseExp: 0, baseGold: 0, statReward: 0 },
-    NORMAL: { tier: "NORMAL", targetType: "", targetValue: null, targetUnit: "", baseExp: 0, baseGold: 0, statReward: 0 },
-    ELITE: { tier: "ELITE", targetType: "", targetValue: null, targetUnit: "", baseExp: 0, baseGold: 0, statReward: 0 },
+    MINI: { tier: "MINI", targetType: "COUNT", targetValue: 1, targetUnit: "Times", baseExp: 15, baseGold: 5, statReward: 1 },
+    NORMAL: { tier: "NORMAL", targetType: "COUNT", targetValue: 2, targetUnit: "Times", baseExp: 30, baseGold: 10, statReward: 2 },
+    ELITE: { tier: "ELITE", targetType: "COUNT", targetValue: 4, targetUnit: "Times", baseExp: 60, baseGold: 20, statReward: 4 },
   },
 };
+
 
 export interface CreateHabitStore {
   step: number;

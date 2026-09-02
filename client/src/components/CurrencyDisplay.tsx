@@ -52,11 +52,12 @@ export function CurrencyIcon({ type, className = "", size = "sm" }: CurrencyIcon
 
   const sizeClass = typeof size === "string" ? SIZE_CLASSES[size] || "w-4 h-4" : "";
   const inlineStyle = typeof size === "number" ? { width: `${size}px`, height: `${size}px` } : undefined;
+  const isExp = normType === "EXP";
 
   return (
     <div
       suppressHydrationWarning
-      className={`inline-flex items-center justify-center overflow-hidden shrink-0 ${sizeClass} ${className}`}
+      className={`inline-flex items-center justify-center overflow-visible shrink-0 ${sizeClass} ${isExp ? "animate-star-twinkle" : ""} ${className}`}
       style={inlineStyle}
     >
       <img

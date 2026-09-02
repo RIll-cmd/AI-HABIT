@@ -32,17 +32,17 @@ export interface StatRadarChartProps {
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#0B1020]/95 border border-blue-500/40 rounded-xl p-3 shadow-2xl backdrop-blur-md text-xs font-mono text-slate-100 min-w-[140px] space-y-1.5 z-50">
-        <div className="font-bold text-white uppercase tracking-wider text-[11px] pb-1 border-b border-white/10">
+      <div className="bg-[#0B1020] border-2 border-[#38BDF8] rounded-none p-3 shadow-[0_4px_0_0_#000] text-xs font-mono text-slate-100 min-w-[140px] space-y-1.5 z-50 select-none">
+        <div className="font-bold text-[#fef08a] uppercase tracking-wider text-xs pb-1 border-b border-[#38BDF8]/40">
           {payload[0].payload.subject}
         </div>
         {payload.map((entry: any, index: number) => (
           <div key={`item-${index}`} className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="flex items-center gap-1.5 font-bold" style={{ color: entry.color }}>
+              <span className="w-2 h-2" style={{ backgroundColor: entry.color }} />
               {entry.name}:
             </span>
-            <span className="font-bold text-white">{entry.value}</span>
+            <span className="font-bold text-white tabular-nums">{entry.value}</span>
           </div>
         ))}
       </div>

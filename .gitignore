@@ -1,75 +1,113 @@
-# Dependencies
+# ==============================================================================
+# Ascend OS - Root .gitignore
+# ==============================================================================
+
+# Node Dependencies
 node_modules/
-client/node_modules/
-server/node_modules/
+**/node_modules/
 .pnp/
 .pnp.js
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # Frontend Build Artifacts & Next.js
 .next/
-out/
-build/
-dist/
 client/.next/
+out/
 client/out/
+build/
 client/build/
+dist/
 client/dist/
 .vercel/
 client/.vercel/
 *.tsbuildinfo
+next-env.d.ts
+.turbo/
+.cache/
+tmp/
+temp/
+coverage/
+client/coverage/
 
 # Python & Virtual Environments
+*venv*/
 venv/
 .venv/
 env/
 ENV/
+server/*venv*/
 server/venv/
 server/.venv/
+server/venv311/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.coverage
+htmlcov/
 
-# Databases & Local Storage
+# Local SQLite & Cache Databases
 *.db
 *.db-journal
 *.sqlite
 *.sqlite3
 server/dev.db
-server/prisma/dev.db
 server/dev.db-journal
+server/prisma/dev.db
+server/prisma/dev.db-journal
 
-# Environment & Secret Files
+# Environment & Secret Files (Strict Blacklist)
 .env
 .env.local
+.env.development
+.env.test
+.env.production
 .env.*
+*.env
+*.env.*
 !.env.example
 !*.env.example
-server/.env
-server/.env.local
-server/.env.*
-!server/.env.example
-client/.env
-client/.env.local
-client/.env.*
-!client/.env.example
+!**/.env.example
+
+# Neon Project Context Cache
 .neon
 .neon.*
-server/.neon
-server/.neon.*
+**/.neon
+**/.neon.*
 
-
-
-# Scratch & Temporary Assets
-scratch/
+# Certificates, Keys & Private Credentials
 *.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.pub
 
-# IDE, OS & System Logs
+# Scratch, Debug Scripts & Temporary Testing Dumps
+scratch/
+**/scratch/
+server/debug_imports.py
+
+# Agent, Tooling & IDE Caches
+.playwright-mcp/
+.impeccable/
+client/.impeccable/
+.cursor/
+.codex/
 .vscode/
 .idea/
+
+# OS & System Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 .DS_Store
 Thumbs.db

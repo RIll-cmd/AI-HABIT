@@ -45,6 +45,7 @@ export function AuthForm({ mode: initialMode }: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [botTrap, setBotTrap] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   // Status & Feedback
@@ -179,7 +180,7 @@ export function AuthForm({ mode: initialMode }: AuthFormProps) {
       const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, context: "Registration" }),
+        body: JSON.stringify({ email, context: "Registration", bot_trap: botTrap }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -241,13 +242,13 @@ export function AuthForm({ mode: initialMode }: AuthFormProps) {
 
       if (currentMode === "login") {
         endpoint = "/api/auth/login";
-        payload = { identifier, password };
+        payload = { identifier, password, bot_trap: botTrap };
       } else {
         endpoint = "/api/auth/register";
         if (regOption === "username") {
-          payload = { username, password };
+          payload = { username, password, bot_trap: botTrap };
         } else {
-          payload = { email, password, otp: otp.trim() };
+          payload = { email, password, otp: otp.trim(), bot_trap: botTrap };
         }
       }
 
@@ -586,6 +587,18 @@ export function AuthForm({ mode: initialMode }: AuthFormProps) {
             /* 2. SIGN IN / REGISTER FORM */
             /* ========================================================= */
             <form suppressHydrationWarning onSubmit={handleSubmit} className="space-y-4">
+              {/* Honeypot Bot Trap (hidden from human users) */}
+              <input
+                type="text"
+                name="bot_trap"
+                style={{ display: "none" }}
+                tabIndex={-1}
+                autoComplete="off"
+                value={botTrap}
+                onChange={(e) => setBotTrap(e.target.value)}
+                aria-hidden="true"
+              />
+
               {/* REGISTER SUB-OPTIONS: USERNAME-FIRST VS EMAIL-FIRST */}
               {currentMode === "register" && (
                 <div className="p-1 bg-black/50 border border-white/10 rounded-xl flex items-center gap-1">

@@ -4,40 +4,34 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHabitStore } from "@/features/habits/store/useHabitStore";
+import { useCharacterStore } from "@/store/useCharacterStore";
 import { EditHabitModal } from "@/features/habits/components/EditHabitModal";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
-import { CurrencyIcon } from "@/components/CurrencyDisplay";
+import { CompletionType } from "@/features/habits/types";
 import {
-  ArrowLeft,
-  MoreVertical,
-  Flame,
-  Activity,
-  Zap,
-  Shield,
-  Clock,
-  Calendar,
-  Sparkles,
-  Edit3,
-  PauseCircle,
-  PlayCircle,
-  Archive,
-  Trash2,
-  CheckCircle2,
-  Award,
-  Layers,
-  ChevronRight,
-} from "lucide-react";
+  PixelArrowLeftIcon,
+  PixelPencilIcon,
+  PixelTrashIcon,
+  PixelTargetIcon,
+  PixelActivityIcon,
+  PixelFlameIcon,
+  PixelCoinsIcon,
+  PixelLayersIcon,
+  PixelCheckIcon,
+} from "@/components/ui/pixel/PixelIcons";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 export default function HabitDetailPage() {
   const params = useParams();
   const router = useRouter();
   const habitId = params.id as string;
 
-  const { habits, loadHabits, updateHabitStatus, isLoading } = useHabitStore();
+  const { habits, loadHabits, updateHabitStatus, todayMissions, logHabitCompletion, isLoading } = useHabitStore();
+  const { gainExp, gainGold, gainGems, addStat } = useCharacterStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isLogging, setIsLogging] = useState(false);
 
   useEffect(() => {
     if (habits.length === 0) {
@@ -46,29 +40,33 @@ export default function HabitDetailPage() {
   }, [habits.length, loadHabits]);
 
   const habit = habits.find((h) => h.id === habitId);
+  const todayMission = todayMissions.find((m) => m.habitId === habitId);
+  const isCompletedToday = todayMission?.status === "COMPLETED";
 
   if (isLoading && !habit) {
     return (
-      <div className="flex justify-center items-center h-64 text-slate-400 font-mono text-xs">
-        <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mr-3" />
-        Syncing Protocol Matrix Telemetry...
+      <div className="flex justify-center items-center h-64 text-[#d1d6dc] font-pixel text-xs">
+        <div className="animate-spin w-8 h-8 border-4 border-[#ffb03a] border-t-transparent mr-3" />
+        Loading Habit Analytics...
       </div>
     );
   }
 
   if (!habit) {
     return (
-      <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-white font-heading">Protocol Not Found</h2>
-        <p className="text-slate-400 text-xs font-sans">
-          This habit protocol may have been decommissioned or does not exist in the active matrix.
+      <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-4 font-pixel text-[#1d2d2a]">
+        <h2 className="text-xl font-bold uppercase">✦ Habit Not Found ✦</h2>
+        <p className="text-[#5a6472] text-xs font-mono">
+          This habit may have been deleted or does not exist in your active routines.
         </p>
-        <Link
-          href="/habits"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 hover:text-white font-mono text-xs font-bold transition-all shadow-lg"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Return to Protocols Hub</span>
+        <Link href="/habits" onClick={() => playUIMenuSFX("confirm")}>
+          <button
+            type="button"
+            className="px-4 py-2 bg-[#ffb03a] hover:bg-[#ffd166] text-[#1d2d2a] font-pixel font-bold text-xs border-2 border-[#1d2d2a] shadow-[3px_3px_0_0_#1d2d2a] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5 mx-auto"
+          >
+            <PixelArrowLeftIcon className="w-3.5 h-3.5 mr-1" />
+            <span>Return to Habits</span>
+          </button>
         </Link>
       </div>
     );
@@ -81,17 +79,50 @@ export default function HabitDetailPage() {
 
     if (newStatus === "DELETED") {
       const confirmDelete = window.confirm(
-        "Are you sure you want to delete this habit protocol? This action cannot be undone."
+        "Are you sure you want to delete this habit? This action cannot be undone."
       );
       if (!confirmDelete) return;
     }
 
     playBuffSFX();
     await updateHabitStatus(habit.id, newStatus);
-    toast.success(`Protocol status changed to ${newStatus}`);
+    toast.success(`Habit status updated to ${newStatus}`);
 
     if (newStatus === "DELETED") {
       router.push("/habits");
+    }
+  };
+
+  const handleLogHabit = async (tier: CompletionType = "NORMAL") => {
+    if (isLogging) return;
+    setIsLogging(true);
+    try {
+      playBuffSFX();
+      const res = await logHabitCompletion(habit.id, tier);
+      if (res.success && res.rewards) {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+
+        // Sync Character store currencies and stats
+        gainExp(res.rewards.exp, `Habit: ${habit.name}`);
+        gainGold(res.rewards.gold, `Habit: ${habit.name}`);
+        if (res.rewards.gems > 0) gainGems(res.rewards.gems, "Elite Habit Completion");
+        if (res.rewards.stat > 0 && res.rewards.statName) {
+          addStat(res.rewards.statName, res.rewards.stat);
+        }
+
+        toast.success(`✓ ${habit.name} Logged!`, {
+          description: `+${res.rewards.exp} EXP • +${res.rewards.gold} Gold • Streak: ${res.rewards.streak}d`,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to log habit.");
+    } finally {
+      setIsLogging(false);
     }
   };
 
@@ -101,89 +132,79 @@ export default function HabitDetailPage() {
   const consistency = habit.metrics?.currentConsistency || 0;
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6 font-sans animate-in fade-in duration-300 relative">
-      {/* Background Floating Runes */}
-      <FloatingRuneField density="low" className="opacity-50" />
-
+    <div className="max-w-5xl mx-auto py-4 px-3 sm:px-6 space-y-5 font-pixel text-[#1d2d2a] select-none animate-in fade-in duration-200">
       {/* Navigation Breadcrumb */}
       <Link
         href="/habits"
         onClick={() => playUIMenuSFX()}
-        className="inline-flex items-center gap-2 text-xs font-mono font-bold text-slate-400 hover:text-cyan-300 transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs text-[#5a6472] hover:text-[#1d2d2a] uppercase transition-colors font-bold focus-visible:ring-2 focus-visible:ring-[#ffb03a]"
       >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Return to Protocols Hub</span>
+        <PixelArrowLeftIcon className="w-3.5 h-3.5" />
+        <span>Return to Habits</span>
       </Link>
 
       {/* ========================================================= */}
-      {/* PROTOCOL TELEMETRY HERO HEADER */}
+      {/* 🏔️ 1. HABIT HEADER & CONTROLS                             */}
       {/* ========================================================= */}
-      <div className="relative rounded-[28px] bg-gradient-to-br from-[#0B1126]/95 via-[#070D1E]/95 to-[#040814]/98 border border-cyan-500/25 p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden backdrop-blur-2xl">
-        {/* Floating Runes & Ambient Particles */}
-        <FloatingRuneField density="medium" />
-
-        {/* Cyber Accent Lines */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent pointer-events-none" />
-
+      <div className="bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-4 border-[#3b424c] shadow-[6px_6px_0_0_#1d2d2a] p-5 sm:p-6 relative overflow-hidden text-[#1d2d2a]">
         {/* Quick Menu */}
-        <div className="absolute top-6 right-6 z-20">
+        <div className="absolute top-4 right-4 z-20">
           <div className="relative">
             <button
+              type="button"
               onClick={() => {
                 playUIMenuSFX();
                 setIsMenuOpen(!isMenuOpen);
               }}
-              className="w-10 h-10 rounded-xl bg-slate-900/80 border border-slate-700/60 flex items-center justify-center text-slate-300 hover:text-white hover:border-cyan-400 transition-all cursor-pointer shadow-lg"
+              className="px-2.5 py-1.5 bg-[#2f3640] hover:bg-[#3b424c] text-[#ffd166] border-2 border-[#1d2d2a] shadow-[2px_2px_0_0_#111a18] active:translate-y-0.5 cursor-pointer text-xs focus-visible:ring-2 focus-visible:ring-[#ffb03a]"
+              aria-label="Habit Options"
             >
-              <MoreVertical className="w-4 h-4" />
+              ⚙ Options
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-[#0A1024]/98 border border-cyan-500/30 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.8)] z-30 overflow-hidden font-mono text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-48 bg-[#2f3640] border-2 border-[#1d2d2a] shadow-[4px_4px_0_0_#111a18] z-30 overflow-hidden text-xs">
                 <button
                   onClick={() => {
                     playUIMenuSFX();
                     setIsMenuOpen(false);
                     setIsEditModalOpen(true);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-cyan-300 hover:bg-cyan-950/60 flex items-center gap-2.5 font-bold cursor-pointer"
+                  className="w-full text-left px-3 py-2 text-[#ffd166] hover:bg-[#3b424c] flex items-center gap-2 cursor-pointer uppercase font-bold"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Parameters</span>
+                  <PixelPencilIcon className="w-3.5 h-3.5 text-[#ffb03a]" />
+                  <span>Edit Habit</span>
                 </button>
 
                 {habit.status === "ACTIVE" ? (
                   <button
                     onClick={() => handleStatusChange("PAUSED")}
-                    className="w-full text-left px-4 py-2.5 text-amber-400 hover:bg-amber-950/60 flex items-center gap-2.5 font-bold cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-[#ffb03a] hover:bg-[#3b424c] flex items-center gap-2 cursor-pointer uppercase font-bold"
                   >
-                    <PauseCircle className="w-3.5 h-3.5" />
-                    <span>Pause Protocol</span>
+                    <span>⏸ Pause Habit</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => handleStatusChange("ACTIVE")}
-                    className="w-full text-left px-4 py-2.5 text-emerald-400 hover:bg-emerald-950/60 flex items-center gap-2.5 font-bold cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-emerald-400 hover:bg-[#3b424c] flex items-center gap-2 cursor-pointer uppercase font-bold"
                   >
-                    <PlayCircle className="w-3.5 h-3.5" />
-                    <span>Resume Protocol</span>
+                    <span>▶ Resume Habit</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => handleStatusChange("ARCHIVED")}
-                  className="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-slate-800/60 flex items-center gap-2.5 cursor-pointer"
+                  className="w-full text-left px-3 py-2 text-[#d1d6dc] hover:bg-[#3b424c] flex items-center gap-2 cursor-pointer uppercase font-bold"
                 >
-                  <Archive className="w-3.5 h-3.5" />
-                  <span>Archive Protocol</span>
+                  <span>📁 Archive</span>
                 </button>
 
                 <button
                   onClick={() => handleStatusChange("DELETED")}
-                  className="w-full text-left px-4 py-2.5 text-rose-400 hover:bg-rose-950/60 flex items-center gap-2.5 border-t border-slate-800 cursor-pointer font-bold"
+                  className="w-full text-left px-3 py-2 text-rose-400 hover:bg-[#3b424c] flex items-center gap-2 border-t border-[#1d2d2a] cursor-pointer uppercase font-bold"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Decommission (Delete)</span>
+                  <PixelTrashIcon className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
               </div>
             )}
@@ -191,60 +212,57 @@ export default function HabitDetailPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#121c3d] to-[#070c20] border-2 border-cyan-500/40 flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(6,182,212,0.3)] shrink-0">
-              {habit.icon || "⚡"}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 bg-[#2f3640] border-2 border-[#1d2d2a] flex items-center justify-center text-2xl shadow-[2px_2px_0_0_#1d2d2a] text-[#ffb03a] shrink-0">
+              {habit.icon || "✓"}
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase border ${
-                    habit.status === "ACTIVE"
-                      ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                      : habit.status === "PAUSED"
-                      ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
-                      : "bg-slate-900 text-slate-400 border-slate-700"
-                  }`}
-                >
+                <span className="px-2 py-0.5 bg-[#2f3640] text-[#ffd166] border border-[#1d2d2a] text-[9px] font-bold">
                   ● {habit.status}
                 </span>
 
-                <span className="text-xs text-slate-500 font-mono">•</span>
-                <span className="text-xs font-mono text-cyan-300 font-bold uppercase">
-                  {habit.category || "General Protocol"}
+                <span className="px-2 py-0.5 bg-[#2f3640] text-[#ffb03a] border border-[#1d2d2a] text-[9px] font-bold">
+                  {habit.category || "General"}
                 </span>
-                <span className="text-xs text-slate-500 font-mono">•</span>
-                <span className="text-xs font-mono text-purple-300 font-bold uppercase">
-                  +{habit.primaryStat}
+
+                <span className="px-2 py-0.5 bg-[#5a6472] text-white border border-[#1d2d2a] text-[9px] font-bold uppercase">
+                  Stat: +{habit.primaryStat}
+                </span>
+
+                <span className="px-2 py-0.5 bg-[#2f3640] text-[#ea580c] border border-[#1d2d2a] text-[9px] font-bold uppercase">
+                  {habit.difficulty}
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white tracking-tight">
+              <h1 className="text-lg sm:text-xl font-bold uppercase text-[#1d2d2a]">
                 {habit.name}
               </h1>
             </div>
           </div>
 
           {habit.description && (
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed font-sans">
+            <p className="text-xs text-[#2a2b2e] max-w-2xl leading-relaxed font-mono font-medium">
               {habit.description}
             </p>
           )}
 
-          {/* Strength Bar */}
-          <div className="p-4 rounded-2xl bg-[#060B18]/80 border border-cyan-500/20 space-y-2">
-            <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                Neural Habit Strength
+          {/* Strength Bar Inset */}
+          <div className="p-3 bg-[#b0b8c4]/60 border-2 border-[#3b424c] space-y-1.5 shadow-[inset_0_0_6px_rgba(0,0,0,0.1)]">
+            <div className="flex justify-between items-center text-[10px]">
+              <span className="text-[#3b424c] font-bold uppercase flex items-center gap-1">
+                <PixelActivityIcon className="w-3.5 h-3.5 text-[#ea580c]" />
+                Habit Strength & Momentum
               </span>
-              <span className="text-cyan-300 font-black text-sm">{Math.round(strength)}%</span>
+              <span className="text-[#ea580c] font-bold text-xs tabular-nums font-mono">
+                {Math.round(strength)}%
+              </span>
             </div>
-            <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
+            <div className="w-full h-3 bg-[#2f3640] border border-[#1d2d2a] p-0.5 overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 shadow-[0_0_15px_rgba(6,182,212,0.8)] transition-all duration-1000"
+                className="h-full bg-[linear-gradient(90deg,#ea580c_0%,#ffb03a_60%,#ffd166_100%)] shadow-[0_0_8px_rgba(255,176,58,0.8)] transition-all duration-200"
                 style={{ width: `${strength}%` }}
               />
             </div>
@@ -253,70 +271,136 @@ export default function HabitDetailPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* 3-TIER EXECUTION TARGETS DECK */}
+      {/* ⚡ 2. TODAY'S CHECK-IN INTERACTIVE ACTION MODULE          */}
+      {/* ========================================================= */}
+      <div className="bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-4 border-[#3b424c] shadow-[4px_4px_0_0_#1d2d2a] p-5 space-y-3">
+        <div className="flex justify-between items-center flex-wrap gap-2 border-b-2 border-[#3b424c]/20 pb-2.5">
+          <h3 className="text-xs uppercase font-bold text-[#1d2d2a] tracking-wider flex items-center gap-1.5">
+            <PixelCheckIcon className="w-4 h-4 text-emerald-600" />
+            Today's Check-In & Action
+          </h3>
+          <span className="text-[10px] font-mono font-bold text-[#5a6472]">
+            Schedule: {habit.scheduleType.replace(/_/g, " ")}
+          </span>
+        </div>
+
+        {isCompletedToday ? (
+          <div className="p-3.5 bg-[#1b3d2b] border-2 border-emerald-500 shadow-[inset_0_0_6px_rgba(0,0,0,0.4)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-emerald-500 text-[#1d2d2a] flex items-center justify-center font-bold">
+                ✓
+              </div>
+              <div>
+                <p className="text-xs font-bold text-emerald-300 uppercase">
+                  Completed for Today ({todayMission?.completionType || "NORMAL"})
+                </p>
+                <p className="text-[10px] text-[#d1d6dc] font-mono">
+                  Great job keeping your streak active! Check back tomorrow for your next check-in.
+                </p>
+              </div>
+            </div>
+            <div className="px-3 py-1 bg-[#2f3640] border border-emerald-400 text-xs font-bold text-[#ffd166] font-mono">
+              +{todayMission?.expEarned || 50} EXP • +{todayMission?.goldEarned || 20}g
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[11px] text-[#3b424c] font-mono">
+              Complete your daily habit target and choose your effort tier to earn scaled EXP and Gold:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {(habit.tiers || []).map((t) => {
+                const isMini = t.tier === "MINI";
+                const isNormal = t.tier === "NORMAL";
+                const isElite = t.tier === "ELITE";
+
+                return (
+                  <button
+                    key={t.tier}
+                    type="button"
+                    onClick={() => handleLogHabit(t.tier)}
+                    disabled={isLogging}
+                    className={`p-3 border-2 text-left transition-all active:translate-y-0.5 cursor-pointer flex flex-col justify-between shadow-[2px_2px_0_0_#1d2d2a] ${
+                      isNormal
+                        ? "bg-[#ffb03a] hover:bg-[#ffd166] text-[#1d2d2a] border-[#1d2d2a]"
+                        : isElite
+                        ? "bg-[#ea580c] hover:bg-[#f97316] text-white border-[#1d2d2a]"
+                        : "bg-[#2f3640] hover:bg-[#3b424c] text-[#ffd166] border-[#1d2d2a]"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-bold uppercase">
+                          {isMini ? "MINIMUM" : isNormal ? "TARGET" : "OVERACHIEVE"}
+                        </span>
+                        <span className="text-[9px] px-1 bg-[#1d2d2a]/20 font-bold font-mono">
+                          {t.tier}
+                        </span>
+                      </div>
+                      <p className={`text-[10px] font-mono ${isNormal ? "text-[#1d2d2a]" : "text-[#d1d6dc]"}`}>
+                        {t.targetValue ? `${t.targetValue} ${t.targetUnit || "times"}` : "Standard target"}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-current/20 flex justify-between items-center text-[10px] font-mono font-bold">
+                      <span>+{t.baseExp} EXP</span>
+                      <span>+{t.baseGold}g</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================= */}
+      {/* 📜 3. 3-TIER EXECUTION TARGETS DECK                       */}
       {/* ========================================================= */}
       <div>
-        <h3 className="text-xs font-mono uppercase font-bold text-cyan-400 tracking-wider mb-3 flex items-center gap-1.5">
-          <Award className="w-3.5 h-3.5" />
+        <h3 className="text-xs uppercase font-bold text-[#1d2d2a] tracking-wider mb-2.5 flex items-center gap-1.5">
+          <PixelTargetIcon className="w-3.5 h-3.5 text-[#ea580c]" />
           Execution Target Tiers & Rewards
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {(habit.tiers || [
-            { tier: "MINI", targetValue: 1, targetUnit: "reps", baseExp: 25, baseGold: 10 },
-            { tier: "NORMAL", targetValue: 3, targetUnit: "reps", baseExp: 50, baseGold: 20 },
-            { tier: "ELITE", targetValue: 5, targetUnit: "reps", baseExp: 100, baseGold: 40 },
-          ]).map((t, idx) => {
-            const isElite = t.tier === "ELITE";
-            const isNormal = t.tier === "NORMAL";
-
+            { tier: "MINI", targetValue: 1, baseExp: 25, baseGold: 10, statReward: 1 },
+            { tier: "NORMAL", targetValue: 2, baseExp: 50, baseGold: 20, statReward: 2 },
+            { tier: "ELITE", targetValue: 4, baseExp: 100, baseGold: 40, statReward: 4 },
+          ]).map((t: any) => {
             return (
               <div
-                key={idx}
-                className={`p-5 rounded-[22px] border transition-all relative overflow-hidden backdrop-blur-xl flex flex-col justify-between ${
-                  isElite
-                    ? "bg-gradient-to-br from-amber-950/30 via-[#080E20]/95 to-[#050914]/98 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-                    : isNormal
-                    ? "bg-gradient-to-br from-cyan-950/30 via-[#080E20]/95 to-[#050914]/98 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
-                    : "bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border-slate-800"
-                }`}
+                key={t.tier || t.name}
+                className="p-4 bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-3 border-[#3b424c] shadow-[4px_4px_0_0_#1d2d2a] space-y-3 text-[#1d2d2a]"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded-md border ${
-                        isElite
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                          : isNormal
-                          ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50"
-                          : "bg-slate-800 text-slate-300 border-slate-700"
-                      }`}
-                    >
-                      {t.tier} TIER
-                    </span>
-                    <span className="text-xs font-mono font-bold text-white">
-                      Target: {t.targetValue} {t.targetUnit || ""}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 font-sans leading-relaxed mb-4">
-                    {isElite
-                      ? "Push past standard operational boundaries for maximum attribute acceleration."
-                      : isNormal
-                      ? "Standard expected baseline quota for regular daily maintenance."
-                      : "Minimum viable execution to protect your active discipline streak."}
-                  </p>
+                <div className="flex justify-between items-center border-b-2 border-[#3b424c]/20 pb-2">
+                  <span className="px-2 py-0.5 bg-[#2f3640] text-[#ffd166] border border-[#1d2d2a] text-xs font-bold shadow-[1px_1px_0_0_#1d2d2a]">
+                    {t.tier} TIER
+                  </span>
+                  <span className="text-xs font-bold text-[#1d2d2a] font-mono tabular-nums">
+                    Target: {t.targetValue} {t.targetUnit || "times"}
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2 pt-3 border-t border-white/5">
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/30">
-                    <CurrencyIcon type="EXP" size="xs" />
-                    <span className="text-xs font-mono font-bold text-cyan-300">+{t.baseExp || 50}</span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-[#5a6472] font-bold font-mono">EXP Reward:</span>
+                    <span className="text-[#1d2d2a] font-bold tabular-nums font-mono">+{t.baseExp || 50} EXP</span>
                   </div>
-
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/30">
-                    <CurrencyIcon type="GOLD" size="xs" />
-                    <span className="text-xs font-mono font-bold text-amber-300">+{t.baseGold || 20}g</span>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-[#5a6472] font-bold font-mono">Gold Bounty:</span>
+                    <span className="text-[#ea580c] font-bold flex items-center gap-0.5 tabular-nums font-mono">
+                      <PixelCoinsIcon className="w-2.5 h-2.5 text-[#ffd166]" />
+                      +{t.baseGold || 20}g
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-[#5a6472] font-bold font-mono">Stat Boost:</span>
+                    <span className="text-[#1d2d2a] font-bold tabular-nums font-mono">
+                      +{t.statReward || 1} {habit.primaryStat?.substring(0, 3).toUpperCase()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -326,75 +410,48 @@ export default function HabitDetailPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* PARAMETERS & PERFORMANCE TELEMETRY */}
+      {/* 📊 4. HISTORICAL METRICS & STREAK VOLUME                   */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* CONFIGURATION CARD */}
-        <div className="p-6 rounded-[24px] bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border border-cyan-500/20 shadow-xl backdrop-blur-xl space-y-4">
-          <h3 className="text-xs font-mono uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-2 border-b border-cyan-500/10 pb-3">
-            <Layers className="w-3.5 h-3.5" />
-            Protocol Parameters
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3.5 font-mono text-xs">
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Schedule</span>
-              <span className="text-white font-bold">{habit.scheduleType}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Threat Difficulty</span>
-              <span className="text-amber-400 font-bold">{habit.difficulty}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Primary Stat</span>
-              <span className="text-cyan-300 font-bold uppercase">{habit.primaryStat}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Preferred Time</span>
-              <span className="text-white font-bold">{habit.preferredTime || "Anytime"}</span>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="p-3.5 bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-3 border-[#3b424c] shadow-[4px_4px_0_0_#1d2d2a] flex items-center justify-between text-[#1d2d2a]">
+          <div>
+            <span className="text-[10px] text-[#5a6472] font-bold uppercase font-mono block">Current Streak</span>
+            <span className="text-2xl font-bold text-[#ea580c] tabular-nums font-mono">{currentStreak}d</span>
+          </div>
+          <div className="w-8 h-8 bg-[#2f3640] text-[#ffd166] border border-[#1d2d2a] flex items-center justify-center shadow-inner">
+            <PixelFlameIcon className="w-4 h-4 text-[#ffb03a]" />
           </div>
         </div>
 
-        {/* PERFORMANCE TELEMETRY CARD */}
-        <div className="p-6 rounded-[24px] bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border border-cyan-500/20 shadow-xl backdrop-blur-xl space-y-4">
-          <h3 className="text-xs font-mono uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-2 border-b border-cyan-500/10 pb-3">
-            <Activity className="w-3.5 h-3.5" />
-            Telemetry Metrics
-          </h3>
-
-          <div className="grid grid-cols-3 gap-3 font-mono text-center">
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Streak</span>
-              <span className="text-lg font-black text-amber-400">{currentStreak}d</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Best Record</span>
-              <span className="text-lg font-black text-white">{longestStreak}d</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#060B18] border border-slate-800">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Consistency</span>
-              <span className="text-lg font-black text-emerald-400">{consistency}%</span>
-            </div>
+        <div className="p-3.5 bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-3 border-[#3b424c] shadow-[4px_4px_0_0_#1d2d2a] flex items-center justify-between text-[#1d2d2a]">
+          <div>
+            <span className="text-[10px] text-[#5a6472] font-bold uppercase font-mono block">Best Record</span>
+            <span className="text-2xl font-bold text-[#ea580c] tabular-nums font-mono">{longestStreak}d</span>
           </div>
+          <div className="w-8 h-8 bg-[#2f3640] text-[#ffd166] border border-[#1d2d2a] flex items-center justify-center shadow-inner">
+            <PixelFlameIcon className="w-4 h-4 text-[#ffb03a]" />
+          </div>
+        </div>
 
-          <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-[11px] text-cyan-300/90 font-mono">
-            💡 <strong>System Advisory:</strong> Completing normal or elite tiers consecutively compounds your streak multiplier, increasing bonus EXP drops during level ups.
+        <div className="p-3.5 bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-3 border-[#3b424c] shadow-[4px_4px_0_0_#1d2d2a] flex items-center justify-between text-[#1d2d2a]">
+          <div>
+            <span className="text-[10px] text-[#5a6472] font-bold uppercase font-mono block">Consistency Rate</span>
+            <span className="text-2xl font-bold text-[#1d2d2a] tabular-nums font-mono">{Math.round(consistency)}%</span>
+          </div>
+          <div className="w-8 h-8 bg-[#2f3640] text-[#ffd166] border border-[#1d2d2a] flex items-center justify-center shadow-inner">
+            <PixelLayersIcon className="w-4 h-4 text-[#ffb03a]" />
           </div>
         </div>
       </div>
 
       {/* Edit Modal */}
-      <EditHabitModal
-        habit={habit}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-      />
+      {isEditModalOpen && (
+        <EditHabitModal
+          habit={habit}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&family=Pixelify+Sans:wght@500;600;700;800&family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -21,9 +22,11 @@
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.6);
 
-  --font-heading: var(--font-space-grotesk), sans-serif;
+  --font-heading: "Pixelify Sans", var(--font-space-grotesk), sans-serif;
   --font-body: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-pixel: "Pixelify Sans", "Jersey 10", "Press Start 2P", monospace;
+  --font-pixel-chunky: "Jersey 10", "Pixelify Sans", monospace;
 }
 
 :root {
@@ -85,6 +88,7 @@ body {
     sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: none;
 }
 
 h1,
@@ -297,7 +301,409 @@ h6 {
 .animate-beacon { animation: beacon 2s ease-in-out infinite; }
 .animate-number-glow { animation: number-glow 3s ease-in-out infinite; }
 .animate-hp-drain { animation: hp-drain 2s ease-in-out infinite; }
-.animate-slide-up { animation: slide-up-fade 0.5s ease-out both; }
+.animate-marquee { animation: marquee var(--duration, 40s) linear infinite; }
+.animate-marquee-vertical { animation: marquee-vertical var(--duration, 40s) linear infinite; }
+
+/* Guaranteed hover freeze for continuous marquees */
+.animate-marquee:hover,
+.animate-marquee-vertical:hover,
+.group:hover .animate-marquee,
+.group:hover .animate-marquee-vertical,
+.group\/marquee-container:hover .animate-marquee,
+.group\/marquee-container:hover .animate-marquee-vertical,
+[data-pause-on-hover="true"]:hover .animate-marquee,
+[data-pause-on-hover="true"]:hover .animate-marquee-vertical {
+  animation-play-state: paused !important;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+}
+
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
+}
+
+/* === 8-BIT RETRO SUNSET & PIXEL ART STYLES === */
+.font-pixel {
+  font-family: 'Pixelify Sans', 'Jersey 10', 'Press Start 2P', monospace !important;
+}
+
+.font-pixel-chunky {
+  font-family: 'Jersey 10', 'Pixelify Sans', monospace !important;
+}
+
+.pixel-text-outlined {
+  font-family: 'Jersey 10', 'Pixelify Sans', 'Press Start 2P', monospace !important;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 
+    -2px -2px 0 #18082e, 
+     0   -2px 0 #18082e, 
+     2px -2px 0 #18082e, 
+    -2px  0   0 #18082e, 
+     2px  0   0 #18082e, 
+    -2px  2px 0 #18082e, 
+     0    2px 0 #18082e, 
+     2px  2px 0 #18082e,
+    -3px  0   0 #18082e,
+     3px  0   0 #18082e,
+     0   -3px 0 #18082e,
+     0    3px 0 #18082e,
+     0    4px 0 rgba(0, 0, 0, 0.75);
+  letter-spacing: 0.06em;
+  -webkit-font-smoothing: none;
+}
+
+.sunset-dither-bg {
+  background: linear-gradient(180deg, #23074D 0%, #440F79 15%, #6F1B9B 30%, #9D22A8 45%, #D42B7D 60%, #EB3F67 72%, #F45D48 84%, #F77D39 94%, #FA9D37 100%);
+}
+
+.pixel-container {
+  background-color: #1A102F;
+  position: relative;
+  border-style: solid;
+  border-width: 4px;
+  border-color: #3b1861;
+  box-shadow: 
+    0 -4px 0 0 #000, 
+    0 4px 0 0 #000, 
+    -4px 0 0 0 #000, 
+    4px 0 0 0 #000;
+}
+
+.pixel-panel {
+  background: #23153C;
+  border: 2px solid #3b1861;
+  box-shadow: inset -2px -2px 0 0 #130a22, inset 2px 2px 0 0 #3a1a59;
+}
+
+.pixel-slot {
+  background: #140b24;
+  border: 2px solid #3b1861;
+  box-shadow: inset -2px -2px 0 0 #28123e, inset 2px 2px 0 0 #0d0618;
+  image-rendering: pixelated;
+}
+
+.pixel-slot:hover {
+  border-color: #67e8f9;
+  box-shadow: inset -2px -2px 0 0 #28123e, inset 2px 2px 0 0 #0d0618, 0 0 8px rgba(103, 232, 249, 0.4);
+}
+
+.pixel-btn {
+  font-family: 'Press Start 2P', monospace;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #000;
+  box-shadow: inset -2px -2px 0 0 rgba(0, 0, 0, 0.5), inset 2px 2px 0 0 rgba(255, 255, 255, 0.25), 0 2px 0 0 #000;
+  text-transform: none;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.05s ease, filter 0.1s ease;
+}
+
+.pixel-btn:active {
+  transform: translateY(2px) !important;
+  box-shadow: inset 2px 2px 0 0 rgba(0, 0, 0, 0.8) !important;
+}
+
+.dither-grid-overlay {
+  background-image: 
+    radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle, rgba(0, 0, 0, 0.15) 1px, transparent 1px);
+  background-size: 8px 8px, 16px 16px;
+  background-position: 0 0, 4px 4px;
+}
+
+.pixel-dot-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* === RPG QUEST NOTICE BOARD & PIXEL PARCHMENT STYLES === */
+.pixel-wood-board {
+  background-color: #2b1810;
+  background-image: 
+    /* Dark Vignette & Shadowing */
+    radial-gradient(ellipse at center, transparent 40%, rgba(10, 5, 2, 0.75) 100%),
+    /* Wood plank grooves */
+    repeating-linear-gradient(
+      180deg,
+      #361f14 0px,
+      #361f14 44px,
+      #140a05 45px,
+      #140a05 48px,
+      #2b180f 49px,
+      #2b180f 92px,
+      #100804 93px,
+      #100804 96px
+    ),
+    /* Wood Grain Streaks */
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 2px,
+      transparent 2px,
+      transparent 8px
+    );
+  border: 6px solid #4a2813;
+  box-shadow: 
+    inset 0 0 0 3px #6e3d20,
+    inset 0 0 0 6px #1a0d06,
+    inset 0 0 40px rgba(0, 0, 0, 0.8),
+    0 -4px 0 0 #000,
+    0 4px 0 0 #000,
+    -4px 0 0 0 #000,
+    4px 0 0 0 #000;
+}
+
+.pixel-wood-beam {
+  background: #3e2213;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #3e2213 0px,
+    #4a2917 10px,
+    #331b0e 20px,
+    #4a2917 30px
+  );
+  border: 3px solid #5a3018;
+  box-shadow: inset 2px 2px 0 0 #783e20, inset -2px -2px 0 0 #1a0d06, 0 4px 8px rgba(0,0,0,0.5);
+}
+
+.pixel-cork-board {
+  background-color: #c49a65;
+  background-image: 
+    /* Ambient Dirt Stains & Coffee Blotches */
+    radial-gradient(circle at 18% 25%, rgba(92, 51, 23, 0.35) 0%, transparent 35%),
+    radial-gradient(circle at 82% 70%, rgba(92, 51, 23, 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(139, 90, 43, 0.25) 0%, transparent 60%),
+    radial-gradient(circle at 75% 20%, rgba(61, 33, 14, 0.3) 0%, transparent 30%),
+    /* Cork Grain Specks */
+    radial-gradient(circle, rgba(74, 40, 19, 0.15) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255, 248, 220, 0.1) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 6px 6px, 12px 12px;
+}
+
+/* Stained, Ragged, Dirtied Bounty Paper */
+.pixel-parchment {
+  background-color: #edd19d;
+  background-image: 
+    /* Grungy Dirt Spots & Tea/Coffee Water Stains */
+    radial-gradient(circle at 85% 15%, rgba(120, 72, 30, 0.28) 0%, transparent 35%),
+    radial-gradient(circle at 15% 85%, rgba(100, 58, 22, 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 60% 75%, rgba(140, 85, 35, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 35% 30%, rgba(90, 50, 18, 0.18) 0%, transparent 45%),
+    /* Aged Paper Burn Gradient */
+    linear-gradient(180deg, #fff3d1 0%, #edd19d 25%, #e0bd82 75%, #caa163 100%);
+  color: #1f0f06;
+  border: 2px solid #3d2110;
+  box-shadow: 
+    inset 0 0 10px rgba(92, 51, 23, 0.3),
+    inset 1px 1px 0 0 #fff9e6,
+    inset -1px -1px 0 0 #9c6c33,
+    0 4px 8px rgba(0, 0, 0, 0.55);
+}
+
+.pixel-parchment-completed {
+  background-color: #dbe4cb;
+  background-image: 
+    /* Grungy Aged Stains with muted green fade */
+    radial-gradient(circle at 80% 20%, rgba(70, 80, 50, 0.25) 0%, transparent 35%),
+    radial-gradient(circle at 20% 80%, rgba(60, 70, 40, 0.25) 0%, transparent 40%),
+    linear-gradient(180deg, #ecf3df 0%, #dbe4cb 25%, #c5d2b1 75%, #a8b891 100%);
+  color: #14220e;
+  border: 2px solid #2e4420;
+  box-shadow: 
+    inset 0 0 10px rgba(46, 68, 32, 0.3),
+    inset 1px 1px 0 0 #f6faef,
+    inset -1px -1px 0 0 #85986e,
+    0 4px 8px rgba(0, 0, 0, 0.55);
+}
+
+.pixel-parchment-royal {
+  background-color: #f7e8c3;
+  background-image: 
+    radial-gradient(circle at 90% 10%, rgba(139, 90, 43, 0.22) 0%, transparent 30%),
+    radial-gradient(circle at 10% 90%, rgba(120, 72, 30, 0.25) 0%, transparent 35%),
+    radial-gradient(circle at 50% 50%, rgba(160, 110, 50, 0.15) 0%, transparent 50%),
+    linear-gradient(180deg, #fffcf0 0%, #f7e8c3 25%, #eed49b 75%, #d8b672 100%);
+  color: #241407;
+  border: 3px solid #3d2310;
+  box-shadow: 
+    inset 0 0 14px rgba(100, 60, 25, 0.35),
+    inset 2px 2px 0 0 #ffffff,
+    inset -2px -2px 0 0 #b38847,
+    0 8px 16px rgba(0, 0, 0, 0.7);
+}
+
+/* ======================================================================= */
+/* 📜 AUTHENTIC ANCIENT PARCHMENT SCROLL & DISTRESSED TOME SYSTEM          */
+/* Palette: Warm Tan (#D4B895 / #C6A67A), Stained Coffee (#6D4C3D / #593B22), Oak (#2C180E) */
+/* ======================================================================= */
+
+.pixel-guild-license,
+.konosuba-adventurer-card,
+.parchment-scroll-card {
+  background-color: #d4b895;
+  background-image: 
+    radial-gradient(ellipse at 50% 45%, #ecd9bd 0%, #dfc8a7 35%, #cca87c 65%, #9e704a 90%, #593b22 100%),
+    radial-gradient(circle at 12% 18%, rgba(89, 59, 34, 0.35) 0%, transparent 45%),
+    radial-gradient(circle at 88% 82%, rgba(109, 76, 61, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 85% 15%, rgba(66, 40, 23, 0.3) 0%, transparent 35%),
+    radial-gradient(circle at 15% 85%, rgba(66, 40, 23, 0.35) 0%, transparent 40%),
+    linear-gradient(180deg, rgba(255, 245, 225, 0.15) 0%, transparent 40%, rgba(44, 24, 14, 0.2) 100%);
+  color: #221208;
+  border: 4px solid #361b0c;
+  box-shadow: 
+    inset 0 0 36px rgba(74, 46, 26, 0.55),
+    inset 0 0 12px rgba(36, 18, 8, 0.75),
+    inset 2px 2px 0 rgba(255, 245, 225, 0.45),
+    inset -2px -2px 0 rgba(44, 24, 14, 0.7),
+    0 14px 34px rgba(0, 0, 0, 0.9);
+  position: relative;
+}
+
+/* Subtle deckled rough edge effect on parchment containers */
+.deckled-parchment-border {
+  position: relative;
+}
+.deckled-parchment-border::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 1px dashed rgba(89, 59, 34, 0.6);
+  pointer-events: none;
+  z-index: 15;
+}
+
+/* Coffee/Tea Stained Sub-Parchment Boxes */
+.konosuba-parameter-box,
+.parchment-sub-box {
+  background-color: #cbb08b;
+  background-image: 
+    radial-gradient(ellipse at 50% 50%, #dfcbab 0%, #caa97e 55%, #a87d51 90%, #6d4c3d 100%),
+    radial-gradient(circle at 10% 20%, rgba(66, 40, 23, 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(89, 59, 34, 0.3) 0%, transparent 45%);
+  border: 2px solid #4a2813;
+  color: #221208;
+  box-shadow: 
+    inset 0 0 14px rgba(89, 59, 34, 0.45),
+    inset 1px 1px 0 rgba(255, 248, 230, 0.4),
+    inset -1px -1px 0 rgba(44, 24, 14, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Weathered Dark Oak Timber Panels */
+.pixel-guild-panel {
+  background-color: #241309;
+  background-image: 
+    linear-gradient(180deg, #331c0e 0%, #1e0d04 100%),
+    radial-gradient(ellipse at 50% 0%, rgba(140, 94, 60, 0.2) 0%, transparent 60%);
+  border: 3px solid #4a2813;
+  box-shadow: 
+    inset 1px 1px 0 0 #6e3d1d,
+    inset -1px -1px 0 0 #0d0603,
+    0 6px 14px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes lantern-ambient-flicker {
+  0%, 100% { 
+    opacity: 0.95; 
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.6)) drop-shadow(0 0 32px rgba(245, 158, 11, 0.3)); 
+  }
+  25% { 
+    opacity: 0.88; 
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.45)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.2)); 
+  }
+  50% { 
+    opacity: 1; 
+    filter: drop-shadow(0 0 22px rgba(251, 191, 36, 0.75)) drop-shadow(0 0 40px rgba(245, 158, 11, 0.4)); 
+  }
+  75% { 
+    opacity: 0.92; 
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.5)) drop-shadow(0 0 28px rgba(245, 158, 11, 0.25)); 
+  }
+}
+
+.animate-lantern-flicker {
+  animation: lantern-ambient-flicker 3s infinite steps(4);
+}
+
+@keyframes pixel-star-twinkle {
+  0%, 75%, 100% { 
+    transform: scale(1); 
+    filter: drop-shadow(0 0 1px rgba(250, 204, 21, 0.3)) brightness(1); 
+  }
+  85% { 
+    transform: scale(1.08); 
+    filter: drop-shadow(0 0 3px rgba(254, 240, 138, 0.7)) brightness(1.15); 
+  }
+}
+
+.animate-star-twinkle {
+  animation: pixel-star-twinkle 3.5s ease-in-out infinite;
+  display: inline-block;
+  transform-origin: center;
+}
+
+/* === 8-BIT RETRO MOTION & KEYFRAME ANIMATIONS === */
+
+@keyframes pixel-cloud-drift {
+  0% { transform: translateX(-200px); }
+  100% { transform: translateX(calc(100vw + 200px)); }
+}
+
+@keyframes pixel-star-twinkle {
+  0% { transform: scale(1); opacity: 0.9; }
+  25% { transform: scale(0.6); opacity: 0.3; }
+  50% { transform: scale(1.4); opacity: 1; }
+  75% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+
+@keyframes pixel-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes pixel-burst {
+  0% { transform: scale(0.4) translateY(0); opacity: 1; }
+  50% { transform: scale(1.15) translateY(-14px); opacity: 1; }
+  100% { transform: scale(1) translateY(-28px); opacity: 0; }
+}
+
+@keyframes pixel-step-fill {
+  0% { background-position: 0 0; }
+  100% { background-position: 24px 0; }
+}
+
+.animate-pixel-bob {
+  animation: pixel-bob 1.2s steps(2, jump-none) infinite;
+  image-rendering: pixelated;
+}
+
+.animate-pixel-star {
+  animation: pixel-star-twinkle 2.4s steps(4) infinite;
+}
+
+.animate-pixel-cloud-1 {
+  animation: pixel-cloud-drift 48s steps(240, start) infinite;
+}
+
+.animate-pixel-cloud-2 {
+  animation: pixel-cloud-drift 36s steps(180, start) infinite;
+}
+
+.animate-pixel-cloud-3 {
+  animation: pixel-cloud-drift 60s steps(300, start) infinite;
+}
 
 /* === GLASS CARD SYSTEM === */
 
@@ -318,7 +724,7 @@ h6 {
     0 1px 0 rgba(255, 255, 255, 0.05) inset;
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .glass-card::before {
@@ -358,7 +764,7 @@ h6 {
     0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .glass-card-purple::before {
@@ -396,7 +802,7 @@ h6 {
     0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .glass-card-red::before {
@@ -455,23 +861,6 @@ h6 {
 .glow-red { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6)); }
 .glow-amber { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6)); }
 .glow-emerald { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6)); }
-
-/* === SCAN LINE OVERLAY === */
-
-.scan-lines::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(6, 182, 212, 0.015) 2px,
-    rgba(6, 182, 212, 0.015) 4px
-  );
-  pointer-events: none;
-  z-index: 50;
-}
 
 /* === FLOATING RUNE SYSTEM === */
 
@@ -581,7 +970,7 @@ h6 {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease-in-out;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 .saas-card:hover,
@@ -594,7 +983,7 @@ h6 {
   border-radius: 16px;
   font-family: var(--font-space-grotesk), sans-serif;
   font-weight: 600;
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.1s ease-in-out;
 }
 
 .saas-input {
@@ -892,7 +1281,7 @@ h6 {
 }
 
 .auth-submit-btn {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
 }
 
 .auth-submit-btn:not(:disabled):hover {
@@ -1164,4 +1553,143 @@ h6 {
   animation: skill-ready-pulse 1.8s infinite ease-in-out;
 }
 
+/* 8-Bit Book Page Flip Animations */
+@keyframes book-page-turn-forward {
+  0% {
+    transform: perspective(900px) rotateY(0deg);
+    transform-origin: left center;
+    opacity: 1;
+    filter: brightness(1);
+  }
+  38% {
+    transform: perspective(900px) rotateY(-75deg) skewY(-1.5deg) scale(0.96);
+    transform-origin: left center;
+    opacity: 0.25;
+    filter: brightness(0.65);
+  }
+  62% {
+    transform: perspective(900px) rotateY(65deg) skewY(1.5deg) scale(0.96);
+    transform-origin: left center;
+    opacity: 0.35;
+    filter: brightness(0.75);
+  }
+  100% {
+    transform: perspective(900px) rotateY(0deg);
+    transform-origin: left center;
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@keyframes book-page-turn-backward {
+  0% {
+    transform: perspective(900px) rotateY(0deg);
+    transform-origin: left center;
+    opacity: 1;
+    filter: brightness(1);
+  }
+  38% {
+    transform: perspective(900px) rotateY(75deg) skewY(1.5deg) scale(0.96);
+    transform-origin: left center;
+    opacity: 0.25;
+    filter: brightness(0.65);
+  }
+  62% {
+    transform: perspective(900px) rotateY(-65deg) skewY(-1.5deg) scale(0.96);
+    transform-origin: left center;
+    opacity: 0.35;
+    filter: brightness(0.75);
+  }
+  100% {
+    transform: perspective(900px) rotateY(0deg);
+    transform-origin: left center;
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.animate-page-flip-forward {
+  animation: book-page-turn-forward 0.26s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.animate-page-flip-backward {
+  animation: book-page-turn-backward 0.26s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* ======================================================================= */
+/* ⚙️ ASCEND OS — STEAMPUNK & HOROLOGICAL CHRONOMETER SYSTEM               */
+/* ======================================================================= */
+
+@keyframes steampunk-needle-jitter {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.8deg); }
+  50% { transform: rotate(-0.6deg); }
+  75% { transform: rotate(0.4deg); }
+}
+
+@keyframes steampunk-steam-puff {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0.85;
+    filter: blur(2px);
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-36px) scale(2.2);
+    opacity: 0;
+    filter: blur(8px);
+  }
+}
+
+@keyframes nixie-filament-flicker {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  48% {
+    opacity: 0.96;
+  }
+  50% {
+    opacity: 0.88;
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  52% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.94;
+  }
+}
+
+@keyframes gear-continuous-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-steampunk-jitter {
+  animation: steampunk-needle-jitter 0.16s infinite ease-in-out;
+}
+
+.animate-steampunk-steam {
+  animation: steampunk-steam-puff 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-nixie-flicker {
+  animation: nixie-filament-flicker 3.5s infinite ease-in-out;
+}
+
+.animate-gear-spin {
+  animation: gear-continuous-spin 12s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-steampunk-jitter,
+  .animate-steampunk-steam,
+  .animate-nixie-flicker,
+  .animate-gear-spin {
+    animation: none !important;
+  }
+}
 

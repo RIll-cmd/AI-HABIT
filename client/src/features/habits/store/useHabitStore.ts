@@ -9,11 +9,13 @@ import {
   completeMission,
   updateHabitStatus,
   updateHabitDetails,
+  logHabit,
   HabitCreatePayload,
 } from "../services/habit.service";
 import { eventBus } from "@/features/progression/services/EventBus";
 import "@/features/progression/services/ProgressionEngine";
 import { playConfirmedSound } from "@/features/audio/useSystemAudio";
+import { useCharacterStore } from "@/store/useCharacterStore";
 
 export interface HabitStore {
   habits: Habit[];
@@ -22,6 +24,11 @@ export interface HabitStore {
   loadHabits: (characterId?: string) => Promise<void>;
   loadTodayMissions: (characterId?: string) => Promise<void>;
   createNewHabit: (characterId: string, payload: HabitCreatePayload) => Promise<Habit | null>;
+  logHabitCompletion: (
+    habitId: string,
+    completionType?: CompletionType,
+    customValue?: number
+  ) => Promise<{ success: boolean; rewards?: any }>;
   executeMissionCompletion: (
     missionId: string,
     habit: Habit,
@@ -31,7 +38,14 @@ export interface HabitStore {
   updateHabitDetails: (habitId: string, payload: Partial<HabitCreatePayload>) => Promise<Habit | null>;
 }
 
-const MOCK_CHARACTER_ID = "char-id-123";
+const getStoredCharacterId = (): string => {
+  const storeCharId = useCharacterStore.getState().character?.id;
+  if (storeCharId) return storeCharId;
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("ascend_character_id") || "char-id-123";
+  }
+  return "char-id-123";
+};
 
 export const useHabitStore = create<HabitStore>((set, get) => ({
   habits: [],
@@ -39,7 +53,7 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
   isLoading: false,
 
   loadHabits: async (characterId?: string) => {
-    const targetId = characterId || MOCK_CHARACTER_ID;
+    const targetId = characterId || getStoredCharacterId();
     set({ isLoading: true });
     try {
       const habits = await fetchHabits(targetId);
@@ -51,7 +65,7 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
   },
 
   loadTodayMissions: async (characterId?: string) => {
-    const targetId = characterId || MOCK_CHARACTER_ID;
+    const targetId = characterId || getStoredCharacterId();
     set({ isLoading: true });
     try {
       await generateTodayMissions(targetId);
@@ -64,7 +78,7 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
   },
 
   createNewHabit: async (characterId: string, payload: HabitCreatePayload) => {
-    const targetId = characterId || MOCK_CHARACTER_ID;
+    const targetId = characterId || getStoredCharacterId();
     set({ isLoading: true });
     try {
       const newHabit = await createHabit(targetId, payload);
@@ -85,6 +99,100 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
       console.error("[useHabitStore] Exception in createNewHabit:", error);
       set({ isLoading: false });
       return null;
+    }
+  },
+
+  logHabitCompletion: async (
+    habitId: string,
+    completionType: CompletionType = "NORMAL",
+    customValue?: number
+  ) => {
+    const habit = get().habits.find((h) => h.id === habitId);
+    if (!habit) return { success: false };
+
+    const baseReward = getBaseReward(habit.difficulty);
+    const finalReward = calculateFinalReward(baseReward, completionType);
+
+    playConfirmedSound();
+
+    // Optimistic UI updates
+    const currentStreakCount = habit.metrics?.currentStreak || 0;
+    const newStreak = currentStreakCount + 1;
+    const currentStrength = habit.metrics?.habitStrength ?? 60;
+    const newStrength = Math.min(100, Math.round(currentStrength + 4));
+
+    set((state) => ({
+      habits: state.habits.map((h) =>
+        h.id === habitId
+          ? {
+              ...h,
+              metrics: h.metrics
+                ? {
+                    ...h.metrics,
+                    currentStreak: newStreak,
+                    longestStreak: Math.max(newStreak, h.metrics.longestStreak || 0),
+                    habitStrength: newStrength,
+                    currentConsistency: Math.min(100, (h.metrics.currentConsistency || 50) + 5),
+                  }
+                : {
+                    id: `m-${habitId}`,
+                    habitId: habitId,
+                    habitStrength: newStrength,
+                    currentStreak: newStreak,
+                    longestStreak: newStreak,
+                    successRate: 100,
+                    completionRate: 100,
+                    currentConsistency: 100,
+                  },
+            }
+          : h
+      ),
+
+      todayMissions: state.todayMissions.map((m) =>
+        m.habitId === habitId
+          ? {
+              ...m,
+              status: "COMPLETED" as const,
+              completionType,
+              expEarned: finalReward.exp,
+              statsEarned: finalReward.stat,
+              completedAt: new Date().toISOString(),
+            }
+          : m
+      ),
+    }));
+
+    // Dispatch MISSION_COMPLETED event to central Progression Engine
+    eventBus.publish("MISSION_COMPLETED", {
+      baseReward,
+      completionType,
+      habit,
+    });
+
+    const response = await logHabit(habitId, {
+      completionType,
+      targetValue: customValue,
+    });
+
+    if (response && response.success) {
+      if (response.habit) {
+        set((state) => ({
+          habits: state.habits.map((h) => (h.id === habitId ? response.habit : h)),
+        }));
+      }
+      return { success: true, rewards: response.rewards };
+    } else {
+      return {
+        success: true,
+        rewards: {
+          exp: finalReward.exp,
+          gold: finalReward.gold,
+          stat: finalReward.stat,
+          statName: habit.primaryStat,
+          streak: newStreak,
+          habitStrength: newStrength,
+        },
+      };
     }
   },
 
@@ -164,3 +272,4 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
     }
   },
 }));
+

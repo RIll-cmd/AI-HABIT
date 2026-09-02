@@ -42,6 +42,9 @@ export interface Character {
   avatar?: string | null;
   theme?: string | null;
   title?: string | null;
+  gender?: string | null;
+  age?: number | null;
+  race?: string | null;
   level: number;
   exp: number;
   power: number;

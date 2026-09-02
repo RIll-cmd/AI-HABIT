@@ -79,3 +79,9 @@ class HabitUpdateSchema(BaseModel):
     schedule: Optional[HabitScheduleCreateSchema] = None
     tiers: Optional[List[HabitTierCreateSchema]] = None
 
+class HabitLogSchema(BaseModel):
+    completionType: Tier = Field(Tier.NORMAL)
+    targetValue: Optional[float] = None
+    notes: Optional[str] = None
+
+

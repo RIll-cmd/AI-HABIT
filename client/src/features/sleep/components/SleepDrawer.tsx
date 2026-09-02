@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, Moon, Sparkles, Activity, Clock, ShieldCheck, HeartPulse } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { X, Waves, Droplets, Moon, Sparkles, Activity, Clock, ShieldCheck, HeartPulse } from "lucide-react";
 import { useSleepStore } from "../store/useSleepStore";
 import { SleepLoggerCard } from "./SleepLoggerCard";
 import { SleepHistoryChart } from "./SleepHistoryChart";
@@ -30,51 +28,53 @@ export const SleepDrawer: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
+      {/* Backdrop with mist blur */}
       <div
         onClick={closeDrawer}
-        className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity animate-in fade-in duration-300"
+        className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
       />
 
-      {/* Slide-out Sidebar Drawer */}
+      {/* Slide-out 8-Bit Retro Sidebar Drawer */}
       <aside
-        className="relative w-full max-w-lg h-full bg-[#070C18]/98 border-l border-cyan-500/30 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto z-10 space-y-6 animate-in slide-in-from-right duration-300 scan-lines"
+        className="relative w-full max-w-lg h-full bg-[#120824]/98 border-l-4 border-[#3c1860] p-5 sm:p-6 shadow-[-8px_0_0_0_#000] flex flex-col justify-between overflow-y-auto z-10 space-y-5 animate-in slide-in-from-right duration-300 text-slate-100 select-none"
       >
         {/* Top Drawer Controls */}
-        <div className="flex items-center justify-between border-b border-cyan-500/20 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">
-              <Moon className="w-5 h-5" />
+        <div className="flex items-center justify-between border-b-2 border-[#3c1860] pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#251040] border-2 border-[#f59e0b] shadow-[0_0_12px_rgba(245,158,11,0.4),inset_1px_1px_0_0_#fef08a] flex items-center justify-center flex-shrink-0">
+              <Moon className="w-5 h-5 text-[#fbbf24]" />
             </div>
             <div>
-              <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
-                SYSTEM TELEMETRY
+              <span className="text-[9px] font-pixel text-[#fbbf24] uppercase tracking-wider block">
+                NIGHT PAGODA SANCTUARY
               </span>
-              <h3 className="text-lg font-black font-heading text-white tracking-wide">
-                Sleep & Somatic Recovery
+              <h3 className="text-sm sm:text-base font-pixel font-bold text-white tracking-wide">
+                SLEEP & SOMATIC RECOVERY
               </h3>
             </div>
           </div>
 
           <button
             onClick={closeDrawer}
-            className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
+            className="w-8 h-8 bg-[#1f0d36] hover:bg-[#321557] active:bg-[#150924] border-2 border-[#4c1d7c] text-white flex items-center justify-center cursor-pointer transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-[#fbbf24]" />
           </button>
         </div>
 
         {/* Body Content: Interactive Sleep Logger & Live Stats */}
-        <div className="space-y-6 flex-1">
-          <SleepLoggerCard onLogSuccess={() => {}} className="p-4 sm:p-5" />
-          <SleepHistoryChart className="p-4 sm:p-5" />
+        <div className="space-y-5 flex-1">
+          <SleepLoggerCard onLogSuccess={() => {}} className="p-4" />
+          <SleepHistoryChart className="p-4" />
         </div>
 
         {/* Footer info */}
-        <div className="pt-4 border-t border-white/10 text-center font-mono text-[10px] text-slate-500">
-          Ascend OS Biometric Optimization Engine • Optimal Target: 8.0h Daily
+        <div className="pt-3 border-t-2 border-[#3c1860] text-center font-pixel text-[9px] text-[#fbbf24]/80">
+          ASCEND OS NIGHT PAGODA • GOLDEN STANDARD: 8.0H REST
         </div>
       </aside>
     </div>
   );
 };
+
+export default SleepDrawer;

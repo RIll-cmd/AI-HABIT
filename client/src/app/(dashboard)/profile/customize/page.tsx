@@ -3,29 +3,25 @@
 import { API_BASE_URL } from "@/constants";
 import React, { useState, useEffect } from "react";
 import { useCharacterStore } from "@/store/useCharacterStore";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 import { toast } from "sonner";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
 import {
-  Palette,
-  Award,
-  Sparkles,
-  CheckCircle2,
-  Lock,
-  Loader2,
-  Zap,
-  Crown,
-} from "lucide-react";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
+  PixelPaletteIcon,
+  PixelCrownIcon,
+  PixelAwardIcon,
+  PixelLockIcon,
+  PixelSparklesIcon,
+} from "@/components/ui/pixel/PixelIcons";
+import { Loader2, Check, Sparkles, Trophy, Shield, Flame, Zap, Crown } from "lucide-react";
 
-interface TitleItem {
+export interface TitleItem {
   id: string;
   name: string;
   description: string;
   icon: string;
-  category: string;
+  category: "Milestone" | "Tower" | "Habits" | "Special" | string;
   statBonus: Record<string, number>;
   powerMultiplier: number;
   requirementType: string;
@@ -34,11 +30,121 @@ interface TitleItem {
   isEquipped: boolean;
 }
 
+export const DEFAULT_TITLES: TitleItem[] = [
+  {
+    id: "title-hydration-monarch",
+    name: "Hydration Monarch",
+    description: "Master of physical purity and daily hydration consistency.",
+    icon: "💧",
+    category: "Habits",
+    statBonus: { consistency: 2, recovery: 1 },
+    powerMultiplier: 1.02,
+    requirementType: "HABIT_STREAK",
+    requirementValue: 7,
+    isUnlocked: true,
+    isEquipped: true,
+  },
+  {
+    id: "title-tower-conqueror",
+    name: "Tower Conqueror",
+    description: "Fierce climber who conquered the upper spires of the Spire Tower.",
+    icon: "⚔️",
+    category: "Tower",
+    statBonus: { strength: 3, knowledge: 2 },
+    powerMultiplier: 1.05,
+    requirementType: "TOWER_FLOOR",
+    requirementValue: 5,
+    isUnlocked: true,
+    isEquipped: false,
+  },
+  {
+    id: "title-consistency-sovereign",
+    name: "Consistency Sovereign",
+    description: "Unwavering ruler of daily routine discipline and unbroken focus.",
+    icon: "👑",
+    category: "Milestone",
+    statBonus: { discipline: 3, consistency: 3 },
+    powerMultiplier: 1.05,
+    requirementType: "COMPLETED_MISSIONS",
+    requirementValue: 25,
+    isUnlocked: true,
+    isEquipped: false,
+  },
+  {
+    id: "title-shadow-monarch",
+    name: "Shadow Monarch",
+    description: "Sovereign of shadows granting massive stat scaling and stealth crits.",
+    icon: "🌌",
+    category: "Special",
+    statBonus: { strength: 5, focus: 5, discipline: 5 },
+    powerMultiplier: 1.10,
+    requirementType: "LEVEL_REACHED",
+    requirementValue: 10,
+    isUnlocked: true,
+    isEquipped: false,
+  },
+  {
+    id: "title-early-riser",
+    name: "Early Riser",
+    description: "Disciplined morning warrior who conquers the day before dawn.",
+    icon: "🌅",
+    category: "Habits",
+    statBonus: { focus: 2, discipline: 1 },
+    powerMultiplier: 1.02,
+    requirementType: "EARLY_MISSION",
+    requirementValue: 5,
+    isUnlocked: true,
+    isEquipped: false,
+  },
+  {
+    id: "title-explosion-sovereign",
+    name: "Explosion Sovereign",
+    description: "Crimson Demon title channeling maximum mana into high-impact feats.",
+    icon: "💥",
+    category: "Special",
+    statBonus: { knowledge: 5, focus: 3 },
+    powerMultiplier: 1.08,
+    requirementType: "MANA_BURST",
+    requirementValue: 1,
+    isUnlocked: true,
+    isEquipped: false,
+  },
+  {
+    id: "title-iron-will",
+    name: "Iron Will",
+    description: "Indomitable defender enduring the heaviest resistance sessions.",
+    icon: "🛡️",
+    category: "Milestone",
+    statBonus: { endurance: 3, recovery: 3 },
+    powerMultiplier: 1.04,
+    requirementType: "HEAVY_WORKOUTS",
+    requirementValue: 10,
+    isUnlocked: true,
+    isEquipped: false,
+  },
+  {
+    id: "title-grandmaster-ascendant",
+    name: "Grandmaster Ascendant",
+    description: "Legendary entity of supreme physical, mental, and habit mastery.",
+    icon: "✨",
+    category: "Milestone",
+    statBonus: { strength: 4, knowledge: 4, discipline: 4 },
+    powerMultiplier: 1.08,
+    requirementType: "LEVEL_REACHED",
+    requirementValue: 20,
+    isUnlocked: false,
+    isEquipped: false,
+  },
+];
+
 export default function CustomizePage() {
-  const { character, refetch } = useCharacterStore();
-  const [titles, setTitles] = useState<TitleItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { character, updateIdentity, refetch } = useCharacterStore();
+  const [titles, setTitles] = useState<TitleItem[]>(DEFAULT_TITLES);
+  const [isLoading, setIsLoading] = useState(false);
   const [isEquipping, setIsEquipping] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+
+  const currentEquippedTitle = character?.title || "Hydration Monarch";
 
   useEffect(() => {
     const fetchTitles = async () => {
@@ -46,12 +152,12 @@ export default function CustomizePage() {
         const res = await fetch(`${API_BASE_URL}/api/character/titles/${character?.id || "char-id-123"}`);
         if (res.ok) {
           const data = await res.json();
-          setTitles(data.titles || []);
+          if (data.titles && data.titles.length > 0) {
+            setTitles(data.titles);
+          }
         }
       } catch (e) {
-        console.error("Failed to fetch titles", e);
-      } finally {
-        setIsLoading(false);
+        console.warn("Using offline titles registry");
       }
     };
     fetchTitles();
@@ -60,148 +166,212 @@ export default function CustomizePage() {
   const handleEquipTitle = async (title: TitleItem) => {
     setIsEquipping(title.id);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/character/titles/equip`, {
+      // Immediate optimistic update
+      updateIdentity({
+        title: title.name,
+      } as any);
+
+      setTitles((prev) =>
+        prev.map((t) => ({
+          ...t,
+          isEquipped: t.name === title.name,
+        }))
+      );
+
+      playBuffSFX();
+      toast.success(`Equipped Title Honorific: [${title.name}]!`);
+
+      // Backend sync
+      fetch(`${API_BASE_URL}/api/character/titles/equip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           characterId: character?.id || "char-id-123",
           titleId: title.id,
         }),
-      });
+      }).catch(console.error);
 
-      if (res.ok) {
-        const data = await res.json();
-        playBuffSFX();
-        toast.success(data.message);
-        await refetch();
-        // Update local status
-        setTitles((prev) =>
-          prev.map((t) => ({
-            ...t,
-            isEquipped: t.id === title.id,
-            isUnlocked: t.id === title.id ? true : t.isUnlocked,
-          }))
-        );
-      } else {
-        toast.error("Failed to equip title.");
-      }
     } catch (e) {
-      toast.error("Network error equipping title.");
+      toast.error("Failed to equip title.");
     } finally {
       setIsEquipping(null);
     }
   };
 
-  const categories = ["Milestone", "Tower", "Habits", "Special"];
+  const categories = ["ALL", "Milestone", "Tower", "Habits", "Special"];
+
+  const filteredTitles = titles.filter((t) => {
+    if (selectedCategory === "ALL") return true;
+    return t.category.toLowerCase() === selectedCategory.toLowerCase();
+  });
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans select-none">
       {/* HEADER BANNER */}
-      <div className="p-6 rounded-[24px] bg-[#0B1020]/90 border border-purple-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
-        {/* Floating Runes & Particles */}
-        <FloatingRuneField density="medium" />
-
-        <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="space-y-1 z-10">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Palette className="w-5 h-5 text-purple-400" />
-              Equippable Achievement Titles & Identity
-            </h2>
-            {character?.title && (
-              <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/60 font-mono font-bold text-xs uppercase px-2.5 py-0.5 shadow-[0_0_12px_rgba(168,85,247,0.4)]">
-                EQUIPPED: {character.title}
-              </Badge>
-            )}
+      <div className="konosuba-adventurer-card p-4 sm:p-5 shadow-[0_8px_16px_rgba(0,0,0,0.6)] space-y-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-base sm:text-lg font-bold font-pixel text-[#241208] flex items-center gap-2">
+                <PixelPaletteIcon className="w-4 h-4 text-amber-800" />
+                <span>ᛏᛁᛏᛚ GUILD TITLE REGISTRY & BADGES</span>
+              </h2>
+              <PixelBadge variant="gold" className="flex items-center gap-1.5">
+                <Crown className="w-3 h-3 text-amber-900" />
+                EQUIPPED: {currentEquippedTitle}
+              </PixelBadge>
+            </div>
+            <p className="text-xs font-pixel text-[#633a20] max-w-2xl leading-relaxed">
+              Equip authenticated guild honorifics and titles earned through Tower climbs, habit streaks, and milestone achievements to activate power multipliers.
+            </p>
           </div>
-          <p className="text-xs text-slate-400">
-            Equip milestone achievement titles earned through Tower climbs, habit streaks, and level progression to gain active power multipliers.
-          </p>
+
+          {/* Filter Categories */}
+          <div className="flex items-center gap-1.5 flex-wrap font-pixel text-xs">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => {
+                  playUIMenuSFX("confirm");
+                  setSelectedCategory(cat);
+                }}
+                className={`px-3 py-1.5 font-bold uppercase transition-none border-2 cursor-pointer active:translate-y-0.5 ${
+                  selectedCategory === cat
+                    ? "bg-[#381e10] text-[#fef08a] border-[#1a0c05] shadow-[inset_1px_1px_0_0_#633a20]"
+                    : "bg-[#ebd9b5] text-[#381e10] border-[#522e18] hover:bg-[#dfba7c]"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* TITLES GRID BY CATEGORY */}
+      {/* TITLES GRID */}
       {isLoading ? (
-        <div className="flex items-center justify-center p-12 text-slate-400 font-mono text-sm gap-2">
-          <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
-          <span>Loading Title Vault...</span>
+        <div className="flex items-center justify-center p-16 text-[#633a20] font-pixel text-xs gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-amber-800" />
+          <span>Opening Guild Vault Records...</span>
         </div>
       ) : (
-        <div className="space-y-8">
-          {categories.map((cat) => {
-            const categoryTitles = titles.filter((t) => t.category === cat);
-            if (categoryTitles.length === 0) return null;
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredTitles.map((title) => {
+            const isEquipped = title.name.toLowerCase() === currentEquippedTitle.toLowerCase();
+            const isLocked = !title.isUnlocked;
 
             return (
-              <div key={cat} className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <Award className="w-4 h-4 text-purple-400" />
-                  <h3 className="text-base font-bold font-heading text-white tracking-tight">
-                    {cat} Titles ({categoryTitles.length})
-                  </h3>
+              <div
+                key={title.id}
+                className={`p-4 transition-all duration-150 border-3 flex flex-col justify-between relative overflow-hidden font-pixel ${
+                  isEquipped
+                    ? "bg-[#caa97e] border-[#180b04] shadow-[0_12px_28px_rgba(56,30,16,0.6),inset_0_0_16px_rgba(89,59,34,0.4),inset_0_0_0_2px_#b45309]"
+                    : isLocked
+                    ? "bg-[#caa97e]/40 border-[#4a2813]/40 opacity-70 shadow-[inset_0_0_8px_rgba(89,59,34,0.2)]"
+                    : "bg-[#caa97e] border-[#4a2813] shadow-[inset_0_0_12px_rgba(89,59,34,0.35),2px_2px_0_0_#221208] hover:border-[#b45309] hover:shadow-[0_10px_24px_rgba(180,83,9,0.35),inset_0_0_16px_rgba(89,59,34,0.4)] hover:-translate-y-1"
+                }`}
+              >
+                <div className="space-y-3">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-2 border-b border-[#4a2813]/30 pb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 bg-[#331c0e] text-[#fef08a] border border-[#180b04] flex items-center justify-center text-lg shadow-inner shrink-0">
+                        {title.icon || "🏆"}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-[#221208]">{title.name}</h3>
+                        <span className="text-[10px] text-[#6d4c3d] font-bold block">
+                          Category: {title.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isEquipped ? (
+                      <PixelBadge variant="gold">EQUIPPED</PixelBadge>
+                    ) : isLocked ? (
+                      <PixelBadge variant="dark" className="flex items-center gap-1">
+                        <PixelLockIcon className="w-3 h-3" />
+                        LOCKED
+                      </PixelBadge>
+                    ) : (
+                      <PixelBadge variant="default">UNLOCKED</PixelBadge>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-xs text-[#221208] leading-relaxed">
+                    {title.description}
+                  </p>
+
+                  {/* Stat Bonuses & Power Multiplier */}
+                  <div className="p-2 bg-[#dfcaac] border border-[#4a2813]/50 shadow-[inset_0_0_4px_rgba(89,59,34,0.25)] space-y-1 text-[10px]">
+                    <div className="flex items-center justify-between font-bold text-[#221208]">
+                      <span>✦ POWER BOOST:</span>
+                      <span className="text-emerald-900 font-bold">
+                        +{(Math.round((title.powerMultiplier - 1) * 100))}% Combat Multiplier
+                      </span>
+                    </div>
+
+                    {title.statBonus && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[#221208] font-bold">
+                        {Object.entries(title.statBonus).map(([stat, val]) => (
+                          <span key={stat} className="px-1.5 py-0.5 bg-[#caa97e] border border-[#4a2813]/40">
+                            +{val} {stat.toUpperCase()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Unlock Criteria */}
+                  <div className="text-[10px] text-[#593b22]">
+                    <span className="font-bold uppercase">Requirement: </span>
+                    <span className="font-bold">
+                      {title.requirementType === "HABIT_STREAK" && `${title.requirementValue}-day unbroken habit streak`}
+                      {title.requirementType === "TOWER_FLOOR" && `Clear Floor ${title.requirementValue} in Spire Tower`}
+                      {title.requirementType === "COMPLETED_MISSIONS" && `Complete ${title.requirementValue} Guild Missions`}
+                      {title.requirementType === "LEVEL_REACHED" && `Reach Character Level ${title.requirementValue}`}
+                      {title.requirementType === "EARLY_MISSION" && `Complete ${title.requirementValue} early morning missions`}
+                      {title.requirementType === "MANA_BURST" && `Channel high-intensity workout explosion`}
+                      {title.requirementType === "HEAVY_WORKOUTS" && `Log ${title.requirementValue} heavy compound PR sets`}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {categoryTitles.map((t) => (
-                    <Card
-                      key={t.id}
-                      className={`bg-[#0F1629] border transition-all overflow-hidden flex flex-col justify-between shadow-xl ${
-                        t.isEquipped
-                          ? "border-purple-400 bg-purple-950/30 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
-                          : t.isUnlocked
-                          ? "border-slate-800 hover:border-purple-500/50 hover:bg-slate-900/60"
-                          : "border-slate-900 opacity-60"
-                      }`}
+                {/* Footer Action Button */}
+                <div className="pt-4 mt-3 border-t border-[#4a2813]/30">
+                  {isEquipped ? (
+                    <div className="w-full py-2 bg-[#381e10] text-[#fef08a] text-center text-xs font-bold flex items-center justify-center gap-2 border border-[#1a0c05]">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>Active Honorific Title</span>
+                    </div>
+                  ) : (
+                    <PixelButton
+                      onClick={() => handleEquipTitle(title)}
+                      disabled={isLocked || isEquipping === title.id}
+                      variant={isLocked ? "dark" : "gold"}
+                      size="sm"
+                      className="w-full flex items-center justify-center gap-2 text-xs"
                     >
-                      <CardHeader className="pb-2 bg-slate-900/40 border-b border-slate-800/80 flex flex-row items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0" />
-                          <CardTitle className="text-sm font-bold text-white">
-                            {t.name}
-                          </CardTitle>
-                        </div>
-
-                        {t.isEquipped ? (
-                          <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                        ) : !t.isUnlocked ? (
-                          <Lock className="w-3.5 h-3.5 text-slate-500" />
-                        ) : null}
-                      </CardHeader>
-
-                      <CardContent className="p-4 space-y-3 font-mono flex-1 flex flex-col justify-between">
-                        <div>
-                          <p className="text-xs text-slate-300 font-sans leading-relaxed mb-3">
-                            {t.description}
-                          </p>
-
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                            <span>Power Multiplier:</span>
-                            <span className="font-bold text-cyan-400">+{Math.round((t.powerMultiplier - 1.0) * 100)}%</span>
-                          </div>
-                        </div>
-
-                        <Button
-                          size="sm"
-                          disabled={t.isEquipped || isEquipping === t.id}
-                          onClick={() => handleEquipTitle(t)}
-                          className={`w-full font-mono text-xs font-bold uppercase tracking-wider ${
-                            t.isEquipped
-                              ? "bg-purple-950 text-purple-300 border border-purple-500/50"
-                              : "bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-950/50"
-                          }`}
-                        >
-                          {isEquipping === t.id ? (
-                            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                          ) : t.isEquipped ? (
-                            "Equipped"
-                          ) : (
-                            "Equip Title"
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      {isEquipping === title.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Equipping...</span>
+                        </>
+                      ) : isLocked ? (
+                        <>
+                          <PixelLockIcon className="w-3.5 h-3.5" />
+                          <span>Honorific Locked</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-amber-900" />
+                          <span>Equip Title</span>
+                        </>
+                      )}
+                    </PixelButton>
+                  )}
                 </div>
               </div>
             );

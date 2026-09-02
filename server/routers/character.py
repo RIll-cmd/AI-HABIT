@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import Dict, Optional
 import json
 from datetime import datetime
 from db import db
 from db_utils import ensure_character_exists
+from auth_utils import get_current_user, get_current_user_optional, verify_character_ownership
 from schemas.character import CharacterUpdateSchema, ProgressionSyncSchema
 
 router = APIRouter(prefix="/api/character", tags=["character"])
@@ -47,7 +48,7 @@ def calculate_power_score(
 
 
 @router.get("/{character_id}")
-async def get_character(character_id: str):
+async def get_character(character_id: str, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
     Fetch a character by ID, including relations to CharacterStats, ProgressHistory, Titles, and Specialization.
     """
@@ -81,10 +82,14 @@ async def get_character(character_id: str):
 
 
 @router.patch("/{character_id}")
-async def update_character(character_id: str, payload: CharacterUpdateSchema):
+async def update_character(character_id: str, payload: CharacterUpdateSchema, current_user: dict = Depends(get_current_user)):
     """
     Accept optional identity fields (name, title, theme, avatar) and update the Character record.
     """
+    is_owner = await verify_character_ownership(character_id, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     existing = await ensure_character_exists(character_id)
 
     update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
@@ -108,11 +113,20 @@ async def update_character(character_id: str, payload: CharacterUpdateSchema):
 
 
 @router.post("/{character_id}/sync-progression")
-async def sync_progression(character_id: str, payload: ProgressionSyncSchema):
+async def sync_progression(character_id: str, payload: ProgressionSyncSchema, current_user: dict = Depends(get_current_user)):
     """
     Accept total_exp, level, power, rank, and history_entry to update progression stats
     and append a new ProgressHistory entry.
     """
+    is_owner = await verify_character_ownership(character_id, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
+    # Guard against impossible level or negative values
+    if payload.level < 1 or payload.level > 1000 or payload.total_exp < 0:
+        raise HTTPException(status_code=400, detail="Invalid progression parameter ranges.")
+
+
     await ensure_character_exists(character_id)
 
     await db.character.update(
@@ -150,10 +164,14 @@ async def sync_progression(character_id: str, payload: ProgressionSyncSchema):
 
 
 @router.post("/stats/allocate")
-async def allocate_stat_points(payload: AllocateStatsInput):
+async def allocate_stat_points(payload: AllocateStatsInput, current_user: dict = Depends(get_current_user)):
     """
     Allocates availableSP to character attributes (strength, knowledge, discipline, focus, endurance, recovery, consistency).
     """
+    is_owner = await verify_character_ownership(payload.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     char = await db.character.find_unique(
         where={"id": payload.characterId},
         include={"stats": True, "characterTitles": True}
@@ -251,10 +269,15 @@ async def allocate_stat_points(payload: AllocateStatsInput):
 
 
 @router.post("/stats/respec")
-async def respec_stat_points(payload: RespecStatsInput):
+async def respec_stat_points(payload: RespecStatsInput, current_user: dict = Depends(get_current_user)):
     """
     Resets character attributes back to baseline (1) for a 500 Gold fee, refunding allocated points to availableSP.
     """
+    is_owner = await verify_character_ownership(payload.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
+
     char = await db.character.find_unique(
         where={"id": payload.characterId},
         include={"stats": True}
@@ -343,10 +366,14 @@ async def get_titles(character_id: str):
 
 
 @router.post("/titles/equip")
-async def equip_title(payload: EquipTitleInput):
+async def equip_title(payload: EquipTitleInput, current_user: dict = Depends(get_current_user)):
     """
     Equips an unlocked title card, updating character identity and title power score bonus.
     """
+    is_owner = await verify_character_ownership(payload.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     char = await db.character.find_unique(
         where={"id": payload.characterId},
         include={"stats": True}
@@ -427,16 +454,22 @@ async def get_specializations():
 
 
 @router.post("/specializations/select")
-async def select_specialization(payload: SelectSpecializationInput):
+async def select_specialization(payload: SelectSpecializationInput, current_user: dict = Depends(get_current_user)):
     """
     Unlocks and selects a Class Specialization for a character, verifying both level and stat requirements.
     """
+    is_owner = await verify_character_ownership(payload.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
+
     char = await db.character.find_unique(
         where={"id": payload.characterId},
         include={"stats": True, "specialization": True, "characterTitles": {"where": {"isEquipped": True}, "include": {"title": True}}}
     )
     if not char:
         raise HTTPException(status_code=404, detail="Character not found.")
+
 
     spec = await db.classspecialization.find_unique(where={"id": payload.specializationId})
     if not spec:

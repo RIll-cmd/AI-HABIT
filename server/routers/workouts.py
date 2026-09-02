@@ -4,9 +4,10 @@ import os
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from db import db
+from auth_utils import get_current_user, verify_character_ownership
 from services.workout_engine import calculate_e1rm, determine_rank, get_exercise_standard
 from services.boss_engine import deal_boss_damage
 from routers.achievements import sync_achievements_for_character
@@ -615,10 +616,14 @@ async def get_muscle_status(character_id: str):
         return await compute_muscle_status_dict(character_id)
 
 @router.post("/reset-recovery/{character_id}")
-async def reset_muscle_recovery(character_id: str):
+async def reset_muscle_recovery(character_id: str, current_user: dict = Depends(get_current_user)):
     """
     Utility endpoint: Resets all muscle fatigue levels to 0% (100% Fresh).
     """
+    is_owner = await verify_character_ownership(character_id, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     cid = character_id
     try:
         from db_utils import ensure_character_exists
@@ -651,11 +656,15 @@ async def reset_muscle_recovery(character_id: str):
 
 
 @router.post("/log")
-async def log_workout(data: WorkoutLogInput):
+async def log_workout(data: WorkoutLogInput, current_user: dict = Depends(get_current_user)):
     """
     Logs a workout session, computes 1RM PRs, applies Boss damage,
     updates muscle recovery fatigue and timestamps, and rewards character stats & EXP.
     """
+    is_owner = await verify_character_ownership(data.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     from db_utils import ensure_character_exists
     character = await ensure_character_exists(data.characterId)
     char_id = character.id if character else data.characterId
@@ -667,6 +676,7 @@ async def log_workout(data: WorkoutLogInput):
             "durationSeconds": data.durationSeconds
         }
     )
+
 
     
     results = []

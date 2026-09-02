@@ -6,7 +6,8 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { SkillNode } from '@/features/skills/components/SkillNode';
 import { SkillDetailModal } from '@/features/skills/components/SkillDetailModal';
 import { SkillDefinition } from '@/features/skills/types';
-import { playAIRASound } from '@/utils/audio';
+import { playAIRASound, playUIMenuSFX } from '@/utils/audio';
+import { PixelBadge } from '@/components/ui/pixel/PixelBadge';
 import {
   Flame,
   Zap,
@@ -22,82 +23,70 @@ import {
 interface ElementMeta {
   id: string;
   name: string;
+  rune: string;
   icon: any;
   accentColor: string;
   textColor: string;
   borderColor: string;
-  headerGlow: string;
-  cardGlow: string;
   scalingStats: string;
   tagline: string;
-  lineColor: string;
 }
 
 const ELEMENT_META: Record<string, ElementMeta> = {
   Flame: {
     id: 'Flame',
     name: 'Flame',
+    rune: 'ᚠ',
     icon: Flame,
-    accentColor: 'from-red-600 via-orange-600 to-amber-600',
-    textColor: 'text-red-400',
-    borderColor: 'border-red-500/30 hover:border-red-500/60',
-    headerGlow: 'bg-red-500/10 text-red-400 border-red-500/30',
-    cardGlow: 'shadow-[0_0_25px_rgba(239,68,68,0.12)]',
+    accentColor: 'from-amber-600 via-orange-600 to-red-700',
+    textColor: 'text-orange-400',
+    borderColor: 'border-orange-800',
     scalingStats: 'STR & FOC',
     tagline: 'Thermal Burst & Power',
-    lineColor: 'bg-gradient-to-b from-red-500 to-orange-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]',
   },
   Tempest: {
     id: 'Tempest',
     name: 'Tempest',
+    rune: 'ᛏ',
     icon: Zap,
-    accentColor: 'from-cyan-500 via-sky-500 to-blue-600',
+    accentColor: 'from-cyan-600 via-sky-600 to-blue-700',
     textColor: 'text-cyan-400',
-    borderColor: 'border-cyan-500/30 hover:border-cyan-500/60',
-    headerGlow: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    cardGlow: 'shadow-[0_0_25px_rgba(34,211,238,0.12)]',
+    borderColor: 'border-cyan-800',
     scalingStats: 'FOC & DIS',
     tagline: 'Velocity & Air Shear',
-    lineColor: 'bg-gradient-to-b from-cyan-400 to-sky-500 shadow-[0_0_8px_rgba(34,211,238,0.8)]',
   },
   Earth: {
     id: 'Earth',
     name: 'Earth',
+    rune: 'ᛖ',
     icon: Shield,
-    accentColor: 'from-amber-600 via-yellow-600 to-amber-700',
+    accentColor: 'from-amber-700 via-yellow-700 to-stone-800',
     textColor: 'text-amber-400',
-    borderColor: 'border-amber-500/30 hover:border-amber-500/60',
-    headerGlow: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    cardGlow: 'shadow-[0_0_25px_rgba(245,158,11,0.12)]',
+    borderColor: 'border-amber-800',
     scalingStats: 'END & DIS',
     tagline: 'Ironclad Fortitude',
-    lineColor: 'bg-gradient-to-b from-amber-500 to-yellow-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]',
   },
   Tide: {
     id: 'Tide',
     name: 'Tide',
+    rune: 'ᛗ',
     icon: Waves,
-    accentColor: 'from-blue-600 via-indigo-600 to-cyan-600',
+    accentColor: 'from-blue-600 via-indigo-600 to-cyan-700',
     textColor: 'text-blue-400',
-    borderColor: 'border-blue-500/30 hover:border-blue-500/60',
-    headerGlow: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    cardGlow: 'shadow-[0_0_25px_rgba(59,130,246,0.12)]',
+    borderColor: 'border-blue-800',
     scalingStats: 'KNW & REC',
     tagline: 'Arcane Fluidity & Recovery',
-    lineColor: 'bg-gradient-to-b from-blue-500 to-cyan-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]',
   },
   Ascension: {
     id: 'Ascension',
     name: 'Ascension',
+    rune: 'ᛟ',
     icon: Crown,
-    accentColor: 'from-purple-600 via-fuchsia-600 to-indigo-700',
+    accentColor: 'from-purple-600 via-fuchsia-600 to-amber-600',
     textColor: 'text-purple-400',
-    borderColor: 'border-purple-500/30 hover:border-purple-500/60',
-    headerGlow: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    cardGlow: 'shadow-[0_0_25px_rgba(168,85,247,0.12)]',
+    borderColor: 'border-purple-800',
     scalingStats: 'UNIVERSAL',
     tagline: 'Monarch Passives & Will',
-    lineColor: 'bg-gradient-to-b from-purple-500 to-indigo-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]',
   },
 };
 
@@ -173,9 +162,9 @@ export default function SkillsPage() {
 
   if (skillsLoading && definitions.length === 0) {
     return (
-      <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center min-h-[400px]">
-        <div className="w-10 h-10 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin mb-4" />
-        <span className="font-mono text-sm tracking-wider uppercase text-cyan-300">Synchronizing Skill Matrix...</span>
+      <div className="p-12 text-center text-[#d4a373] font-pixel flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-400 rounded-full animate-spin mb-4" />
+        <span className="text-xs tracking-wider uppercase text-[#fef08a]">Synchronizing Guild Spell Matrix...</span>
       </div>
     );
   }
@@ -187,66 +176,74 @@ export default function SkillsPage() {
   const totalDefinitions = definitions.length;
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-8 pb-16">
-      {/* 1. HERO HEADER */}
-      <div className="bg-[#151C33] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-        {/* Holographic Ambient Glow */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-cyan-500 via-amber-500 via-blue-500 to-purple-500" />
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-16 font-sans select-none">
+      {/* ========================================================= */}
+      {/* 1. GUILD ELEMENTAL SKILL MATRIX HERO HEADER               */}
+      {/* ========================================================= */}
+      <div className="konosuba-adventurer-card p-5 sm:p-6 shadow-[0_12px_28px_rgba(0,0,0,0.85)] border-4 border-[#381e10] relative overflow-hidden">
         
+        {/* Top Runic Engraved Border Pattern Ribbon */}
+        <div className="w-full bg-[#381e10] text-[#eedcb8] text-[9px] sm:text-[10px] font-mono tracking-[0.25em] py-1 px-3 flex items-center justify-center text-center overflow-hidden whitespace-nowrap mb-4 select-none border-2 border-[#1a0c05]">
+          <span className="truncate">ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛋᛏᛒᛖᛗᛚᛜᛞᛟ ᛫ ᛭ ᛫ ELEMENTAL SKILL MATRIX ᛫ ᛭ ᛫ ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛋᛏᛒᛖᛗᛚᛜᛞᛟ</span>
+        </div>
+
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-cyan-400" /> ASCENDANT MATRIX
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[10px] font-pixel font-bold uppercase tracking-wider px-2 py-0.5 bg-[#381e10] border border-[#1a0c05] text-[#fef08a] flex items-center gap-1.5 shadow-xs">
+                <Sparkles className="w-3 h-3 text-amber-400" /> ASCENDANT GUILD MATRIX
               </span>
-              <span className="text-[10px] font-mono text-slate-400">
-                Rank {character?.rank || 'F'} • Level {character?.level || 1}
+              <span className="text-[10px] font-pixel text-[#8c5225] font-bold">
+                RANK {character?.rank || 'F'} • LEVEL {character?.level || 1}
               </span>
             </div>
             
-            <h1 className="text-2xl sm:text-3xl font-black text-white font-heading tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#241208] font-pixel tracking-wide flex items-center gap-2">
               <span>Elemental Skill Matrix</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl font-sans leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#633a20] max-w-xl font-pixel leading-relaxed">
               Channel elemental resonant affinities to unlock active combat maneuvers, stances, and universal monarch passives.
             </p>
 
-            <div className="flex items-center gap-4 mt-3 text-xs font-mono text-slate-400">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <TrendingUp className="w-3.5 h-3.5 text-yellow-400" />
-                <span>Mastery: <strong className="text-yellow-400">{totalMastered}</strong> / {totalDefinitions} Abilities</span>
+            <div className="flex items-center gap-4 pt-1 text-xs font-pixel text-[#522e18]">
+              <span className="flex items-center gap-1.5 text-[#381e10]">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-800" />
+                <span>Mastery: <strong className="text-amber-900">{totalMastered}</strong> / {totalDefinitions} Abilities</span>
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <Sword className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Combat Power: <strong className="text-cyan-400">{character?.power || 50}</strong></span>
+              <span className="flex items-center gap-1.5 text-[#381e10]">
+                <Sword className="w-3.5 h-3.5 text-amber-800" />
+                <span>Combat Power: <strong className="text-amber-900">{character?.power || 50}</strong></span>
               </span>
             </div>
           </div>
 
-          {/* SP Vault Display */}
-          <div className="bg-[#0B1020] border border-emerald-500/40 rounded-2xl p-4 sm:px-6 sm:py-4 flex items-center gap-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-            <div className="w-12 h-12 rounded-xl bg-emerald-950/80 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shadow-inner">
-              <Sparkles className="w-6 h-6 animate-pulse" />
+          {/* SP Vault Display (KonoSuba SP / AP Plaque Look) */}
+          <div className="bg-[#381e10] border-2 border-[#1a0c05] p-4 sm:px-6 sm:py-4 flex items-center gap-4 shadow-[inset_1px_1px_0_0_#633a20,0_4px_10px_rgba(0,0,0,0.5)]">
+            <div className="w-12 h-12 bg-[#24130b] border border-[#522e18] flex items-center justify-center text-amber-400 shadow-inner">
+              <Sparkles className="w-6 h-6 text-[#fef08a]" />
             </div>
             <div>
-              <span className="block text-[10px] uppercase font-mono font-bold text-slate-400 tracking-wider">Available Skill Points</span>
+              <span className="block text-[10px] uppercase font-pixel font-bold text-[#e2b17a] tracking-wider">Available Skill Points</span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-black text-emerald-400 font-mono tracking-tight">{character?.availableSP || 0}</span>
-                <span className="text-xs font-mono font-bold text-emerald-300">SP</span>
+                <span className="text-3xl font-black text-[#fef08a] font-pixel tracking-tight">{character?.availableSP || 0}</span>
+                <span className="text-xs font-pixel font-bold text-amber-300">SP</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-2 mt-6 pt-4 border-t border-white/10 overflow-x-auto pb-1 font-mono text-xs">
+        {/* Filter Tabs (Engraved Wooden/Parchment Stamped Buttons) */}
+        <div className="flex items-center gap-2 mt-5 pt-3 border-t-2 border-[#522e18]/40 overflow-x-auto pb-1 font-pixel text-xs custom-scrollbar">
           <button
-            onClick={() => setActiveFilter('ALL')}
-            className={`px-3 py-1.5 rounded-xl font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
+            onClick={() => {
+              setActiveFilter('ALL');
+              playUIMenuSFX('confirm');
+            }}
+            className={`px-3.5 py-1.5 font-bold uppercase transition-none flex items-center gap-1.5 cursor-pointer whitespace-nowrap border-2 active:translate-y-0.5 ${
               activeFilter === 'ALL'
-                ? 'bg-white/10 border-white/30 text-white shadow-md'
-                : 'bg-transparent border-transparent text-slate-400 hover:text-slate-200'
+                ? 'bg-[#381e10] text-[#fef08a] border-[#1a0c05] shadow-[inset_1px_1px_0_0_#633a20]'
+                : 'bg-[#ebd9b5] text-[#381e10] border-[#522e18] hover:bg-[#dfba7c]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" /> All Paths ({totalDefinitions})
@@ -261,21 +258,27 @@ export default function SkillsPage() {
             return (
               <button
                 key={elem}
-                onClick={() => setActiveFilter(elem)}
-                className={`px-3 py-1.5 rounded-xl font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
+                onClick={() => {
+                  setActiveFilter(elem);
+                  playUIMenuSFX('confirm');
+                }}
+                className={`px-3.5 py-1.5 font-bold uppercase transition-none flex items-center gap-1.5 cursor-pointer whitespace-nowrap border-2 active:translate-y-0.5 ${
                   isSelected
-                    ? `${meta.headerGlow} shadow-md`
-                    : 'bg-transparent border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#381e10] text-[#fef08a] border-[#1a0c05] shadow-[inset_1px_1px_0_0_#633a20]'
+                    : 'bg-[#ebd9b5] text-[#381e10] border-[#522e18] hover:bg-[#dfba7c]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${meta.textColor}`} /> {elem} ({count})
+                <Icon className="w-3.5 h-3.5 text-amber-800" />
+                <span>{meta.rune} {elem} ({count})</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 2. ELEMENTAL TREE COLUMNS */}
+      {/* ========================================================= */}
+      {/* 2. ELEMENTAL TREE COLUMNS                                 */}
+      {/* ========================================================= */}
       <div className={`grid grid-cols-1 ${displayedElements.length === 1 ? 'max-w-md mx-auto' : 'sm:grid-cols-2 lg:grid-cols-5'} gap-6`}>
         {displayedElements.map((elem) => {
           const meta = ELEMENT_META[elem] || ELEMENT_META.Ascension;
@@ -290,31 +293,31 @@ export default function SkillsPage() {
           return (
             <div
               key={elem}
-              className={`bg-[#151C33] border rounded-2xl p-4 flex flex-col items-center relative transition-all duration-300 ${meta.borderColor} ${meta.cardGlow}`}
+              className="pixel-guild-panel p-4 flex flex-col items-center relative shadow-[0_6px_14px_rgba(0,0,0,0.6)] border-2 border-[#4a2813]"
             >
               {/* Element Header Banner */}
-              <div className="w-full text-center pb-3 border-b border-white/10 mb-5 relative">
+              <div className="w-full text-center pb-3 border-b-2 border-[#542d17] mb-5 relative font-pixel">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <Icon className={`w-4 h-4 ${meta.textColor}`} />
-                  <h2 className="text-base font-bold text-white uppercase tracking-widest font-heading">{elem}</h2>
+                  <h2 className="text-sm font-bold text-[#fef08a] uppercase tracking-wider">{elem}</h2>
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
+                <div className="flex items-center justify-between text-[9px] text-[#d4a373] px-1">
                   <span>{meta.scalingStats}</span>
-                  <span className={meta.textColor}>{elemMastered}/{pathSkills.length} Unlocked</span>
+                  <span className="text-[#fef08a] font-bold">{elemMastered}/{pathSkills.length} Unlocked</span>
                 </div>
 
                 {/* Mini Progress Bar */}
-                <div className="w-full h-1 bg-slate-900 rounded-full mt-2 overflow-hidden">
+                <div className="w-full h-1.5 bg-[#140a05] border border-[#542d17] mt-2 overflow-hidden">
                   <div
-                    className={`h-full bg-gradient-to-r ${meta.accentColor} transition-all duration-500 rounded-full`}
+                    className={`h-full bg-gradient-to-r ${meta.accentColor} transition-all duration-500`}
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
               </div>
               
-              {/* Nodes Vertical Pathway with Glowing Connectors */}
-              <div className="flex flex-col items-center w-full relative space-y-4">
+              {/* Nodes Vertical Pathway */}
+              <div className="flex flex-col items-center w-full relative space-y-4 font-pixel">
                 {pathSkills.map((skill, index) => {
                   const pSkill = playerSkills.find(ps => ps.skillDefinitionId === skill.id);
                   const { available } = checkAvailability(skill);
@@ -335,14 +338,14 @@ export default function SkillsPage() {
                         onClick={() => setSelectedSkill(skill)}
                       />
 
-                      {/* Energetic Connection Line to Next Tier */}
+                      {/* Connection Line */}
                       {!isLast && (
                         <div className="h-4 flex items-center justify-center my-0.5">
                           <div
-                            className={`w-0.5 h-full rounded-full transition-all duration-500 ${
+                            className={`w-1 h-full transition-all duration-500 ${
                               isNodeUnlocked
-                                ? meta.lineColor
-                                : 'bg-slate-800'
+                                ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]'
+                                : 'bg-[#3b1d0e]'
                             }`}
                           />
                         </div>

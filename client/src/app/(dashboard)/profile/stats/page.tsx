@@ -3,48 +3,32 @@
 import { API_BASE_URL } from "@/constants";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { useCharacterStore } from "@/store/useCharacterStore";
 import { useInventoryStore } from "@/features/inventory/store/useInventoryStore";
-import { useBeastStore } from "@/features/beasts/store/useBeastStore";
 import { useSkillStore } from "@/features/skills/store/useSkillStore";
 import { calculateTotalCombatStats } from "@/features/inventory/utils/combatStatCalculator";
 import { calculateDynamicPower } from "@/features/progression/utils";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
-import dynamic from "next/dynamic";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
+import { PixelProgress } from "@/components/ui/pixel/PixelProgress";
+import { KonosubaElementalMatrix } from "@/components/ui/pixel/KonosubaElementalMatrix";
 import {
-  Dumbbell,
-  BookOpen,
-  Shield,
-  Target,
-  Heart,
-  Zap,
-  Sparkles,
-  Award,
-  Activity,
-  ArrowUpRight,
-  TrendingUp,
-  Flame,
-  CheckCircle2,
-  HelpCircle,
-  Sword,
-  Sliders,
-  ChevronRight,
-  Info,
-  Clock,
-  BatteryCharging,
-} from "lucide-react";
+  PixelDumbbellIcon,
+  PixelBookIcon,
+  PixelShieldIcon,
+  PixelCrosshairIcon,
+  PixelLightningIcon,
+  PixelHeartIcon,
+  PixelActivityIcon,
+  PixelSwordIcon,
+  PixelAwardIcon,
+  PixelChevronRightIcon,
+  PixelInfoIcon,
+} from "@/components/ui/pixel/PixelIcons";
 import { SystemTooltip } from "@/components/ui/SystemTooltip";
 import { STAT_LORE } from "@/features/lore/loreData";
 import { CHARACTER_AVATAR_SPRITE } from "@/utils/sprites";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
-
-const StatRadarChart = dynamic(
-  () => import("@/components/ui/StatRadarChart").then((mod) => mod.StatRadarChart),
-  { ssr: false }
-);
 
 interface TitleMilestone {
   id: string;
@@ -60,11 +44,10 @@ const STAT_METADATA = [
     key: "strength",
     label: "Strength",
     short: "STR",
-    icon: Dumbbell,
-    color: "text-rose-400",
-    bgColor: "bg-rose-950/30",
-    borderColor: "border-rose-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(244,63,94,0.2)]",
+    rune: "ᛋᛏᚱ",
+    icon: PixelDumbbellIcon,
+    color: "text-rose-700",
+    bgColor: "bg-rose-900/20",
     loreKey: "strength",
     irlSource: "Barbell Back Squats, Deadlifts, Bench Press & Workout PRs",
     irlActionHref: "/workouts",
@@ -76,15 +59,14 @@ const STAT_METADATA = [
     key: "knowledge",
     label: "Knowledge",
     short: "KNW",
-    icon: BookOpen,
-    color: "text-cyan-400",
-    bgColor: "bg-cyan-950/30",
-    borderColor: "border-cyan-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(6,182,212,0.2)]",
+    rune: "ᛗᚷᚲ",
+    icon: PixelBookIcon,
+    color: "text-sky-700",
+    bgColor: "bg-sky-900/20",
     loreKey: "knowledge",
-    irlSource: "Study, Reading, Academics, Coding & Skill-building habits",
+    irlSource: "Daily non-fiction reading blocks, Study modules & Book logs",
     irlActionHref: "/habits/create",
-    irlActionText: "Build Study Habit",
+    irlActionText: "Log Study Protocol",
     defaultTitle: "Scholar",
     defaultTarget: 10,
   },
@@ -92,11 +74,10 @@ const STAT_METADATA = [
     key: "discipline",
     label: "Discipline",
     short: "DIS",
-    icon: Shield,
-    color: "text-amber-400",
-    bgColor: "bg-amber-950/30",
-    borderColor: "border-amber-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(245,158,11,0.2)]",
+    rune: "ᛚᚲᚲ",
+    icon: PixelShieldIcon,
+    color: "text-amber-800",
+    bgColor: "bg-amber-900/20",
     loreKey: "discipline",
     irlSource: "Fulfilling Daily Missions & protecting unbroken habit streaks",
     irlActionHref: "/missions",
@@ -108,11 +89,10 @@ const STAT_METADATA = [
     key: "focus",
     label: "Focus",
     short: "FOC",
-    icon: Target,
-    color: "text-purple-400",
-    bgColor: "bg-purple-950/30",
-    borderColor: "border-purple-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(168,85,247,0.2)]",
+    rune: "ᛞᛪᛏ",
+    icon: PixelCrosshairIcon,
+    color: "text-purple-700",
+    bgColor: "bg-purple-900/20",
     loreKey: "focus",
     irlSource: "Deep Work blocks, Pomodoro cycles & undistracted execution",
     irlActionHref: "/habits/create",
@@ -124,11 +104,10 @@ const STAT_METADATA = [
     key: "endurance",
     label: "Endurance",
     short: "END",
-    icon: Zap,
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-950/30",
-    borderColor: "border-emerald-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(16,185,129,0.2)]",
+    rune: "ᚺᛚᛏ",
+    icon: PixelLightningIcon,
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-900/20",
     loreKey: "endurance",
     irlSource: "Cardio sessions, Daily step volume, & High-rep workout sets",
     irlActionHref: "/workouts",
@@ -140,11 +119,10 @@ const STAT_METADATA = [
     key: "recovery",
     label: "Recovery",
     short: "REC",
-    icon: Heart,
-    color: "text-pink-400",
-    bgColor: "bg-pink-950/30",
-    borderColor: "border-pink-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(244,114,182,0.2)]",
+    rune: "ᚱᛖᚲ",
+    icon: PixelHeartIcon,
+    color: "text-pink-700",
+    bgColor: "bg-pink-900/20",
     loreKey: "recovery",
     irlSource: "Sleep quality, Rest days & biological cellular repair",
     irlActionHref: "/workouts",
@@ -156,11 +134,10 @@ const STAT_METADATA = [
     key: "consistency",
     label: "Consistency",
     short: "CNS",
-    icon: Activity,
-    color: "text-indigo-400",
-    bgColor: "bg-indigo-950/30",
-    borderColor: "border-indigo-500/30",
-    accentGlow: "shadow-[0_0_20px_rgba(99,102,241,0.2)]",
+    rune: "ᛇᚷᛚ",
+    icon: PixelActivityIcon,
+    color: "text-indigo-700",
+    bgColor: "bg-indigo-900/20",
     loreKey: "consistency",
     irlSource: "Achieving 100% Daily All-Clear habit completions across the week",
     irlActionHref: "/habits",
@@ -175,6 +152,7 @@ export default function StatMatrixPage() {
   const { items: inventoryItems } = useInventoryStore();
   const { playerSkills } = useSkillStore();
   const [titles, setTitles] = useState<any[]>([]);
+  const [selectedStat, setSelectedStat] = useState<string | null>(null);
 
   useEffect(() => {
     if (character?.id) {
@@ -221,237 +199,155 @@ export default function StatMatrixPage() {
     consistency: combatStats.consistency || 1,
   });
 
-  const radarData = [
-    {
-      subject: "STR",
-      value: baseStats.strength,
-      secondaryValue: combatStats.strength,
-      fullMark: Math.max(15, combatStats.strength * 1.2),
-    },
-    {
-      subject: "KNW",
-      value: baseStats.knowledge,
-      secondaryValue: combatStats.knowledge,
-      fullMark: Math.max(15, combatStats.knowledge * 1.2),
-    },
-    {
-      subject: "DIS",
-      value: baseStats.discipline,
-      secondaryValue: combatStats.discipline,
-      fullMark: Math.max(15, combatStats.discipline * 1.2),
-    },
-    {
-      subject: "FOC",
-      value: baseStats.focus,
-      secondaryValue: combatStats.focus,
-      fullMark: Math.max(15, combatStats.focus * 1.2),
-    },
-    {
-      subject: "END",
-      value: baseStats.endurance,
-      secondaryValue: combatStats.endurance,
-      fullMark: Math.max(15, combatStats.endurance * 1.2),
-    },
-    {
-      subject: "REC",
-      value: baseStats.recovery,
-      secondaryValue: combatStats.recovery,
-      fullMark: Math.max(15, combatStats.recovery * 1.2),
-    },
-    {
-      subject: "CNS",
-      value: baseStats.consistency,
-      secondaryValue: combatStats.consistency || baseStats.consistency,
-      fullMark: Math.max(15, (combatStats.consistency || 1) * 1.2),
-    },
-  ];
-
   const availableSP = character?.availableSP || 0;
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans select-none">
       {/* ========================================================= */}
-      {/* 1. KINETIC PROGRESSION & POWER HUB BANNER */}
+      {/* 1. GUILD ATTRIBUTE MATRIX HEADER PLAQUE                   */}
       {/* ========================================================= */}
-      <div className="p-6 md:p-7 rounded-[26px] bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border border-cyan-500/30 shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative overflow-hidden backdrop-blur-2xl">
-        <FloatingRuneField density="medium" />
-
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent pointer-events-none" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
-
-        <div className="space-y-1.5 z-10 flex-1 min-w-0">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#121b38] to-[#0a1024] border-2 border-cyan-500/40 flex items-center justify-center p-1.5 shadow-[0_0_20px_rgba(6,182,212,0.25)] relative overflow-hidden shrink-0 group">
+      <div className="konosuba-adventurer-card p-4 sm:p-5 shadow-[0_8px_16px_rgba(0,0,0,0.6)]">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="w-14 h-14 bg-[#ebd9b5] border-2 border-[#381e10] shadow-[2px_2px_0_0_#000] flex items-center justify-center p-1 relative shrink-0">
               <img
                 src={CHARACTER_AVATAR_SPRITE}
                 alt="Avatar"
                 onError={(e) => {
                   e.currentTarget.src = "/Character_sprite_placeholder/cropped/player-front.png";
                 }}
-                className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(6,182,212,0.6)] group-hover:scale-110 transition-transform duration-300"
+                className="w-full h-full object-contain"
                 style={{ imageRendering: "pixelated" }}
               />
             </div>
 
-            <div className="flex flex-col">
+            <div className="flex flex-col space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-extrabold tracking-tight text-white font-heading flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-cyan-400" />
-                  Biometric Attribute Matrix
+                <h2 className="text-base sm:text-lg font-bold font-pixel text-[#221208] flex items-center gap-2">
+                  <PixelActivityIcon className="w-4 h-4 text-amber-900" />
+                  <span>ᛈᚨᚱᚨᛗᛖᛏᛖᚱ Attribute Parameter Matrix</span>
                 </h2>
-                <Badge className="bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-mono text-[11px] px-2.5 py-0.5">
-                  Real-World Kinetic Scaling
-                </Badge>
+                <PixelBadge variant="gold">Kinetic Mastery Registry</PixelBadge>
               </div>
-              <p className="text-xs text-slate-400 font-sans mt-0.5 max-w-2xl leading-relaxed">
-                Core attributes level up through real-life physical training, study habits, deep work blocks, and sleep logs. Equipment grants percentage multipliers that scale directly with your real stats.
+              <p className="text-xs font-pixel text-[#593b22] max-w-2xl leading-relaxed">
+                Core parameters scale through real-world physical training, study habits, deep work blocks, and sleep quality. Equipment multipliers amplify baseline mastery.
               </p>
             </div>
           </div>
-        </div>
 
-        {/* Real-Time Power Telemetry Hub */}
-        <div className="flex flex-wrap items-center gap-3 z-10 w-full lg:w-auto justify-start lg:justify-end">
-          <div className="p-3 px-5 rounded-2xl bg-[#070D1E] border border-cyan-500/30 text-right font-mono shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-center">
-            <span className="block text-[9.5px] text-slate-400 uppercase tracking-widest font-bold">TOTAL COMBAT POWER</span>
-            <div className="text-xl font-black text-cyan-300 flex items-center justify-end gap-1.5 mt-0.5">
-              <Zap className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-              <span className="animate-number-glow">{effectivePower.toLocaleString()}</span>
-              {effectivePower > basePower && (
-                <span className="text-[11px] text-emerald-400 font-bold ml-1">
-                  (+{effectivePower - basePower} Gear)
-                </span>
-              )}
+          {/* Real-Time Power Telemetry Hub */}
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-end">
+            <div className="p-3 bg-[#331c0e] text-[#fef08a] border-2 border-[#180b04] text-right font-pixel shadow-[inset_0_0_8px_rgba(0,0,0,0.8)]">
+              <span className="block text-[10px] text-[#e2b17a] uppercase font-bold">TOTAL COMBAT POWER</span>
+              <div className="text-xl font-bold text-[#fef08a] flex items-center justify-end gap-1.5 mt-0.5">
+                <PixelSwordIcon className="w-4 h-4 text-[#fef08a]" />
+                <span>{effectivePower.toLocaleString()}</span>
+                {effectivePower > basePower && (
+                  <span className="text-xs text-emerald-400 font-bold ml-1">
+                    (+{effectivePower - basePower} Gear)
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          {availableSP > 0 && (
-            <Link href="/profile/skills">
-              <Button className="h-11 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold font-mono text-xs shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse flex items-center gap-2 cursor-pointer">
-                <Zap className="w-4 h-4 fill-slate-950" />
-                <span>{availableSP} SP $\rightarrow$ Skill Tree</span>
-              </Button>
-            </Link>
-          )}
+            {availableSP > 0 && (
+              <Link href="/profile/skills">
+                <PixelButton variant="gold" size="md" className="flex items-center gap-2 text-xs">
+                  <PixelLightningIcon className="w-3.5 h-3.5 text-amber-950" />
+                  <span>{availableSP} SP Ready</span>
+                </PixelButton>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ========================================================= */}
       {/* 2. REAL-LIFE STAT PROGRESSION PHILOSOPHY BANNER */}
       {/* ========================================================= */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-cyan-950/40 border border-indigo-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-300">
+      <div className="p-3.5 bg-[#caa97e] border-2 border-[#4a2813] shadow-[inset_0_0_12px_rgba(89,59,34,0.35),2px_2px_0_0_#221208] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-pixel text-[#221208]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0">
-            <Info className="w-4 h-4 text-indigo-300" />
+          <div className="w-7 h-7 bg-[#331c0e] text-[#fef08a] border border-[#180b04] flex items-center justify-center shrink-0 shadow-xs">
+            <PixelInfoIcon className="w-3.5 h-3.5 text-amber-400" />
           </div>
           <div>
-            <span className="font-bold text-white font-mono uppercase tracking-wider block">
-              Ascend OS Organic Growth Law
+            <span className="font-bold text-[#221208] uppercase tracking-wider block">
+              Ascend OS Kinetic Growth Law
             </span>
-            <span className="text-slate-400 text-[11px]">
-              Gear bonuses are % multipliers: a +20% Strength weapon gives +0 bonus at Base 1 STR, but amplifies to +10 bonus when you train to Base 50 STR.
+            <span className="text-[#593b22] text-xs">
+              Gear bonuses are % multipliers: a +20% Strength armament gives +0 bonus at Base 1 STR, but amplifies to +10 bonus when you train to Base 50 STR.
             </span>
           </div>
         </div>
 
         <Link href="/workouts">
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 font-mono text-xs shrink-0"
-          >
+          <PixelButton size="sm" variant="dark" className="flex items-center gap-1 shrink-0 text-xs">
             <span>Log IRL Actions</span>
-            <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
-          </Button>
+            <PixelChevronRightIcon className="w-3 h-3" />
+          </PixelButton>
         </Link>
       </div>
 
       {/* ========================================================= */}
-      {/* 3. MAIN ATTRIBUTE POLYGON & 7-AXIS KINETIC MATRIX */}
+      {/* 3. KONOSUBA ELEMENTAL DIAL MATRIX & 7 ATTRIBUTES BREAKDOWN */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* LEFT: 7-AXIS RADAR POLYGON & GEAR MULTIPLIERS BREAKDOWN (5 cols) */}
+        {/* LEFT: AUTHENTIC KONOSUBA ELEMENTAL DIAL MATRIX & ACTIVE GEAR MULTIPLIERS (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Radar Chart Card */}
-          <div className="p-6 rounded-[26px] bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border border-cyan-500/20 shadow-2xl relative overflow-hidden backdrop-blur-xl">
-            <div className="flex items-center justify-between mb-4 border-b border-cyan-500/15 pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-white font-heading tracking-wide uppercase flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-cyan-400" />
-                  7-Axis Kinetic Polygon
-                </h3>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                  Base IRL Stats vs Total Effective Multiplier
-                </p>
-              </div>
-              <div className="flex items-center gap-3 text-[10px] font-mono">
-                <span className="flex items-center gap-1 text-cyan-400">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400" /> Base
-                </span>
-                <span className="flex items-center gap-1 text-purple-400">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" /> +Gear %
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full flex items-center justify-center py-2">
-              <StatRadarChart
-                data={radarData}
-                primaryName="Base IRL Stat"
-                secondaryName="Effective Combat Stat"
-                primaryColor="#06B6D4"
-                secondaryColor="#A855F7"
-                height={320}
-              />
-            </div>
-          </div>
+          
+          {/* Authentic KonoSuba Elemental Dial Matrix with full interactive hover and live HUD */}
+          <KonosubaElementalMatrix
+            baseStats={baseStats}
+            combatStats={combatStats}
+            multipliers={multipliers}
+            availableSP={availableSP}
+            combatPower={effectivePower}
+            characterClass={character?.specialization?.name || (character as any)?.class || "ADVENTURER"}
+            selectedStat={selectedStat}
+            onSelectStat={(key) => setSelectedStat(key)}
+          />
 
           {/* Active Equipment Multipliers Overview */}
-          <div className="p-5 rounded-[22px] bg-gradient-to-br from-[#0a1024]/90 to-[#060a18]/95 border border-indigo-500/20 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
-              <span className="text-xs font-bold text-indigo-300 font-mono uppercase tracking-wider flex items-center gap-1.5">
-                <Sword className="w-3.5 h-3.5 text-indigo-400" />
-                Active Gear Catalyzers
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono">
-                {equippedItems.length} Armaments Equipped
-              </span>
+          <div className="konosuba-adventurer-card p-4 sm:p-5 shadow-[0_12px_28px_rgba(0,0,0,0.85)] space-y-3">
+            <div className="flex items-center justify-between border-b border-[#4a2813]/30 pb-2">
+              <span className="font-pixel text-xs font-bold text-[#221208] uppercase tracking-wider">ACTIVE GEAR CATALYZERS</span>
+              <span className="font-pixel text-[11px] text-[#6d4c3d]">{equippedItems.length} Armaments</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">STR Multiplier</span>
-                <span className="text-rose-400 font-bold">+{multipliers.strengthPct}%</span>
+            <div className="grid grid-cols-2 gap-2 text-xs font-pixel">
+              <div className="p-2 bg-[#caa97e] border border-[#4a2813] shadow-[inset_0_0_6px_rgba(89,59,34,0.3)] flex justify-between items-center">
+                <span className="text-[#221208] font-bold">STR Multiplier</span>
+                <span className="text-rose-800 font-bold">+{multipliers.strengthPct}%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">KNW Multiplier</span>
-                <span className="text-cyan-400 font-bold">+{multipliers.knowledgePct}%</span>
+              <div className="p-2 bg-[#caa97e] border border-[#4a2813] shadow-[inset_0_0_6px_rgba(89,59,34,0.3)] flex justify-between items-center">
+                <span className="text-[#221208] font-bold">KNW Multiplier</span>
+                <span className="text-sky-800 font-bold">+{multipliers.knowledgePct}%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">DIS Multiplier</span>
-                <span className="text-amber-400 font-bold">+{multipliers.disciplinePct}%</span>
+              <div className="p-2 bg-[#caa97e] border border-[#4a2813] shadow-[inset_0_0_6px_rgba(89,59,34,0.3)] flex justify-between items-center">
+                <span className="text-[#221208] font-bold">DIS Multiplier</span>
+                <span className="text-amber-900 font-bold">+{multipliers.disciplinePct}%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">FOC Multiplier</span>
-                <span className="text-purple-400 font-bold">+{multipliers.focusPct}%</span>
+              <div className="p-2 bg-[#caa97e] border border-[#4a2813] shadow-[inset_0_0_6px_rgba(89,59,34,0.3)] flex justify-between items-center">
+                <span className="text-[#221208] font-bold">FOC Multiplier</span>
+                <span className="text-purple-800 font-bold">+{multipliers.focusPct}%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">END Multiplier</span>
-                <span className="text-emerald-400 font-bold">+{multipliers.endurancePct}%</span>
+              <div className="p-2 bg-[#caa97e] border border-[#4a2813] shadow-[inset_0_0_6px_rgba(89,59,34,0.3)] flex justify-between items-center">
+                <span className="text-[#221208] font-bold">END Multiplier</span>
+                <span className="text-emerald-800 font-bold">+{multipliers.endurancePct}%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">REC Multiplier</span>
-                <span className="text-pink-400 font-bold">+{multipliers.recoveryPct}%</span>
+              <div className="p-2 bg-[#caa97e] border border-[#4a2813] shadow-[inset_0_0_6px_rgba(89,59,34,0.3)] flex justify-between items-center">
+                <span className="text-[#221208] font-bold">REC Multiplier</span>
+                <span className="text-pink-800 font-bold">+{multipliers.recoveryPct}%</span>
               </div>
             </div>
 
-            <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
-              <span className="flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-blue-400" />
+            <div className="pt-2 mt-2 border-t border-[#4a2813]/30 flex items-center justify-between text-xs font-pixel text-[#221208]">
+              <span className="flex items-center gap-1.5 font-bold">
+                <PixelShieldIcon className="w-3.5 h-3.5 text-amber-900" />
                 Flat Combat Stats:
               </span>
-              <span className="font-mono text-white font-bold">
+              <span className="text-[#221208] font-black">
                 +{combatStats.attack} ATK • +{combatStats.defense} DEF
               </span>
             </div>
@@ -459,13 +355,13 @@ export default function StatMatrixPage() {
         </div>
 
         {/* RIGHT: THE 7 CORE KINETIC ATTRIBUTES CARDS (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-7 space-y-3">
           {STAT_METADATA.map((meta) => {
             const Icon = meta.icon;
             const baseVal = baseStats[meta.key] || 1;
             const effectiveVal = combatStats[meta.key] || baseVal;
             const multPct = (multipliers as any)[`${meta.key}Pct`] || 0;
-            const scalingBonus = effectiveVal - baseVal;
+            const isSelected = selectedStat === meta.key;
 
             const lore = (STAT_LORE as any)[meta.loreKey] || {
               name: meta.label,
@@ -479,30 +375,35 @@ export default function StatMatrixPage() {
             );
             const titleTarget = matchingTitle?.requirementValue || meta.defaultTarget;
             const titleName = matchingTitle?.name || meta.defaultTitle;
-            const isTitleUnlocked = baseVal >= titleTarget;
             const progressPct = Math.min(100, Math.round((baseVal / titleTarget) * 100));
 
             return (
-              <motion.div
+              <div
                 key={meta.key}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`p-5 rounded-[22px] bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border ${meta.borderColor} ${meta.accentGlow} transition-all duration-300 relative overflow-hidden backdrop-blur-xl group hover:border-cyan-400/50`}
+                onClick={() => {
+                  setSelectedStat(meta.key);
+                  playUIMenuSFX("confirm");
+                }}
+                className={`p-3.5 bg-[#caa97e] border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-amber-950 shadow-[inset_0_0_16px_rgba(89,59,34,0.45),0_0_12px_rgba(180,83,9,0.35)] ring-2 ring-amber-900"
+                    : "border-[#4a2813] shadow-[inset_0_0_12px_rgba(89,59,34,0.35),2px_2px_0_0_#221208] hover:border-amber-950"
+                } space-y-3`}
               >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   {/* Left: Icon, Name & Lore Tooltip */}
-                  <div className="flex items-center gap-3.5">
-                    <div className={`w-12 h-12 rounded-2xl ${meta.bgColor} border ${meta.borderColor} flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform`}>
-                      <Icon className={`w-6 h-6 ${meta.color}`} />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-10 h-10 ${meta.bgColor} border border-[#4a2813] flex items-center justify-center shrink-0 shadow-inner`}>
+                      <Icon className={`w-5 h-5 ${meta.color}`} />
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-base font-bold text-white font-heading">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-pixel font-bold text-sm text-[#221208]">
                           {meta.label}
                         </h4>
-                        <span className="text-[10px] font-mono text-slate-500 font-bold uppercase">
-                          [{meta.short}]
+                        <span className="font-mono text-[11px] text-[#6d4c3d] font-bold">
+                          [{meta.rune} {meta.short}]
                         </span>
                         <SystemTooltip
                           title={lore.name}
@@ -515,90 +416,73 @@ export default function StatMatrixPage() {
                           mechanics={lore.combatScaling || lore.mechanics}
                           stats={[
                             { label: "Base IRL Stat", value: `${baseVal}`, color: "text-white" },
-                            { label: "Gear Boost", value: `+${multPct}% (+${scalingBonus})`, color: "text-emerald-400" },
+                            { label: "Gear Boost", value: `+${multPct}%`, color: "text-emerald-400" },
                             { label: "Effective Stat", value: `${effectiveVal}`, color: "text-cyan-300" }
                           ]}
                           tags={["Real-World Growth", "Multiplier Scaling", meta.short]}
-                          delayMs={1000}
+                          delayMs={600}
                         >
-                          <HelpCircle className="w-3.5 h-3.5 text-slate-500 hover:text-cyan-300 transition-colors cursor-help" />
+                          <div className="p-0.5 hover:bg-[#dfcaac] transition-colors cursor-help">
+                            <PixelInfoIcon className="w-3.5 h-3.5 text-amber-950" />
+                          </div>
                         </SystemTooltip>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-sans mt-0.5 line-clamp-1">
+                      <p className="font-pixel text-xs text-[#593b22] truncate mt-0.5">
                         {meta.irlSource}
                       </p>
                     </div>
                   </div>
 
                   {/* Right: Base Stat & Multiplier Values */}
-                  <div className="flex items-center gap-4 self-end sm:self-auto font-mono">
+                  <div className="flex items-center gap-3 self-end sm:self-auto font-pixel text-xs">
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-widest block">
-                        Base IRL
-                      </span>
-                      <span className="text-xl font-extrabold text-white">
-                        {baseVal}
+                      <span className="text-[10px] text-[#6d4c3d] uppercase block font-bold">Base</span>
+                      <span className="text-base font-bold text-[#221208]">{baseVal}</span>
+                    </div>
+
+                    <div className="text-[#6d4c3d] font-bold">+</div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-[#6d4c3d] uppercase block font-bold">Gear</span>
+                      <span className={`text-xs font-bold ${multPct > 0 ? "text-emerald-800" : "text-[#6d4c3d]/70"}`}>
+                        +{multPct}%
                       </span>
                     </div>
 
-                    <div className="text-slate-600 font-bold text-sm">+</div>
+                    <div className="text-[#6d4c3d] font-bold">=</div>
 
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-widest block">
-                        Gear Boost
-                      </span>
-                      <span className={`text-sm font-bold ${multPct > 0 ? "text-emerald-400" : "text-slate-500"}`}>
-                        +{multPct}% {scalingBonus > 0 && `(+${scalingBonus})`}
-                      </span>
-                    </div>
-
-                    <div className="text-slate-600 font-bold text-sm">=</div>
-
-                    <div className="text-right p-2 px-3 rounded-xl bg-[#070D1E] border border-cyan-500/20">
-                      <span className="text-[9px] text-cyan-400 uppercase tracking-widest block font-bold">
-                        Effective
-                      </span>
-                      <span className="text-xl font-black text-cyan-300">
-                        {effectiveVal}
-                      </span>
+                    <div className="text-right p-1.5 px-2.5 bg-[#331c0e] border border-[#180b04] shadow-xs">
+                      <span className="text-[9px] text-[#fef08a] uppercase font-bold block">Total</span>
+                      <span className="text-base font-bold text-white">{effectiveVal}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Bottom: Milestone Title Mastery Progress & IRL Action CTA */}
-                <div className="mt-4 pt-3 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                  {/* Milestone Title Progress */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1 shrink-0">
-                      <Award className="w-3 h-3 text-amber-400" />
-                      Title: <strong className="text-amber-300 font-bold">{titleName}</strong>
+                <div className="pt-2 border-t border-[#4a2813]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs font-pixel">
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <span className="text-[11px] text-[#221208] flex items-center gap-1 shrink-0 font-bold">
+                      <PixelAwardIcon className="w-3.5 h-3.5 text-amber-800" />
+                      Title: <strong className="text-[#8c2d0f]">{titleName}</strong>
                     </span>
 
-                    <div className="w-28 sm:w-36 h-2 bg-slate-900 rounded-full overflow-hidden border border-white/5 relative">
-                      <div
-                        className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500"
-                        style={{ width: `${progressPct}%` }}
-                      />
+                    <div className="w-24 sm:w-32">
+                      <PixelProgress value={progressPct} color="gold" className="h-2.5 border border-[#4a2813]" />
                     </div>
 
-                    <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                      {baseVal} / {titleTarget}
+                    <span className="text-[11px] text-[#6d4c3d] shrink-0 font-bold">
+                      {baseVal}/{titleTarget}
                     </span>
                   </div>
 
-                  {/* Direct Action Link */}
-                  <Link href={meta.irlActionHref}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2.5 text-[11px] text-cyan-300 hover:text-white hover:bg-cyan-950/60 font-mono flex items-center gap-1 rounded-lg border border-cyan-500/20"
-                    >
+                  <Link href={meta.irlActionHref} onClick={(e) => e.stopPropagation()}>
+                    <PixelButton size="sm" variant="dark" className="flex items-center gap-1 text-[11px]">
                       <span>{meta.irlActionText}</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
+                      <PixelChevronRightIcon className="w-3 h-3" />
+                    </PixelButton>
                   </Link>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>

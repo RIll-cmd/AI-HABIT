@@ -1,33 +1,99 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 import {
   Moon,
-  Sparkles,
   Clock,
   Zap,
   CheckCircle2,
-  AlertCircle,
-  Activity,
   HeartPulse,
+  Droplets,
+  Plus,
+  Minus,
+  BrainCircuit,
+  Sparkles,
+  Waves,
+  AlertTriangle,
+  Sun,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useSleepStore, SleepQuality, calculateSleepEfficiency } from "../store/useSleepStore";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
 import { playUIMenuSFX } from "@/utils/audio";
+import { cn } from "@/lib/utils";
 
-const QUALITY_OPTIONS: { id: SleepQuality; label: string; icon: string; desc: string }[] = [
-  { id: "DEEP_REM", label: "Deep REM", icon: "🌌", desc: "Optimal restorative neural delta waves" },
-  { id: "RESTFUL", label: "Restful", icon: "✨", desc: "Uninterrupted, woke up energized" },
-  { id: "MODERATE", label: "Moderate", icon: "🌙", desc: "Mild restlessness or short waking" },
-  { id: "FRAGMENTED", label: "Fragmented", icon: "⚡", desc: "Multiple wake-ups or light sleep" },
-  { id: "POOR", label: "Poor / Insomnia", icon: "🥀", desc: "Severe sleep deprivation / fatigue" },
+const QUALITY_OPTIONS: {
+  id: SleepQuality;
+  label: string;
+  sublabel: string;
+  icon: React.ComponentType<{ className?: string }>;
+  desc: string;
+  badge: string;
+  selectedBg: string;
+  borderColor: string;
+  iconColor: string;
+}[] = [
+  {
+    id: "DEEP_REM",
+    label: "Deep REM & Delta",
+    sublabel: "+15% Somatic Bonus",
+    icon: BrainCircuit,
+    desc: "Uninterrupted neural recovery, HGH release & cellular repair",
+    badge: "1.15x Boost",
+    selectedBg: "bg-[#2d1607]",
+    borderColor: "border-[#f59e0b]",
+    iconColor: "text-[#fbbf24]",
+  },
+  {
+    id: "RESTFUL",
+    label: "Serene Stream",
+    sublabel: "1.00x Base Standard",
+    icon: Waves,
+    desc: "Woke up recharged in the mist, full energetic stamina",
+    badge: "1.00x Standard",
+    selectedBg: "bg-[#0f2420]",
+    borderColor: "border-[#10b981]",
+    iconColor: "text-[#34d399]",
+  },
+  {
+    id: "MODERATE",
+    label: "Tranquil Pond",
+    sublabel: "0.85x Recovery Yield",
+    icon: Moon,
+    desc: "Mild restlessness or brief early awakenings in the night",
+    badge: "0.85x Yield",
+    selectedBg: "bg-[#1f103d]",
+    borderColor: "border-[#8b5cf6]",
+    iconColor: "text-[#c084fc]",
+  },
+  {
+    id: "FRAGMENTED",
+    label: "Turbulent Stream",
+    sublabel: "0.65x Reduced Yield",
+    icon: Zap,
+    desc: "Interrupted cycles, broken sleep, morning somatic inertia",
+    badge: "0.65x Reduced",
+    selectedBg: "bg-[#261304]",
+    borderColor: "border-[#d97706]",
+    iconColor: "text-[#fbbf24]",
+  },
+  {
+    id: "POOR",
+    label: "Dry Drought",
+    sublabel: "0.50x Severe Fatigue",
+    icon: AlertTriangle,
+    desc: "Acute sleep deficit, elevated cortisol & somatic strain",
+    badge: "0.50x Deficit",
+    selectedBg: "bg-[#290814]",
+    borderColor: "border-[#e11d48]",
+    iconColor: "text-[#fb7185]",
+  },
 ];
 
 export const SleepLoggerCard: React.FC<{ onLogSuccess?: () => void; className?: string }> = ({
   onLogSuccess,
   className = "",
 }) => {
+  const sliderId = useId();
   const { logSleep, todayLogged } = useSleepStore();
 
   const [hours, setHours] = useState<number>(8.0);
@@ -37,11 +103,15 @@ export const SleepLoggerCard: React.FC<{ onLogSuccess?: () => void; className?: 
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { score, recoveryGain, exp, gold, ratingLabel } = calculateSleepEfficiency(hours, quality);
+  const { score, recoveryGain, exp, gold } = calculateSleepEfficiency(hours, quality);
 
-  // Proximity to golden 8.0h standard
-  const diffFrom8 = Math.abs(hours - 8.0);
-  const isOptimal = diffFrom8 <= 0.5;
+  const handleAdjustHours = (delta: number) => {
+    playUIMenuSFX("click");
+    setHours((prev) => {
+      const next = Math.round((prev + delta) * 4) / 4;
+      return Math.min(14.0, Math.max(3.0, next));
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,71 +132,85 @@ export const SleepLoggerCard: React.FC<{ onLogSuccess?: () => void; className?: 
 
   return (
     <div
-      className={`relative rounded-3xl bg-gradient-to-br from-[#0B1020]/95 via-[#070C18]/95 to-[#040710]/98 border-2 border-cyan-500/30 p-6 md:p-8 shadow-2xl overflow-hidden backdrop-blur-xl ${className}`}
+      className={cn(
+        "relative rounded-none bg-[#140a26]/95 border-2 border-[#3c1860] p-5 sm:p-7 shadow-[0_4px_0_0_#000] overflow-hidden text-slate-100 backdrop-blur-md select-none",
+        className
+      )}
     >
-      {/* Ambient background radiance */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-cyan-500/20 pb-4 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">
-            <Moon className="w-6 h-6 animate-pulse" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#3c1860]/60 pb-5">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#251040] border-2 border-[#f59e0b] flex items-center justify-center flex-shrink-0">
+            <Moon className="w-6 h-6 text-[#fbbf24] animate-pulse" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1">
-                <HeartPulse className="w-3.5 h-3.5 text-cyan-400" />
-                BIOMETRIC RESTORATION PROTOCOL
-              </span>
-              <Badge className="bg-indigo-950/80 text-indigo-300 border-indigo-500/40 text-[9.5px] font-mono">
-                8.0h Golden Standard
-              </Badge>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black font-heading text-white tracking-wide mt-0.5">
-              Log Sleep Duration & Regenerate
+            <span className="text-xs sm:text-sm font-pixel font-bold text-[#fbbf24] flex items-center gap-1.5">
+              <HeartPulse className="w-4 h-4 text-[#f59e0b]" />
+              Night Pagoda Protocol
+            </span>
+            <h2 className="text-xl sm:text-2xl font-pixel font-bold text-white tracking-wide mt-1">
+              Log Rest & Channel Somatic Recovery
             </h2>
           </div>
         </div>
 
         {todayLogged && (
-          <Badge className="bg-emerald-950/80 text-emerald-300 border-emerald-500/50 text-xs font-mono px-3 py-1 self-start sm:self-auto">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-            TODAY LOGGED
-          </Badge>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#064e3b] text-[#6ee7b7] border border-[#10b981] text-xs sm:text-sm font-pixel font-bold self-start sm:self-auto">
+            <CheckCircle2 className="w-4 h-4 text-[#34d399]" />
+            Today Synced
+          </div>
         )}
       </div>
 
       {/* Main Interactive Form */}
-      <form onSubmit={handleSubmit} className="space-y-6 pt-6 relative z-10">
-        {/* Hours Slept Target Slider & Dial */}
-        <div className="p-5 rounded-2xl bg-black/40 border border-cyan-500/20 space-y-4">
-          <div className="flex items-center justify-between">
+      <form onSubmit={handleSubmit} className="space-y-6 pt-5">
+        {/* Section 1: Rest Duration & Circadian Phase */}
+        <div className="space-y-3.5 pb-5 border-b border-[#3c1860]/40">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
-                Sleep Duration (Hours)
-              </span>
-              <span className="text-[11px] text-slate-400 font-sans">
-                {isOptimal
-                  ? "✦ Target Golden Zone (7.5h - 8.5h): Maximum Recovery Multiplier"
-                  : diffFrom8 > 2.0
-                  ? "⚠ Severe Sleep Discrepancy: Recovery penalty applied"
-                  : "Moderate Recovery Range"}
+              <span className="text-sm font-pixel font-bold text-[#fbbf24] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#f59e0b]" />
+                Rest Duration & Circadian Phase
               </span>
             </div>
-            <div className="text-right font-mono">
-              <span className="text-3xl sm:text-4xl font-black text-cyan-300">
-                {hours.toFixed(2)}
-              </span>
-              <span className="text-sm text-slate-400 ml-1">hrs</span>
+
+            {/* Stepped Increment / Decrement & Dial */}
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => handleAdjustHours(-0.25)}
+                className="w-9 h-9 bg-[#1f0d36] hover:bg-[#321557] active:bg-[#150924] border border-[#4c1d7c] text-white flex items-center justify-center cursor-pointer transition-colors"
+                title="Decrease 15 mins"
+              >
+                <Minus className="w-4 h-4 text-[#fbbf24]" />
+              </button>
+
+              <div className="text-center font-pixel min-w-[110px] px-3 py-1.5 bg-[#1a0c2e] border-2 border-[#f59e0b]">
+                <span className="text-2xl sm:text-3xl font-bold text-[#fef08a] tabular-nums">
+                  {hours.toFixed(2)}
+                </span>
+                <span className="text-xs sm:text-sm text-[#fbbf24] ml-1 font-bold">hrs</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleAdjustHours(0.25)}
+                className="w-9 h-9 bg-[#1f0d36] hover:bg-[#321557] active:bg-[#150924] border border-[#4c1d7c] text-white flex items-center justify-center cursor-pointer transition-colors"
+                title="Increase 15 mins"
+              >
+                <Plus className="w-4 h-4 text-[#fbbf24]" />
+              </button>
             </div>
           </div>
 
-          {/* Slider with 8h tick marker */}
-          <div className="space-y-2">
+          {/* Interactive Range Slider */}
+          <div className="space-y-3 pt-1">
             <div className="relative flex items-center">
+              <label htmlFor={sliderId} className="sr-only">
+                Sleep Duration in Hours
+              </label>
               <input
+                id={sliderId}
                 type="range"
                 min="3.0"
                 max="14.0"
@@ -135,13 +219,13 @@ export const SleepLoggerCard: React.FC<{ onLogSuccess?: () => void; className?: 
                 onChange={(e) => {
                   setHours(parseFloat(e.target.value));
                 }}
-                className="w-full h-2.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus:outline-none"
+                className="w-full h-3.5 bg-[#06020d] border border-[#3b1861] appearance-none cursor-pointer accent-[#f59e0b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f59e0b]"
               />
             </div>
 
-            {/* Quick Select Pill Buttons */}
-            <div className="flex items-center justify-between gap-2 pt-1">
-              {[6.0, 7.0, 7.5, 8.0, 8.5, 9.0].map((val) => (
+            {/* Quick Select 8-Bit Preset Pills (No Emojis, Readable Text) */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              {[6.0, 7.0, 7.5, 8.0, 8.5, 9.0, 10.0].map((val) => (
                 <button
                   key={val}
                   type="button"
@@ -149,118 +233,167 @@ export const SleepLoggerCard: React.FC<{ onLogSuccess?: () => void; className?: 
                     playUIMenuSFX("confirm");
                     setHours(val);
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                  className={cn(
+                    "px-3.5 py-2 text-xs sm:text-sm font-pixel font-bold border transition-colors cursor-pointer select-none",
                     hours === val
-                      ? "bg-cyan-500 text-slate-950 font-black shadow-[0_0_12px_rgba(6,182,212,0.4)]"
-                      : "bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800"
-                  }`}
+                      ? "bg-[#d97706] text-[#180b02] border-[#fde047]"
+                      : "bg-[#180b2b] text-slate-200 border-[#3b1861] hover:border-[#f59e0b] hover:text-[#fbbf24]"
+                  )}
                 >
-                  {val === 8.0 ? "⭐ 8.0h" : `${val}h`}
+                  {val === 8.0 ? "8.0h Golden" : `${val}h`}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Circadian Bedtime & Wake Time */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl bg-black/40 border border-cyan-500/20 space-y-2">
-            <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-indigo-400" />
-              Bedtime
+        {/* Section 2: Circadian Bedtime & Wake Time Pickers (Clear, Large, No Emojis in Text) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pb-5 border-b border-[#3c1860]/40">
+          <div className="space-y-2">
+            <label className="text-sm font-pixel font-bold text-[#fbbf24] flex items-center gap-2">
+              <Moon className="w-4 h-4 text-[#f59e0b]" />
+              Retreat to Rest (Bedtime)
             </label>
             <input
               type="time"
               value={bedtime}
               onChange={(e) => setBedtime(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm font-mono text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full bg-[#180b2e] border-2 border-[#3b1861] p-3 text-base sm:text-lg font-mono font-bold text-white tracking-wider focus:border-[#f59e0b] focus-visible:outline-none"
             />
           </div>
 
-          <div className="p-4 rounded-2xl bg-black/40 border border-cyan-500/20 space-y-2">
-            <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Wake Time
+          <div className="space-y-2">
+            <label className="text-sm font-pixel font-bold text-[#fbbf24] flex items-center gap-2">
+              <Sun className="w-4 h-4 text-[#f59e0b]" />
+              Dawn Awakening (Wake Time)
             </label>
             <input
               type="time"
               value={wakeTime}
               onChange={(e) => setWakeTime(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm font-mono text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full bg-[#180b2e] border-2 border-[#3b1861] p-3 text-base sm:text-lg font-mono font-bold text-white tracking-wider focus:border-[#f59e0b] focus-visible:outline-none"
             />
           </div>
         </div>
 
-        {/* Sleep Quality Selector */}
-        <div className="space-y-2">
-          <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
-            Sleep Quality & Sensation
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {QUALITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  playUIMenuSFX("confirm");
-                  setQuality(opt.id);
-                }}
-                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                  quality === opt.id
-                    ? "bg-gradient-to-br from-indigo-950/80 to-cyan-950/80 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)] text-white"
-                    : "bg-slate-950/60 hover:bg-slate-900 border-slate-800/80 text-slate-400"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-base">{opt.icon}</span>
-                  <span className="text-xs font-bold font-mono text-white">{opt.label}</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-sans mt-1 line-clamp-1">
-                  {opt.desc}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Live Recovery Telemetry Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-cyan-950/40 to-slate-950/40 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-mono">
-          <div>
-            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">
-              PREDICTED REGENERATION YIELD
+        {/* Section 3: Sleep Quality & Pagoda Rest Chambers (Clean Lucide Icons, Large Readable Text) */}
+        <div className="space-y-3 pb-5 border-b border-[#3c1860]/40">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-pixel font-bold text-[#fbbf24] flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-[#f59e0b]" />
+              Rest Chamber Quality & Sensation
+            </label>
+            <span className="text-xs sm:text-sm font-pixel text-slate-300">
+              Impacts character REC stat
             </span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xl font-black text-white">{score}% Rest Score</span>
-              <span className="text-xs text-emerald-400 font-bold">({ratingLabel})</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {QUALITY_OPTIONS.map((opt) => {
+              const isSelected = quality === opt.id;
+              const IconComp = opt.icon;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    playUIMenuSFX("confirm");
+                    setQuality(opt.id);
+                  }}
+                  className={cn(
+                    "p-3.5 border text-left transition-colors flex flex-col justify-between cursor-pointer min-h-[105px]",
+                    isSelected
+                      ? cn(opt.selectedBg, opt.borderColor, "border-2")
+                      : "bg-[#0f0621] hover:bg-[#1a0c36] border-[#2d144d] text-slate-300 hover:text-white"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <IconComp className={cn("w-4 h-4 flex-shrink-0", opt.iconColor)} />
+                      <span className="text-sm font-pixel font-bold text-white tracking-wide">
+                        {opt.label}
+                      </span>
+                    </div>
+                    <span
+                      className={cn(
+                        "text-xs font-pixel font-bold px-2 py-0.5 border",
+                        isSelected
+                          ? "bg-[#000000]/60 text-[#fef08a] border-[#f59e0b]"
+                          : "bg-black/40 text-slate-400 border-transparent"
+                      )}
+                    >
+                      {opt.badge}
+                    </span>
+                  </div>
+                  <span className="text-xs font-sans text-slate-200 font-medium mt-2.5 line-clamp-2 leading-relaxed">
+                    {opt.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Section 4: Optional Notes */}
+        <div className="space-y-2 pb-5 border-b border-[#3c1860]/40">
+          <label className="text-sm font-pixel font-bold text-slate-300 block">
+            Sanctuary Dreams & Reflections (Optional)
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. Meditated by waterfall, relaxed deep sleep, fully recharged…"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full bg-[#180b2e] border-2 border-[#3b1861] px-4 py-2.5 text-sm font-sans text-white placeholder:text-slate-500 focus:border-[#f59e0b] focus-visible:outline-none"
+          />
+        </div>
+
+        {/* Section 5: Live Somatic Regeneration Yield HUD */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-mono pt-2">
+          <div>
+            <span className="text-sm font-pixel font-bold text-[#fbbf24] block flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#f59e0b]" />
+              Predicted Somatic Yield & Stat Gains
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-3xl font-pixel font-bold text-[#fef08a] tabular-nums">
+                {score}% Score
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-bold">
-            <div className="text-right">
-              <span className="text-[9px] text-slate-400 uppercase block">REC Stat</span>
-              <span className="text-emerald-400 font-black">+{recoveryGain} REC</span>
+          <div className="flex items-center gap-6 text-sm font-bold w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-[#3c1860]/40 pt-3 md:pt-0">
+            <div className="text-left md:text-right">
+              <span className="text-xs sm:text-sm font-pixel text-slate-400 block font-bold">REC Stat</span>
+              <span className="text-[#34d399] font-pixel font-bold text-base tabular-nums">+{recoveryGain} REC</span>
             </div>
-            <div className="text-right">
-              <span className="text-[9px] text-slate-400 uppercase block">EXP Reward</span>
-              <span className="text-cyan-300 font-black">+{exp} EXP</span>
+            <div className="text-left md:text-right">
+              <span className="text-xs sm:text-sm font-pixel text-slate-400 block font-bold">EXP Bounty</span>
+              <span className="text-[#fef08a] font-pixel font-bold text-base tabular-nums">+{exp} EXP</span>
             </div>
-            <div className="text-right">
-              <span className="text-[9px] text-slate-400 uppercase block">Gold</span>
-              <span className="text-amber-300 font-black">+{gold} G</span>
+            <div className="text-left md:text-right">
+              <span className="text-xs sm:text-sm font-pixel text-slate-400 block font-bold">Gold Reward</span>
+              <span className="text-[#facc15] font-pixel font-bold text-base tabular-nums">+{gold} G</span>
             </div>
           </div>
         </div>
 
-        {/* Submit Button */}
-        <Button
+        {/* Action Button */}
+        <PixelButton
           type="submit"
+          variant="gold"
+          size="lg"
           disabled={isSubmitting}
-          className="w-full h-12 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 font-mono font-black text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.4)] cursor-pointer transition-all"
+          className="w-full h-14 text-sm sm:text-base font-pixel font-bold tracking-wider shadow-[0_4px_0_0_#000] flex items-center justify-center gap-2.5 cursor-pointer"
         >
-          <Moon className="w-4 h-4 mr-2" />
-          {todayLogged ? "UPDATE SLEEP LOG & SYNC RECOVERY" : "RECORD SLEEP & CLAIM STAT BOOST"}
-        </Button>
+          <Moon className="w-5 h-5 fill-current" />
+          {todayLogged
+            ? "Update Sanctuary Chronicle & Sync REC"
+            : "Record Rest & Channel Somatic Recovery"}
+        </PixelButton>
       </form>
     </div>
   );
 };
+
+export default SleepLoggerCard;

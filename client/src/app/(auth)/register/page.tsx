@@ -1,10 +1,12 @@
+"use client";
+
 import React from "react";
-import { AuthForm } from "@/features/auth/components/AuthForm";
+import { AuthCard } from "@/components/v2/auth/AuthCard";
 
 export default function RegisterPage() {
   return (
-    <div suppressHydrationWarning className="w-full">
-      <AuthForm mode="register" />
+    <div suppressHydrationWarning className="w-full flex justify-center">
+      <AuthCard initialTab="register" />
     </div>
   );
 }

@@ -6,14 +6,19 @@ import { StepTiers } from "./StepTiers";
 import { StepReview } from "./StepReview";
 import { useCreateHabitStore } from "../../store/useCreateHabitStore";
 import { useHabitStore } from "../../store/useHabitStore";
+import { useCharacterStore } from "@/store/useCharacterStore";
 import { useRouter } from "next/navigation";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
-import { Target, Sparkles, ChevronRight, ArrowLeft } from "lucide-react";
+import {
+  PixelTargetIcon,
+  PixelArrowRightIcon,
+  PixelArrowLeftIcon,
+  PixelCheckIcon,
+} from "@/components/ui/pixel/PixelIcons";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 import { toast } from "sonner";
 
 const STEP_LABELS = [
-  "Identity",
+  "Information",
   "Schedule",
   "Difficulty",
   "Tiers",
@@ -23,10 +28,11 @@ const STEP_LABELS = [
 export const CreateHabitWizard: React.FC = () => {
   const { step, nextStep, prevStep, getPayload, reset } = useCreateHabitStore();
   const { createNewHabit, isLoading } = useHabitStore();
+  const { character } = useCharacterStore();
   const router = useRouter();
 
   const handleNext = () => {
-    playUIMenuSFX();
+    playUIMenuSFX("confirm");
     nextStep();
   };
 
@@ -42,14 +48,22 @@ export const CreateHabitWizard: React.FC = () => {
 
   const handleSubmit = async () => {
     const payload = getPayload();
-    const newHabit = await createNewHabit("char-id-123", payload);
+    if (!payload.name.trim()) {
+      toast.error("Please enter a habit name.");
+      return;
+    }
+
+    const charId = character?.id || (typeof window !== "undefined" ? localStorage.getItem("ascend_character_id") : null) || "char-id-123";
+    const newHabit = await createNewHabit(charId, payload);
     if (newHabit) {
       playBuffSFX();
-      toast.success(`Protocol constructed: ${newHabit.name}!`);
+      toast.success(`Habit created: ${newHabit.name}!`, {
+        description: "Your daily habit routine is now active.",
+      });
       reset();
       router.push("/habits");
     } else {
-      toast.error("Failed to construct habit protocol.");
+      toast.error("Failed to create habit. Please try again.");
     }
   };
 
@@ -71,55 +85,53 @@ export const CreateHabitWizard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] flex items-center justify-center p-4 sm:p-6 relative font-sans">
-      {/* Background Floating Runes */}
-      <FloatingRuneField density="low" className="opacity-40" />
-
-      <div className="w-full max-w-2xl bg-gradient-to-br from-[#0C1226]/98 via-[#080E20]/98 to-[#050914]/98 backdrop-blur-2xl rounded-[28px] shadow-[0_0_60px_rgba(0,0,0,0.9)] border border-cyan-500/30 p-6 sm:p-10 relative overflow-hidden text-slate-100">
-        {/* Floating Runes inside wizard */}
-        <FloatingRuneField density="low" />
-
-        {/* Top Glow Accent Line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/70 to-transparent pointer-events-none" />
+    <div className="min-h-screen bg-[#1f242b] flex items-center justify-center p-3 sm:p-6 relative font-pixel text-[#1d2d2a] select-none">
+      <div className="w-full max-w-2xl bg-[#d1d6dc] bg-[linear-gradient(180deg,#e2e7ec_0%,#d1d6dc_50%,#b0b8c4_100%)] border-4 border-[#3b424c] shadow-[6px_6px_0_0_#111a18] p-5 sm:p-7 relative overflow-hidden text-[#1d2d2a]">
+        
+        {/* Stone Masonry Corner Brackets */}
+        <div className="absolute top-1 left-1 w-2.5 h-2.5 bg-[#3b424c] pointer-events-none" />
+        <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#3b424c] pointer-events-none" />
+        <div className="absolute bottom-1 left-1 w-2.5 h-2.5 bg-[#3b424c] pointer-events-none" />
+        <div className="absolute bottom-1 right-1 w-2.5 h-2.5 bg-[#3b424c] pointer-events-none" />
 
         {/* Wizard Header */}
-        <div className="flex items-center justify-between pb-6 border-b border-cyan-500/15 mb-6 relative z-10">
+        <div className="flex items-center justify-between pb-4 border-b-2 border-[#3b424c]/30 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-              <Target className="w-5 h-5" />
+            <div className="w-10 h-10 bg-[#2f3640] border-2 border-[#1d2d2a] flex items-center justify-center text-[#ffb03a] shadow-[2px_2px_0_0_#1d2d2a]">
+              <PixelTargetIcon className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold font-heading text-white tracking-tight">
-                Construct Ascension Protocol
+              <h2 className="text-sm sm:text-base font-bold uppercase text-[#1d2d2a]">
+                ✦ Create New Habit ✦
               </h2>
-              <p className="text-[10.5px] font-mono text-slate-400">
+              <p className="text-[10px] text-[#5a6472] uppercase font-mono font-bold mt-0.5">
                 Step {step} of 5 • {STEP_LABELS[step - 1]} Configuration
               </p>
             </div>
           </div>
 
-          <span className="px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold">
-            PHASE {step}/5
-          </span>
+          <div className="px-2.5 py-1 bg-[#2f3640] text-[#ffd166] border border-[#1d2d2a] text-xs font-bold shadow-[2px_2px_0_0_#111a18]">
+            STEP {step}/5
+          </div>
         </div>
 
         {/* Step Indicator */}
-        <div className="flex justify-between items-center mb-8 relative z-10 px-2">
+        <div className="flex justify-between items-center mb-6 px-1">
           {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className="flex flex-col items-center relative z-10 flex-1">
+            <div key={s} className="flex flex-col items-center flex-1">
               <div
-                className={`w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-mono font-black transition-all ${
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold transition-all ${
                   step === s
-                    ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.6)] border border-cyan-300 scale-110"
+                    ? "bg-[#ffb03a] text-[#1d2d2a] border-2 border-[#1d2d2a] shadow-[2px_2px_0_0_#1d2d2a]"
                     : step > s
-                    ? "bg-emerald-950 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                    : "bg-[#060B18] text-slate-500 border border-slate-800"
+                    ? "bg-[#2f3640] text-[#ffd166] border-2 border-[#1d2d2a]"
+                    : "bg-[#b0b8c4] text-[#5a6472] border-2 border-[#5a6472]"
                 }`}
               >
-                {step > s ? "✓" : s}
+                {step > s ? <PixelCheckIcon className="w-3.5 h-3.5 text-[#ffb03a]" /> : s}
               </div>
-              <span className={`text-[9.5px] font-mono uppercase mt-1.5 hidden sm:block font-bold ${
-                step === s ? "text-cyan-300" : step > s ? "text-emerald-400" : "text-slate-600"
+              <span className={`text-[9px] uppercase mt-1 hidden sm:block font-mono font-bold ${
+                step === s ? "text-[#ea580c]" : step > s ? "text-[#2f3640]" : "text-[#5a6472]"
               }`}>
                 {STEP_LABELS[s - 1]}
               </span>
@@ -128,34 +140,39 @@ export const CreateHabitWizard: React.FC = () => {
         </div>
 
         {/* Step Content */}
-        <div className="min-h-[360px] relative z-10">
+        <div className="min-h-[300px]">
           {renderStep()}
         </div>
 
         {/* Footer Navigation */}
-        <div className="mt-8 flex justify-between items-center border-t border-cyan-500/15 pt-6 relative z-10">
+        <div className="mt-6 flex justify-between items-center border-t-2 border-[#3b424c]/30 pt-4">
           <button
+            type="button"
             onClick={handleBack}
-            className="px-5 py-2.5 rounded-xl font-bold font-mono text-xs text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-all cursor-pointer"
+            className="px-3 py-1.5 bg-[#2f3640] hover:bg-[#3b424c] text-[#ffd166] font-pixel font-bold text-xs border-2 border-[#1d2d2a] shadow-[2px_2px_0_0_#1d2d2a] active:translate-y-0.5 cursor-pointer flex items-center gap-1 transition-all"
           >
-            {step === 1 ? "Cancel" : "← Back"}
+            <PixelArrowLeftIcon className="w-3.5 h-3.5 mr-0.5" />
+            <span>{step === 1 ? "Cancel" : "Back"}</span>
           </button>
 
           {step < 5 ? (
             <button
+              type="button"
               onClick={handleNext}
-              className="px-7 py-2.5 rounded-xl font-extrabold font-mono text-xs uppercase tracking-wider bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              className="px-4 py-1.5 bg-[#ffb03a] hover:bg-[#ffd166] text-[#1d2d2a] font-pixel font-bold text-xs border-2 border-[#1d2d2a] shadow-[2px_2px_0_0_#1d2d2a] active:translate-y-0.5 cursor-pointer flex items-center gap-1 transition-all"
             >
               <span>Next</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <PixelArrowRightIcon className="w-3.5 h-3.5 ml-0.5" />
             </button>
           ) : (
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isLoading}
-              className="px-8 py-2.5 rounded-xl font-extrabold font-mono text-xs uppercase tracking-wider bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+              className="px-4 py-1.5 bg-[#ffb03a] hover:bg-[#ffd166] text-[#1d2d2a] font-pixel font-bold text-xs border-2 border-[#1d2d2a] shadow-[2px_2px_0_0_#1d2d2a] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5 transition-all"
             >
-              {isLoading ? "Constructing..." : "Activate Protocol"}
+              <PixelCheckIcon className="w-3.5 h-3.5 text-[#1d2d2a]" />
+              <span>{isLoading ? "Creating..." : "Save & Activate Habit"}</span>
             </button>
           )}
         </div>

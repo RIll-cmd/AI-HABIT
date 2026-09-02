@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from prisma.models import ShopItem, Character, EconomyLog
 from db import db
+from auth_utils import get_current_user, verify_character_ownership
 from schemas.shop import ShopItemBuyRequest, ShopItemDetailSchema
 from routers.inventory import grant_item
 from typing import List
@@ -156,10 +157,15 @@ async def get_shop_items(character_id: str):
     return result
 
 @router.post("/{character_id}/buy")
-async def buy_item(character_id: str, request: ShopItemBuyRequest):
+async def buy_item(character_id: str, request: ShopItemBuyRequest, current_user: dict = Depends(get_current_user)):
+    is_owner = await verify_character_ownership(character_id, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     character = await db.character.find_unique(where={"id": character_id})
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
+
         
     shop_item = await db.shopitem.find_unique(
         where={"id": request.shop_item_id},

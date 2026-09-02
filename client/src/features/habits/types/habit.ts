@@ -93,7 +93,9 @@ export interface Mission {
   status: MissionStatus;
   completionType?: CompletionType | null;
   expEarned?: number | null;
+  goldEarned?: number | null;
   statsEarned?: number | null;
   completedAt?: string | Date | null;
   habit?: Habit | null;
 }
+

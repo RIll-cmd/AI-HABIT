@@ -1,6 +1,8 @@
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Response, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Response, Depends, Request
+from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import re
 import uuid
 import secrets
@@ -18,7 +20,20 @@ from services.email_service import (
     get_db_connection
 )
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["auth"])
+
+def set_auth_cookie(response: Response, token: str) -> None:
+    """Sets a hardened session cookie with HttpOnly, SameSite, and production Secure flags."""
+    is_prod = os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production"
+    response.set_cookie(
+        key="ascend_session",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=is_prod,
+        max_age=86400 * 30
+    )
 
 RESERVED_USERNAMES = {"admin", "system", "aira", "ciel", "ascend", "guest", "root", "moderator", "support", "null", "undefined"}
 EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
@@ -35,21 +50,26 @@ class CheckAvailabilityInput(BaseModel):
 class SendOtpInput(BaseModel):
     email: str
     context: Optional[str] = "Registration"
+    bot_trap: Optional[str] = Field(None, description="Honeypot field for bot protection")
 
 class VerifyOtpInput(BaseModel):
     email: str
     otp: str
+    bot_trap: Optional[str] = Field(None, description="Honeypot field for bot protection")
 
 class RegisterInput(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     password: str
     otp: Optional[str] = None
+    bot_trap: Optional[str] = Field(None, description="Honeypot field for bot protection")
 
 class LoginInput(BaseModel):
     identifier: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = ""
+    bot_trap: Optional[str] = Field(None, description="Honeypot field for bot protection")
+
 
 class AccountDeleteInput(BaseModel):
     username: str
@@ -330,10 +350,14 @@ async def check_availability(data: CheckAvailabilityInput):
 # =========================================================================
 
 @router.post("/api/auth/send-otp")
-async def send_otp(data: SendOtpInput):
+@limiter.limit("5/minute")
+async def send_otp(request: Request, data: SendOtpInput):
     """
     Send a 6-digit OTP code to the provided email address with rate limiting.
     """
+    if data.bot_trap:
+        raise HTTPException(status_code=400, detail="Automated submission blocked.")
+
     email_clean = data.email.strip().lower()
     validate_email_format(email_clean)
 
@@ -350,10 +374,14 @@ async def send_otp(data: SendOtpInput):
     }
 
 @router.post("/api/auth/verify-otp")
-async def verify_otp(data: VerifyOtpInput):
+@limiter.limit("10/minute")
+async def verify_otp(request: Request, data: VerifyOtpInput):
     """
     Verify submitted 6-digit OTP code for an email address.
     """
+    if data.bot_trap:
+        raise HTTPException(status_code=400, detail="Automated submission blocked.")
+
     email_clean = data.email.strip().lower()
     otp_clean = data.otp.strip()
 
@@ -373,7 +401,11 @@ async def verify_otp(data: VerifyOtpInput):
 # =========================================================================
 
 @router.post("/api/auth/register")
-async def register(data: RegisterInput, response: Response):
+@limiter.limit("5/minute")
+async def register(request: Request, data: RegisterInput, response: Response):
+    if data.bot_trap:
+        raise HTTPException(status_code=400, detail="Automated submission blocked.")
+
     password = data.password.strip()
     validate_password_strength(password)
 
@@ -414,7 +446,7 @@ async def register(data: RegisterInput, response: Response):
         character = await ensure_character_exists(character_id, user["id"], user["username"])
 
         token = create_access_token(data={"sub": user["id"], "username": user["username"]})
-        response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
+        set_auth_cookie(response, token)
 
         return {
             "message": "Registration successful with verified neural link.",
@@ -448,7 +480,7 @@ async def register(data: RegisterInput, response: Response):
         character = await ensure_character_exists(character_id, user["id"], user["username"])
 
         token = create_access_token(data={"sub": user["id"], "username": user["username"]})
-        response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
+        set_auth_cookie(response, token)
 
         return {
             "message": "Registration successful.",
@@ -474,7 +506,11 @@ async def register(data: RegisterInput, response: Response):
 # =========================================================================
 
 @router.post("/api/auth/login")
-async def login(data: LoginInput, response: Response):
+@limiter.limit("5/minute")
+async def login(request: Request, data: LoginInput, response: Response):
+    if data.bot_trap:
+        raise HTTPException(status_code=400, detail="Automated submission blocked.")
+
     ident = (data.identifier or data.username or "").strip()
     password = (data.password or "").strip()
 
@@ -496,7 +532,7 @@ async def login(data: LoginInput, response: Response):
         await ensure_character_exists(character_id, user["id"], user["username"])
 
     token = create_access_token(data={"sub": user["id"], "username": user["username"]})
-    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
+    set_auth_cookie(response, token)
 
     is_email_verified = bool(user.get("isEmailVerified", False))
 
@@ -521,7 +557,8 @@ async def login(data: LoginInput, response: Response):
 # =========================================================================
 
 @router.post("/api/auth/guest")
-async def guest_login(response: Response):
+@limiter.limit("10/minute")
+async def guest_login(request: Request, response: Response):
     guest_id = f"Guest_{str(uuid.uuid4())[:4]}"
     new_user_id = f"user-{guest_id}"
 
@@ -531,7 +568,7 @@ async def guest_login(response: Response):
     character = await ensure_character_exists(character_id, user["id"], guest_id)
 
     token = create_access_token(data={"sub": user["id"], "username": user["username"]})
-    response.set_cookie(key="ascend_session", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
+    set_auth_cookie(response, token)
 
     return {
         "message": "Guest sandbox access granted.",

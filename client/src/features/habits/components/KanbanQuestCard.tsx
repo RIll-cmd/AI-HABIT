@@ -1,84 +1,39 @@
 import React, { useState } from "react";
-import {
-  CheckCircle2,
-  Clock,
-  ChevronRight,
-  ChevronLeft,
-  ListTodo,
-  CheckSquare,
-  Square,
-  Trash2,
-  Pencil,
-} from "lucide-react";
 import { CurrencyIcon } from "@/components/CurrencyDisplay";
 import { KanbanQuest, QuestRank, QuestStatus } from "../types/kanban";
 import { useKanbanMissionStore } from "../store/useKanbanMissionStore";
 import { EditQuestModal } from "./EditQuestModal";
 import { playUIMenuSFX } from "@/utils/audio";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
+import { PixelProgress } from "@/components/ui/pixel/PixelProgress";
+import { PixelScrollCard } from "@/components/ui/pixel/PixelScrollCard";
+import {
+  PixelCheckIcon,
+  PixelCheckSquareIcon,
+  PixelSquareIcon,
+  PixelPencilIcon,
+  PixelTrashIcon,
+  PixelChevronLeftIcon,
+  PixelChevronRightIcon,
+  PixelHistoryIcon,
+  PixelWaxSealIcon,
+} from "@/components/ui/pixel/PixelIcons";
 
 export interface KanbanQuestCardProps {
   quest: KanbanQuest;
 }
 
-const RANK_CONFIG: Record<
+const RANK_BADGE_VARIANTS: Record<
   QuestRank,
-  {
-    badgeBg: string;
-    textColor: string;
-    borderColor: string;
-    glowBorder: string;
-    accentLine: string;
-    label: string;
-  }
+  "gold" | "purple" | "primary" | "cyan" | "success" | "dark"
 > = {
-  S: {
-    badgeBg: "bg-amber-950/80",
-    textColor: "text-amber-300",
-    borderColor: "border-amber-500/60",
-    glowBorder: "group-hover:border-amber-400/80 group-hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]",
-    accentLine: "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500",
-    label: "S-RANK",
-  },
-  A: {
-    badgeBg: "bg-purple-950/80",
-    textColor: "text-purple-300",
-    borderColor: "border-purple-500/60",
-    glowBorder: "group-hover:border-purple-400/80 group-hover:shadow-[0_0_25px_rgba(168,85,247,0.3)]",
-    accentLine: "bg-gradient-to-r from-purple-500 via-indigo-400 to-purple-500",
-    label: "A-RANK",
-  },
-  B: {
-    badgeBg: "bg-blue-950/80",
-    textColor: "text-blue-300",
-    borderColor: "border-blue-500/60",
-    glowBorder: "group-hover:border-blue-400/80 group-hover:shadow-[0_0_25px_rgba(59,130,246,0.3)]",
-    accentLine: "bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500",
-    label: "B-RANK",
-  },
-  C: {
-    badgeBg: "bg-cyan-950/80",
-    textColor: "text-cyan-300",
-    borderColor: "border-cyan-500/50",
-    glowBorder: "group-hover:border-cyan-400/70 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.25)]",
-    accentLine: "bg-gradient-to-r from-cyan-500 via-teal-400 to-cyan-500",
-    label: "C-RANK",
-  },
-  D: {
-    badgeBg: "bg-emerald-950/80",
-    textColor: "text-emerald-300",
-    borderColor: "border-emerald-500/50",
-    glowBorder: "group-hover:border-emerald-400/70 group-hover:shadow-[0_0_20px_rgba(10,185,129,0.25)]",
-    accentLine: "bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-500",
-    label: "D-RANK",
-  },
-  F: {
-    badgeBg: "bg-slate-900",
-    textColor: "text-slate-400",
-    borderColor: "border-slate-700",
-    glowBorder: "group-hover:border-slate-500",
-    accentLine: "bg-slate-700",
-    label: "F-RANK",
-  },
+  S: "gold",
+  A: "purple",
+  B: "primary",
+  C: "cyan",
+  D: "success",
+  F: "dark",
 };
 
 const STATUS_NEXT: Record<QuestStatus, QuestStatus | null> = {
@@ -99,8 +54,6 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
   const { updateQuestStatus, toggleSubtask, deleteQuest } = useKanbanMissionStore();
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-
-  const rankStyle = RANK_CONFIG[quest.rank] || RANK_CONFIG.C;
 
   const totalSubtasks = quest.subtasks?.length || 0;
   const completedSubtasks = quest.subtasks ? quest.subtasks.filter((st) => st.isCompleted).length : 0;
@@ -128,114 +81,115 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
   }
 
   const isCompleted = quest.status === "Completed";
+  const rankVariant = RANK_BADGE_VARIANTS[quest.rank] || "cyan";
 
   return (
-    <div
-      className={`bg-gradient-to-br from-[#0C1226]/95 via-[#080E20]/95 to-[#050914]/98 border rounded-2xl p-4 shadow-xl transition-all duration-300 relative overflow-hidden group backdrop-blur-xl ${rankStyle.glowBorder} ${
-        isCompleted
-          ? "border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_25px_rgba(16,185,129,0.15)]"
-          : "border-cyan-500/15"
-      }`}
+    <PixelScrollCard
+      rank={quest.rank}
+      isCompleted={isCompleted}
+      showPin={true}
+      showCrest={true}
+      missionType="MISSION"
+      className="mt-4 mb-3 shadow-[0_6px_12px_-2px_rgba(0,0,0,0.65),0_3px_6px_-3px_rgba(0,0,0,0.5)] hover:rotate-0 transition-transform duration-100"
     >
-      <div
-        className={`absolute top-0 left-0 right-0 h-[3px] ${
-          isCompleted ? "bg-emerald-400" : rankStyle.accentLine
-        }`}
-      />
-
-      <div className="flex items-start justify-between gap-2 mb-2.5 pt-1">
+      {/* Header Row: Rank Badge, Category Ink Stamp, & Action Buttons */}
+      <div className="flex items-start justify-between gap-2 mb-2 pt-0.5">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span
-            className={`px-2 py-0.5 rounded-lg border font-mono text-[10px] font-black uppercase tracking-wider ${rankStyle.badgeBg} ${rankStyle.textColor} ${rankStyle.borderColor} shadow-sm`}
-          >
-            {rankStyle.label}
-          </span>
-          <span className="px-2 py-0.5 rounded-lg bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] font-bold">
+          <PixelBadge variant={rankVariant} size="sm" className="font-bold tracking-wider text-[10px]">
+            {quest.rank}-RANK
+          </PixelBadge>
+          <span className="font-pixel text-[10px] text-[#4a2612] font-bold uppercase bg-[#dfba7c]/70 border border-[#8a572c]/60 px-1.5 py-0.5 shadow-[1px_1px_0_0_rgba(0,0,0,0.1)]">
             {quest.category}
           </span>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={() => {
               playUIMenuSFX();
               setIsEditOpen(true);
             }}
-            title="Edit Quest / Directive"
-            className="text-slate-400 hover:text-cyan-300 transition-colors p-1 rounded-lg hover:bg-slate-800/60 cursor-pointer"
+            title="Edit Directive"
+            className="text-[#542d17] hover:text-[#2b170c] p-1 border border-transparent hover:border-[#8a572c]/50 hover:bg-[#ebd099] active:translate-y-0.5 cursor-pointer"
           >
-            <Pencil className="w-3.5 h-3.5" />
+            <PixelPencilIcon className="w-3.5 h-3.5" />
           </button>
 
           <button
+            type="button"
             onClick={() => {
               playUIMenuSFX();
               deleteQuest(quest.id);
             }}
             title="Delete Directive"
-            className="text-slate-500 hover:text-rose-400 transition-colors p-1 rounded-lg hover:bg-rose-950/40 cursor-pointer"
+            className="text-red-700 hover:text-red-900 p-1 border border-transparent hover:border-red-800/40 hover:bg-red-200/40 active:translate-y-0.5 cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <PixelTrashIcon className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      <h4 className="text-sm font-bold text-white font-heading leading-snug mb-1.5 line-clamp-2">
+      {/* Quest Title (Ink on Parchment) */}
+      <h4
+        className={`font-pixel text-xs sm:text-sm font-bold leading-snug mb-1 line-clamp-2 ${
+          isCompleted ? "text-[#55694a] line-through" : "text-[#2b170c]"
+        }`}
+      >
         {quest.title}
       </h4>
 
+      {/* Quest Description */}
       {quest.description && (
-        <p className="text-xs text-slate-400 font-sans line-clamp-2 mb-3 leading-relaxed">
+        <p className="font-pixel text-[11px] text-[#4a2e1b] line-clamp-2 mb-2 leading-relaxed opacity-90">
           {quest.description}
         </p>
       )}
 
+      {/* Hashtags as Pinned Paper Slips */}
       {quest.tags && quest.tags.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+        <div className="flex items-center gap-1 flex-wrap mb-2">
           {quest.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[9.5px] font-mono text-cyan-300 bg-cyan-950/50 border border-cyan-500/25 px-2 py-0.5 rounded-md"
+              className="font-pixel text-[9px] text-[#452714] bg-[#ebd198] border border-[#a8743e]/50 px-1 py-0.2 shadow-[1px_1px_0_0_rgba(0,0,0,0.15)] lowercase"
             >
-              #{tag}
+              {tag.startsWith("#") ? tag : `#${tag}`}
             </span>
           ))}
         </div>
       )}
 
-      <div className="my-3 space-y-1.5">
-        <div className="flex items-center justify-between text-[11px] font-mono">
+      {/* Checklist / Progress Section */}
+      <div className="my-2 space-y-1 bg-[#ecd39b]/60 border border-[#b3854d]/40 p-2 shadow-[inset_1px_1px_0_0_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between font-pixel text-xs">
           <button
+            type="button"
             onClick={() => {
               playUIMenuSFX();
               setShowSubtasks(!showSubtasks);
             }}
-            className="text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-[#3b2010] hover:text-[#1a0c05] flex items-center gap-1.5 cursor-pointer font-bold active:translate-y-0.5"
           >
-            <ListTodo className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="font-bold">
+            <PixelCheckSquareIcon className="w-3.5 h-3.5 text-[#8c5225]" />
+            <span className="text-[11px]">
               Checklist ({completedSubtasks}/{totalSubtasks})
             </span>
           </button>
-          <span className="text-cyan-300 font-bold font-mono">{progressPercent}%</span>
+          <span className="text-[#2b170c] font-bold font-pixel text-[11px]">{progressPercent}%</span>
         </div>
 
-        <div className="w-full h-2 bg-[#060B18] rounded-full overflow-hidden border border-white/5 p-0.5">
-          <div
-            className={`h-full rounded-full transition-all duration-300 shadow-sm ${
-              isCompleted
-                ? "bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                : progressPercent >= 100
-                ? "bg-emerald-400"
-                : "bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-            }`}
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
+        <PixelProgress
+          value={progressPercent}
+          max={100}
+          variant={isCompleted ? "success" : "primary"}
+          height="sm"
+        />
       </div>
 
+      {/* Expandable Subtasks Checklist */}
       {showSubtasks && totalSubtasks > 0 && (
-        <div className="my-2.5 p-3 rounded-xl bg-[#060B18]/90 border border-cyan-500/20 space-y-2 shadow-inner">
+        <div className="my-2 p-2 bg-[#f4e2b6] border border-[#a8743e] space-y-1.5 shadow-[inset_1px_1px_0_0_rgba(0,0,0,0.15)]">
           {quest.subtasks.map((st) => (
             <div
               key={st.id}
@@ -243,14 +197,14 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
                 playUIMenuSFX();
                 toggleSubtask(quest.id, st.id);
               }}
-              className="flex items-center gap-2.5 text-xs text-slate-300 hover:text-white cursor-pointer select-none py-0.5"
+              className="flex items-center gap-2 font-pixel text-xs text-[#2b170c] hover:text-black cursor-pointer select-none py-0.5 active:translate-y-0.5"
             >
               {st.isCompleted ? (
-                <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+                <PixelCheckSquareIcon className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
               ) : (
-                <Square className="w-4 h-4 text-slate-500 hover:text-cyan-400 shrink-0 transition-colors" />
+                <PixelSquareIcon className="w-3.5 h-3.5 text-[#8c5225] hover:text-[#2b170c] shrink-0" />
               )}
-              <span className={st.isCompleted ? "line-through text-slate-500" : "font-sans"}>
+              <span className={st.isCompleted ? "line-through text-[#6e7d62]" : "font-pixel text-[11px]"}>
                 {st.title}
               </span>
             </div>
@@ -258,80 +212,75 @@ export const KanbanQuestCard: React.FC<KanbanQuestCardProps> = ({ quest }) => {
         </div>
       )}
 
-      <div className="pt-2.5 border-t border-cyan-500/10 flex items-center justify-between text-[11px] font-mono">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div
-            suppressHydrationWarning
-            className="flex items-center gap-1 text-[11px] text-cyan-300 font-mono font-bold bg-cyan-950/40 border border-cyan-500/30 px-2 py-0.5 rounded-lg shadow-sm"
-          >
-            <CurrencyIcon type="EXP" size="xs" />
-            <span>+{quest.expReward} EXP</span>
-          </div>
+      {/* Rewards & Due Date Footer */}
+      <div className="pt-2 border-t border-[#a8743e]/50 flex items-center justify-between font-pixel text-xs">
+        <div className="flex items-center gap-2 flex-wrap text-[#2b170c] font-bold">
+          <span className="flex items-center gap-1 text-[11px]">
+            <CurrencyIcon type="EXP" size="xs" /> +{quest.expReward} EXP
+          </span>
           {quest.goldReward > 0 && (
-            <div
-              suppressHydrationWarning
-              className="flex items-center gap-1 text-[11px] text-amber-300 font-mono font-bold bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm"
-            >
-              <CurrencyIcon type="GOLD" size="xs" />
-              <span>+{quest.goldReward}g</span>
-            </div>
+            <span className="flex items-center gap-1 text-[#854d0e] text-[11px]">
+              <CurrencyIcon type="GOLD" size="xs" /> +{quest.goldReward}g
+            </span>
           )}
         </div>
 
         {dueDateLabel && (
-          <div
-            className={`flex items-center gap-1 font-bold font-mono text-[10px] px-2 py-0.5 rounded-md border ${
-              isOverdue
-                ? "text-rose-300 bg-rose-950/60 border-rose-500/40 animate-pulse"
-                : "text-slate-400 bg-slate-900 border-slate-800"
-            }`}
+          <PixelBadge
+            variant={isOverdue ? "danger" : "dark"}
+            size="sm"
+            className={isOverdue ? "animate-pulse" : ""}
           >
-            <Clock className="w-3 h-3" />
-            <span>{dueDateLabel}</span>
-          </div>
+            <PixelHistoryIcon className="w-3 h-3" />
+            <span className="text-[10px]">{dueDateLabel}</span>
+          </PixelBadge>
         )}
       </div>
 
-      <div className="mt-3 pt-2.5 border-t border-cyan-500/10 flex items-center justify-between">
+      {/* Status Transition Navigation Controls */}
+      <div className="mt-2.5 pt-2 border-t border-[#a8743e]/50 flex items-center justify-between">
         {STATUS_PREV[quest.status] ? (
-          <button
+          <PixelButton
+            size="sm"
+            variant="dark"
             onClick={() => {
               playUIMenuSFX();
               updateQuestStatus(quest.id, STATUS_PREV[quest.status]!);
             }}
-            className="text-[11px] font-mono text-slate-400 hover:text-slate-200 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-all cursor-pointer active:scale-95"
+            className="text-[10px] py-1 px-2 min-h-[26px]"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <PixelChevronLeftIcon className="w-3 h-3 mr-1" />
             <span>{STATUS_PREV[quest.status]}</span>
-          </button>
+          </PixelButton>
         ) : (
           <div />
         )}
 
         {STATUS_NEXT[quest.status] ? (
-          <button
+          <PixelButton
+            size="sm"
+            variant={STATUS_NEXT[quest.status] === "Completed" ? "success" : "primary"}
             onClick={() => {
               playUIMenuSFX();
               updateQuestStatus(quest.id, STATUS_NEXT[quest.status]!);
             }}
-            className={`text-[11px] font-mono font-extrabold flex items-center gap-1 px-3.5 py-1.5 rounded-xl transition-all shadow-md cursor-pointer active:scale-95 ${
-              STATUS_NEXT[quest.status] === "Completed"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-pulse"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-            }`}
+            className="text-[10px] py-1 px-2.5 min-h-[26px]"
           >
             <span>{STATUS_NEXT[quest.status]}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+            <PixelChevronRightIcon className="w-3 h-3 ml-1" />
+          </PixelButton>
         ) : (
-          <div className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-xl">
-            <CheckCircle2 className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 font-pixel text-[11px] font-bold text-emerald-800 bg-[#d5e6c3] border border-emerald-700/60 px-2 py-0.5 shadow-[1px_1px_0_0_#000]">
+            <PixelWaxSealIcon className="w-4 h-4 text-emerald-700" />
             <span>CLEARED</span>
           </div>
         )}
       </div>
 
+      {/* Edit Modal */}
       {isEditOpen && <EditQuestModal quest={quest} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />}
-    </div>
+    </PixelScrollCard>
   );
 };
+
+

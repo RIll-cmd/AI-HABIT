@@ -1,19 +1,26 @@
-from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from fastapi import APIRouter, HTTPException, status, Depends
 from db import db
 from db_utils import ensure_character_exists
-from schemas.habit import HabitCreateSchema, HabitStatus, HabitStatusUpdateSchema, HabitUpdateSchema
-from services.mission_generator import generate_daily_missions
+from auth_utils import get_current_user, get_current_user_optional, verify_character_ownership
+from schemas.habit import HabitCreateSchema, HabitStatus, HabitStatusUpdateSchema, HabitUpdateSchema, HabitLogSchema
+from services.mission_generator import generate_daily_missions, recalculate_habit_strength
+from services.boss_engine import deal_boss_damage
 
 router = APIRouter(prefix="/api/habits", tags=["habits"])
 
 
 @router.post("/{character_id}")
-async def create_habit(character_id: str, payload: HabitCreateSchema):
+async def create_habit(character_id: str, payload: HabitCreateSchema, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
     Create a new Habit template along with 1:1 HabitSchedule, HabitMetrics, and 1:N HabitTier relations.
     Automatically ensures character exists in database (seeding fallback if necessary).
     """
+    is_owner = await verify_character_ownership(character_id, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     character = await ensure_character_exists(character_id)
 
     schedule_data = {}
@@ -30,7 +37,7 @@ async def create_habit(character_id: str, payload: HabitCreateSchema):
     tiers_data = []
     for t in payload.tiers:
         tiers_data.append({
-            "tier": t.tier.value,
+            "tier": t.tier.value if hasattr(t.tier, "value") else str(t.tier),
             "targetType": t.targetType,
             "targetValue": t.targetValue,
             "targetUnit": t.targetUnit,
@@ -45,9 +52,9 @@ async def create_habit(character_id: str, payload: HabitCreateSchema):
             "name": payload.name,
             "description": payload.description,
             "category": payload.category,
-            "difficulty": payload.difficulty.value,
+            "difficulty": payload.difficulty.value if hasattr(payload.difficulty, "value") else str(payload.difficulty),
             "primaryStat": payload.primaryStat,
-            "scheduleType": payload.scheduleType.value,
+            "scheduleType": payload.scheduleType.value if hasattr(payload.scheduleType, "value") else str(payload.scheduleType),
             "rrule": payload.rrule,
             "preferredTime": payload.preferredTime,
             "icon": payload.icon,
@@ -91,20 +98,222 @@ async def get_habits(character_id: str):
             "schedule": True,
             "metrics": True,
             "tiers": True,
+            "missions": True,
         },
     )
     return habits
 
+
+
+@router.post("/{habit_id}/log")
+async def log_habit(habit_id: str, payload: HabitLogSchema, current_user: Optional[dict] = Depends(get_current_user_optional)):
+    """
+    Directly log completion of a habit for today.
+    Creates or updates today's Mission instance, updates streaks, grants character EXP/Gold/Stats,
+    recalculates habit strength, updates calendar snapshots, and deals boss damage.
+    """
+    habit = await db.habit.find_unique(
+        where={"id": habit_id},
+        include={"tiers": True, "schedule": True, "metrics": True}
+    )
+    if not habit:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit not found")
+
+    is_owner = await verify_character_ownership(habit.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this habit.")
+
+    now = datetime.now(timezone.utc)
+    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    today_end = today_start + timedelta(days=1)
+
+    completion_tier_str = payload.completionType.value if hasattr(payload.completionType, "value") else str(payload.completionType)
+    
+    # Calculate rewards from habit tiers or defaults
+    tier_info = next((t for t in habit.tiers if t.tier == completion_tier_str), None)
+    if not tier_info and habit.tiers:
+        tier_info = next((t for t in habit.tiers if t.tier == "NORMAL"), habit.tiers[0])
+
+    diff_mult = {"EASY": 1.0, "MEDIUM": 1.5, "HARD": 2.2}.get(habit.difficulty, 1.0)
+    tier_mult = {"MINI": 0.5, "NORMAL": 1.0, "ELITE": 1.7}.get(completion_tier_str, 1.0)
+
+    base_exp = tier_info.baseExp if tier_info and tier_info.baseExp > 0 else int(30 * diff_mult)
+    base_gold = tier_info.baseGold if tier_info and tier_info.baseGold > 0 else int(10 * diff_mult)
+    stat_reward = tier_info.statReward if tier_info and tier_info.statReward > 0 else int(2 * diff_mult)
+
+    exp_earned = int(base_exp if tier_info and tier_info.baseExp > 0 else base_exp * tier_mult)
+    gold_earned = int(base_gold if tier_info and tier_info.baseGold > 0 else base_gold * tier_mult)
+    stats_earned = int(stat_reward if tier_info and tier_info.statReward > 0 else stat_reward * tier_mult)
+
+    # Find or create today's mission
+    mission = await db.mission.find_first(
+        where={
+            "habitId": habit_id,
+            "characterId": habit.characterId,
+            "date": {"gte": today_start, "lt": today_end},
+        }
+    )
+
+    if mission:
+        updated_mission = await db.mission.update(
+            where={"id": mission.id},
+            data={
+                "status": "COMPLETED",
+                "completionType": completion_tier_str,
+                "expEarned": exp_earned,
+                "statsEarned": stats_earned,
+                "completedAt": now,
+            }
+        )
+    else:
+        updated_mission = await db.mission.create(
+            data={
+                "habitId": habit_id,
+                "characterId": habit.characterId,
+                "date": today_start,
+                "status": "COMPLETED",
+                "completionType": completion_tier_str,
+                "expEarned": exp_earned,
+                "statsEarned": stats_earned,
+                "completedAt": now,
+            }
+        )
+
+    # Check streak logic
+    yesterday_start = today_start - timedelta(days=1)
+    yesterday_mission = await db.mission.find_first(
+        where={
+            "habitId": habit_id,
+            "characterId": habit.characterId,
+            "status": "COMPLETED",
+            "date": {"gte": yesterday_start, "lt": today_start},
+        }
+    )
+
+    new_streak = habit.streak + 1 if (yesterday_mission or habit.streak == 0) else 1
+    new_best = max(habit.bestStreak, new_streak)
+
+    # Update habit streak in database
+    await db.habit.update(
+        where={"id": habit_id},
+        data={"streak": new_streak, "bestStreak": new_best}
+    )
+
+    # Recalculate Habit Strength
+    await recalculate_habit_strength(habit_id)
+
+    # Grant character currencies & stats
+    char = await ensure_character_exists(habit.characterId)
+    await db.character.update(
+        where={"id": habit.characterId},
+        data={
+            "exp": {"increment": exp_earned},
+            "gold": {"increment": gold_earned},
+        }
+    )
+
+    # Update primary stat in characterstats
+    stat_name = (habit.primaryStat or "discipline").lower()
+    allowed_stats = ["strength", "knowledge", "discipline", "focus", "endurance", "recovery", "consistency"]
+    if stat_name in allowed_stats:
+        try:
+            await db.characterstats.upsert(
+                where={"characterId": habit.characterId},
+                data={
+                    "create": {"characterId": habit.characterId, stat_name: 1 + stats_earned},
+                    "update": {stat_name: {"increment": stats_earned}},
+                }
+            )
+        except Exception as e:
+            print(f"[habits.py] Stat increment error for {stat_name}: {e}")
+
+    # Deal Boss Damage if linked
+    try:
+        await deal_boss_damage(
+            db=db,
+            character_id=habit.characterId,
+            activity_type="HABIT",
+            reference_id=habit.id
+        )
+    except Exception as e:
+        print(f"[habits.py] Error dealing boss damage: {e}")
+
+    # Elite bonus gems
+    bonus_gems = 0
+    if completion_tier_str in ["ELITE", "HARDCORE"]:
+        bonus_gems = 1
+        await db.character.update(
+            where={"id": habit.characterId},
+            data={"gems": {"increment": bonus_gems}}
+        )
+
+    # Snapshot update for Heatmap
+    try:
+        day_missions = await db.mission.find_many(
+            where={
+                "characterId": habit.characterId,
+                "date": {"gte": today_start, "lt": today_end},
+            }
+        )
+        total_m = len(day_missions)
+        completed_m = len([m for m in day_missions if m.status == "COMPLETED"])
+        rate = (completed_m / total_m * 100.0) if total_m > 0 else 0.0
+
+        await db.dailycompletionsnapshot.upsert(
+            where={"characterId_date": {"characterId": habit.characterId, "date": today_start}},
+            data={
+                "create": {
+                    "characterId": habit.characterId,
+                    "date": today_start,
+                    "completedCount": completed_m,
+                    "totalCount": total_m,
+                    "completionRate": rate,
+                },
+                "update": {
+                    "completedCount": completed_m,
+                    "totalCount": total_m,
+                    "completionRate": rate,
+                }
+            }
+        )
+    except Exception as e:
+        print(f"[habits.py] Snapshot update error: {e}")
+
+    # Fetch fresh habit with updated relations
+    fresh_habit = await db.habit.find_unique(
+        where={"id": habit_id},
+        include={"schedule": True, "metrics": True, "tiers": True}
+    )
+
+    return {
+        "success": True,
+        "habit": fresh_habit,
+        "mission": updated_mission,
+        "rewards": {
+            "exp": exp_earned,
+            "gold": gold_earned,
+            "stat": stats_earned,
+            "statName": habit.primaryStat,
+            "gems": bonus_gems,
+            "streak": new_streak,
+            "habitStrength": fresh_habit.metrics.habitStrength if fresh_habit and fresh_habit.metrics else 100.0,
+        }
+    }
+
+
 @router.patch("/{habit_id}/status")
-async def update_habit_status(habit_id: str, payload: HabitStatusUpdateSchema):
+async def update_habit_status(habit_id: str, payload: HabitStatusUpdateSchema, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
     Update the status of a habit (e.g. PAUSED, ARCHIVED, DELETED).
     Handles setting pausedAt and archivedAt timestamps.
     """
-    # Fetch existing habit to ensure it exists
     existing = await db.habit.find_unique(where={"id": habit_id})
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit not found")
+
+    is_owner = await verify_character_ownership(existing.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this habit.")
 
     update_data = {"status": payload.status.value}
     now = datetime.now(timezone.utc)
@@ -116,7 +325,6 @@ async def update_habit_status(habit_id: str, payload: HabitStatusUpdateSchema):
     elif payload.status == HabitStatus.DELETED:
         update_data["pausedAt"] = None
         update_data["archivedAt"] = None
-        # Could also set a deletedAt field if it existed in schema, but status='DELETED' serves as soft delete
     elif payload.status == HabitStatus.ACTIVE:
         update_data["pausedAt"] = None
         update_data["archivedAt"] = None
@@ -132,14 +340,19 @@ async def update_habit_status(habit_id: str, payload: HabitStatusUpdateSchema):
     )
     return updated
 
+
 @router.put("/{habit_id}")
-async def update_habit(habit_id: str, payload: HabitUpdateSchema):
+async def update_habit(habit_id: str, payload: HabitUpdateSchema, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
     Update habit details, schedule, target frequencies, and tiers.
     """
     existing = await db.habit.find_unique(where={"id": habit_id}, include={"schedule": True, "tiers": True})
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit not found")
+
+    is_owner = await verify_character_ownership(existing.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this habit.")
 
     habit_update_data = {}
     if payload.name is not None:
@@ -153,11 +366,11 @@ async def update_habit(habit_id: str, payload: HabitUpdateSchema):
     if payload.category is not None:
         habit_update_data["category"] = payload.category
     if payload.difficulty is not None:
-        habit_update_data["difficulty"] = payload.difficulty.value
+        habit_update_data["difficulty"] = payload.difficulty.value if hasattr(payload.difficulty, "value") else str(payload.difficulty)
     if payload.primaryStat is not None:
         habit_update_data["primaryStat"] = payload.primaryStat
     if payload.scheduleType is not None:
-        habit_update_data["scheduleType"] = payload.scheduleType.value
+        habit_update_data["scheduleType"] = payload.scheduleType.value if hasattr(payload.scheduleType, "value") else str(payload.scheduleType)
     if payload.preferredTime is not None:
         habit_update_data["preferredTime"] = payload.preferredTime
 
@@ -203,6 +416,7 @@ async def update_habit(habit_id: str, payload: HabitUpdateSchema):
         where={"id": habit_id},
         include={"schedule": True, "metrics": True, "tiers": True}
     )
+
 
 @router.post("/{character_id}/generate-missions")
 async def trigger_mission_generation(character_id: str):
@@ -273,13 +487,18 @@ async def get_calendar_snapshots(character_id: str):
 
 
 @router.post("/{character_id}/buy-streak-freeze")
-async def buy_streak_freeze(character_id: str):
+async def buy_streak_freeze(character_id: str, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
     Purchases 1 Streak Freeze Shield for 300 Gold or 15 Gems (up to max 3 shields).
     """
+    is_owner = await verify_character_ownership(character_id, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this character.")
+
     char = await ensure_character_exists(character_id)
     if char.streakFreezes >= 3:
         raise HTTPException(status_code=400, detail="Maximum Streak Freeze Shields (3) already in inventory.")
+
 
     if char.gold < 300:
         raise HTTPException(status_code=400, detail="Insufficient Gold. Streak Freeze costs 300 Gold.")

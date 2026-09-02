@@ -1,61 +1,76 @@
 "use client";
 
-import React from "react";
-import { Moon, Sparkles, Activity, ShieldCheck, HeartPulse, Bed, Zap } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Waves,
+  Flame,
+} from "lucide-react";
 import { SleepLoggerCard } from "@/features/sleep/components/SleepLoggerCard";
 import { SleepHistoryChart } from "@/features/sleep/components/SleepHistoryChart";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
+import { WaterfallAmbientPlayer } from "@/features/sleep/components/WaterfallAmbientPlayer";
+import { AiraSleepAdvisory } from "@/features/sleep/components/AiraSleepAdvisory";
+import { useSleepStore } from "@/features/sleep/store/useSleepStore";
+import { NumberTicker } from "@/components/ui/number-ticker";
 
 export default function SleepPage() {
+  const { getCurrentStreak } = useSleepStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const streak = getCurrentStreak();
+
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 pb-24 space-y-8 text-slate-100 relative">
-      <FloatingRuneField density="low" />
-
+    <div className="max-w-7xl mx-auto p-3 sm:p-5 md:p-8 pb-28 space-y-6 text-slate-100 relative select-none">
       {/* Hero Header Banner */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#0C1226] via-[#101A38] to-[#080E20] border-2 border-indigo-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.3)]">
-              <Moon className="w-8 h-8 animate-pulse" />
+      <div className="relative bg-[#140a26]/95 border-2 border-[#3c1860] p-5 sm:p-7 shadow-[0_4px_0_0_#000] overflow-hidden backdrop-blur-md">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-14 h-14 bg-[#251040] border-2 border-[#f59e0b] flex items-center justify-center flex-shrink-0">
+              <Waves className="w-7 h-7 text-[#fbbf24] animate-pulse" />
             </div>
             <div>
-              <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                <HeartPulse className="w-3.5 h-3.5 text-cyan-400" />
-                SOMATIC RECOVERY & CELLULAR REGENERATION
-              </span>
-              <h1 className="text-2xl md:text-3xl font-black font-heading text-white tracking-tight mt-0.5">
-                Sleep Sanctuary & Recovery (REC) Engine
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-pixel font-bold text-white tracking-wide">
+                Sleep Sanctuary & Somatic Restoration
               </h1>
-              <p className="text-xs text-slate-400 mt-1 max-w-xl font-sans">
-                Log your sleep hours to accelerate cellular recovery, replenish ATP pools, and scale your character&apos;s real-world Recovery (REC) stat. The closer you stay to the 8.0-hour golden standard, the higher your somatic multiplier!
+
+              <p className="text-xs md:text-sm text-slate-300 mt-1 max-w-xl font-sans leading-relaxed text-pretty">
+                Rest in the tranquil mists of the nocturnal waterfall. Logging restorative sleep clears metabolic fatigue, accelerates myofibril tissue recovery, and permanently scales your character&apos;s real-world <span className="text-[#fde047] font-bold">Recovery (REC)</span> stat. Target the 8.0-hour golden equinox for maximum somatic bounties!
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-[#0B1020]/90 border border-cyan-500/20 p-3.5 rounded-2xl font-mono text-xs shadow-xl">
-            <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                Standard Goal
+          {/* Quick HUD Telemetry Strip */}
+          <div className="flex items-center gap-5 p-2 font-pixel text-xs flex-shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t lg:border-t-0 border-[#3c1860]/40">
+            <div className="text-left sm:text-right">
+              <span className="text-xs text-[#fbbf24] block font-bold">
+                Rest Streak
               </span>
-              <span className="text-base font-black text-amber-300">8.00 Hours</span>
+              <span className="text-base sm:text-lg font-bold text-[#34d399] flex items-center gap-1 justify-start sm:justify-end tabular-nums" suppressHydrationWarning>
+                <Flame className="w-4 h-4 text-[#f59e0b]" />{" "}
+                {mounted ? <NumberTicker value={streak} /> : streak} Days
+              </span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Sanctuary Soundscape Ambient Bar */}
+      <WaterfallAmbientPlayer />
+
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
         {/* Left Column: Interactive Sleep Logger */}
         <div className="lg:col-span-7 space-y-6">
           <SleepLoggerCard />
         </div>
 
-        {/* Right Column: 7-Day History & Telemetry */}
+        {/* Right Column: 7-Day History & AIRA Intelligence */}
         <div className="lg:col-span-5 space-y-6">
           <SleepHistoryChart />
+          <AiraSleepAdvisory />
         </div>
       </div>
     </div>

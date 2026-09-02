@@ -3,19 +3,16 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
-  Sparkles,
-  BookOpen,
-  Shield,
-  Zap,
-  Target,
-  Flame,
-  Info,
-  Activity,
-  Dumbbell,
-  Star,
-  ChevronRight,
-  ChevronLeft,
-} from "lucide-react";
+  PixelInfoIcon,
+  PixelBookIcon,
+  PixelLightningIcon,
+  PixelDumbbellIcon,
+  PixelStarIcon,
+  PixelChevronLeftIcon,
+  PixelChevronRightIcon,
+} from "./pixel/PixelIcons";
+import { PixelOpenBookSvg, PixelPageLeafSvg } from "./pixel/PixelOpenBook";
+import { playUIMenuSFX } from "@/utils/audio";
 
 export interface SystemTooltipStat {
   label: string;
@@ -44,22 +41,31 @@ export interface SystemTooltipProps {
   delayMs?: number;
 }
 
-const RARITY_GRADIENTS: Record<string, string> = {
-  COMMON: "from-slate-500 to-slate-600",
-  UNCOMMON: "from-emerald-500 to-teal-500",
-  RARE: "from-cyan-500 to-blue-500",
-  EPIC: "from-purple-500 to-indigo-500",
-  LEGENDARY: "from-amber-400 to-orange-500",
-  MYTHIC: "from-red-500 via-purple-500 to-cyan-400",
-};
-
-const RARITY_BORDERS: Record<string, string> = {
-  COMMON: "border-slate-700/80 shadow-[0_0_30px_rgba(0,0,0,0.8)]",
-  UNCOMMON: "border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.25)]",
-  RARE: "border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.3)]",
-  EPIC: "border-purple-500/60 shadow-[0_0_35px_rgba(168,85,247,0.35)]",
-  LEGENDARY: "border-amber-500/60 shadow-[0_0_40px_rgba(245,158,11,0.4)]",
-  MYTHIC: "border-red-500/70 shadow-[0_0_45px_rgba(239,68,68,0.45)]",
+const RARITY_INK_STYLES: Record<string, { badge: string; text: string }> = {
+  COMMON: {
+    badge: "border-[#64748b] bg-[#e2e8f0] text-[#334155]",
+    text: "text-[#475569]",
+  },
+  UNCOMMON: {
+    badge: "border-[#059669] bg-[#d1fae5] text-[#065f46]",
+    text: "text-[#047857]",
+  },
+  RARE: {
+    badge: "border-[#0284c7] bg-[#e0f2fe] text-[#0369a1]",
+    text: "text-[#0284c7]",
+  },
+  EPIC: {
+    badge: "border-[#9333ea] bg-[#f3e8ff] text-[#6b21a8]",
+    text: "text-[#7e22ce]",
+  },
+  LEGENDARY: {
+    badge: "border-[#d97706] bg-[#fef3c7] text-[#92400e]",
+    text: "text-[#b45309]",
+  },
+  MYTHIC: {
+    badge: "border-[#dc2626] bg-[#fee2e2] text-[#991b1b]",
+    text: "text-[#b91c1c]",
+  },
 };
 
 interface TabSection {
@@ -84,16 +90,19 @@ export function SystemTooltip({
   icon,
   children,
   className = "",
-  widthClass = "w-[340px] sm:w-[380px] max-w-[92vw]",
-  delayMs = 1000,
+  widthClass = "w-[360px] sm:w-[560px] md:w-[600px] max-w-[95vw]",
+  delayMs = 800,
 }: SystemTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [flipDirection, setFlipDirection] = useState<"forward" | "backward">("forward");
+  const [flipKey, setFlipKey] = useState(0);
+
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({});
-  
+
   const openTimerRef = useRef<NodeJS.Timeout | null>(null);
   const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -105,35 +114,42 @@ export function SystemTooltip({
     };
   }, []);
 
-  const borderStyle = RARITY_BORDERS[rarity] || RARITY_BORDERS.RARE;
-  const gradientHeader = RARITY_GRADIENTS[rarity] || RARITY_GRADIENTS.RARE;
-
   // Build list of active tabs dynamically
   const availableTabs: TabSection[] = [];
   if (description) {
-    availableTabs.push({ id: "overview", label: "Overview", icon: Info });
+    availableTabs.push({ id: "overview", label: "Overview", icon: PixelInfoIcon });
   }
   if (howToImprove && (Array.isArray(howToImprove) ? howToImprove.length > 0 : Boolean(howToImprove))) {
-    availableTabs.push({ id: "improve", label: "How to Improve", icon: Dumbbell });
+    availableTabs.push({ id: "improve", label: "Improvement", icon: PixelDumbbellIcon });
   }
   if (lore) {
-    availableTabs.push({ id: "lore", label: "Lore", icon: BookOpen });
+    availableTabs.push({ id: "lore", label: "Lore", icon: PixelBookIcon });
   }
   if (mechanics) {
-    availableTabs.push({ id: "mechanics", label: "Mechanics", icon: Zap });
+    availableTabs.push({ id: "mechanics", label: "Mechanics", icon: PixelLightningIcon });
   }
   if (stats && stats.length > 0) {
-    availableTabs.push({ id: "stats", label: "Attributes", icon: Star });
+    availableTabs.push({ id: "stats", label: "Attributes", icon: PixelStarIcon });
   }
 
   // Ensure index is within bounds
   const currentTab = availableTabs[activeTabIndex] || availableTabs[0];
 
+  const triggerPageFlip = (nextIndex: number, direction: "forward" | "backward") => {
+    try {
+      playUIMenuSFX();
+    } catch {}
+    setFlipDirection(direction);
+    setFlipKey((prev) => prev + 1);
+    setActiveTabIndex(nextIndex);
+  };
+
   const handleNextTab = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (availableTabs.length > 1) {
-      setActiveTabIndex((prev) => (prev + 1) % availableTabs.length);
+      const next = (activeTabIndex + 1) % availableTabs.length;
+      triggerPageFlip(next, "forward");
     }
   };
 
@@ -141,16 +157,24 @@ export function SystemTooltip({
     e.stopPropagation();
     e.preventDefault();
     if (availableTabs.length > 1) {
-      setActiveTabIndex((prev) => (prev - 1 + availableTabs.length) % availableTabs.length);
+      const prev = (activeTabIndex - 1 + availableTabs.length) % availableTabs.length;
+      triggerPageFlip(prev, "backward");
     }
+  };
+
+  const handleSelectTab = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (idx === activeTabIndex) return;
+    triggerPageFlip(idx, idx > activeTabIndex ? "forward" : "backward");
   };
 
   const calculatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const tooltipEl = tooltipRef.current;
-    const tooltipWidth = tooltipEl?.offsetWidth || 360;
-    const tooltipHeight = tooltipEl?.offsetHeight || 280;
+    const tooltipWidth = tooltipEl?.offsetWidth || 580;
+    const tooltipHeight = tooltipEl?.offsetHeight || 380;
     const windowWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
     const windowHeight = typeof window !== "undefined" ? window.innerHeight : 800;
     const padding = 16;
@@ -198,7 +222,7 @@ export function SystemTooltip({
       left: `${Math.round(left)}px`,
       top: `${Math.round(top)}px`,
       zIndex: 999999,
-      maxHeight: `min(540px, ${windowHeight - padding * 2}px)`,
+      maxHeight: `min(600px, ${windowHeight - padding * 2}px)`,
     });
   }, [side]);
 
@@ -257,6 +281,8 @@ export function SystemTooltip({
     }
   }, [isOpen, calculatePosition]);
 
+  const rarityStyle = RARITY_INK_STYLES[rarity] || RARITY_INK_STYLES.COMMON;
+
   return (
     <div
       ref={triggerRef}
@@ -268,223 +294,231 @@ export function SystemTooltip({
     >
       {children}
 
-      {/* FLOATING HOVER CARD RENDERED VIA PORTAL OUTSIDE PARENT CONTAINER BOUNDS */}
+      {/* 8-BIT AUTHENTIC OPEN PARCHMENT BOOK HOVER DESCRIPTION (CLEAN WITHOUT BLACK OUTER BORDER) */}
       {mounted && isOpen && typeof document !== "undefined" && createPortal(
         <div
           ref={tooltipRef}
           tabIndex={-1}
           onMouseEnter={handleTooltipMouseEnter}
           onMouseLeave={handleTooltipMouseLeave}
-          className={`pointer-events-auto ${widthClass} overflow-y-auto custom-scrollbar rounded-2xl bg-[#090E1F]/98 border ${borderStyle} p-4 text-slate-100 shadow-[0_0_50px_rgba(0,0,0,0.95)] backdrop-blur-3xl font-sans select-none text-left flex flex-col gap-2.5 animate-in fade-in-0 zoom-in-95 duration-150`}
+          className={`pointer-events-auto ${widthClass} select-none text-left relative animate-in fade-in-0 duration-150`}
           style={{
             ...positionStyle,
-            ...(accentColor ? { borderColor: `${accentColor}80` } : {})
           }}
         >
-          {/* Glow Halo Top Accent */}
-          <div
-            className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-2xl bg-gradient-to-r ${gradientHeader}`}
-            style={accentColor ? { background: accentColor } : undefined}
-          />
+          {/* Programmatically Recreated 8-Bit Pixel Art Book Vector Background */}
+          <div className="relative w-full aspect-[408/276] min-h-[300px] sm:min-h-[340px] drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)]">
+            <PixelOpenBookSvg className="absolute inset-0 w-full h-full pointer-events-none z-0" />
 
-          {/* Top Header & Title */}
-          <div className="flex items-start gap-3 pt-1">
-            {icon && (
-              <div className="w-10 h-10 rounded-xl bg-slate-950/80 border border-white/10 flex-shrink-0 flex items-center justify-center p-1.5 shadow-inner">
-                {icon}
-              </div>
-            )}
+            {/* TWO-PAGE SPREAD CONTENT LAYER OVER PARCHMENT */}
+            <div className="relative z-10 w-full h-full p-4 sm:p-6 md:p-7 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-6 box-border">
+              {/* =========================================================
+                  LEFT PAGE: BOOK TITLE, METADATA & CHAPTER INDEX
+                  ========================================================= */}
+              <div className="sm:col-span-6 flex flex-col justify-between pl-1 sm:pl-2 pr-1 sm:pr-3 py-1">
+                {/* Header: Badges & Title */}
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {category && (
+                      <span className="font-pixel text-[10px] sm:text-[11px] uppercase font-bold text-[#3B1E12] bg-[#E5D2A8] border border-[#8C6B3C] px-1.5 py-0.5 shadow-[1px_1px_0_0_#8C6B3C]">
+                        {category}
+                      </span>
+                    )}
+                    {rarity && (
+                      <span className={`font-pixel text-[10px] sm:text-[11px] uppercase font-bold border ${rarityStyle.badge} px-1.5 py-0.5 shadow-[1px_1px_0_0_rgba(0,0,0,0.15)]`}>
+                        {rarity}
+                      </span>
+                    )}
+                  </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                {category && (
-                  <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-cyan-300 bg-cyan-950/70 border border-cyan-500/40 px-2 py-0.5 rounded-md">
-                    {category}
-                  </span>
-                )}
-                {rarity && (
-                  <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-300 bg-slate-900 border border-slate-700/80 px-1.5 py-0.5 rounded-md">
-                    {rarity}
-                  </span>
-                )}
-              </div>
+                  <h4 className="font-pixel font-bold text-xs sm:text-sm text-[#2A160E] tracking-wide leading-tight break-words pt-1">
+                    {title}
+                  </h4>
 
-              <h4 className="font-bold text-sm text-white font-heading tracking-tight leading-snug break-words">
-                {title}
-              </h4>
-
-              {subtitle && (
-                <p className="text-[11px] text-cyan-400/90 font-mono font-medium mt-0.5 break-words">
-                  {subtitle}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Section Tabs Header */}
-          {availableTabs.length > 1 && (
-            <div className="flex items-center justify-between gap-1 p-1 rounded-xl bg-slate-950/80 border border-slate-800">
-              <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar flex-1">
-                {availableTabs.map((tab, idx) => {
-                  const IconComponent = tab.icon;
-                  const isActive = idx === activeTabIndex;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setActiveTabIndex(idx);
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${
-                        isActive
-                          ? "bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent"
-                      }`}
-                    >
-                      <IconComponent className={`w-3 h-3 ${isActive ? "text-cyan-400" : "text-slate-500"}`} />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Quick Page Stepper */}
-              <div className="flex items-center gap-0.5 pl-1.5 border-l border-slate-800 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handlePrevTab}
-                  className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-colors"
-                  title="Previous section"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-[9.5px] font-mono text-slate-500 font-bold px-1">
-                  {activeTabIndex + 1}/{availableTabs.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleNextTab}
-                  className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-colors"
-                  title="Next section"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Dynamic Active Tab Content */}
-          <div className="animate-in fade-in zoom-in-95 duration-150">
-            {currentTab?.id === "overview" && description && (
-              <div className="text-xs text-slate-200/95 font-sans leading-relaxed whitespace-pre-line break-words bg-slate-900/60 p-3 rounded-xl border border-white/5 min-h-[72px]">
-                {description}
-              </div>
-            )}
-
-            {currentTab?.id === "improve" && howToImprove && (
-              <div className="p-3 rounded-xl bg-gradient-to-br from-[#0c1830] to-[#070f20] border border-cyan-500/30 text-xs text-slate-200 space-y-2 min-h-[72px]">
-                <div className="flex items-center gap-1.5 text-[9.5px] font-mono font-bold text-cyan-300 uppercase tracking-widest pb-1 border-b border-cyan-500/20">
-                  <Dumbbell className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                  <span>ACTIONABLE REAL-WORLD PROTOCOLS</span>
+                  {subtitle && (
+                    <p className="font-pixel text-[10px] sm:text-xs text-[#5C3826] leading-snug break-words">
+                      {subtitle}
+                    </p>
+                  )}
                 </div>
-                {Array.isArray(howToImprove) ? (
-                  <ul className="space-y-1.5 pt-0.5">
-                    {howToImprove.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 font-sans leading-relaxed">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0 shadow-[0_0_6px_rgba(6,182,212,0.8)]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
-                    {howToImprove}
-                  </p>
+
+                {/* Chapter Table of Contents on Parchment with Polished Vertical Alignment */}
+                {availableTabs.length > 1 && (
+                  <div className="mt-2 pt-2 border-t border-[#B89F70] space-y-1">
+                    <span className="font-pixel text-[9px] uppercase text-[#7C5A32] block font-bold tracking-wider mb-1">
+                      TABLE OF CONTENTS
+                    </span>
+                    <div className="flex flex-col gap-1">
+                      {availableTabs.map((tab, idx) => {
+                        const IconComponent = tab.icon;
+                        const isActive = idx === activeTabIndex;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={(e) => handleSelectTab(idx, e)}
+                            className={`flex items-center justify-between px-2 py-1 font-pixel text-[10px] sm:text-xs uppercase font-bold transition-all cursor-pointer border ${
+                              isActive
+                                ? "bg-[#DFCB9C] text-[#2A160E] border-[#8C6B3C] shadow-[1px_1px_0_0_#8C6B3C]"
+                                : "text-[#664627] hover:text-[#2A160E] hover:bg-[#E9DAC0] border-transparent"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <IconComponent className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-[#2A160E]" : "text-[#7C5A32]"}`} />
+                              <span className="leading-none pt-0.5">{tab.label}</span>
+                            </span>
+                            <span className="text-[9px] text-[#8C6B3C] font-mono leading-none pt-0.5">p.{idx + 1}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
-              </div>
-            )}
 
-            {currentTab?.id === "lore" && lore && (
-              <div className="p-3 rounded-xl bg-gradient-to-br from-[#121936] to-[#0A0E1C] border border-purple-500/30 text-[11.5px] text-slate-200 italic leading-relaxed relative overflow-hidden shadow-inner whitespace-normal break-words min-h-[72px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-purple-300 uppercase tracking-widest mb-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
-                  <span>SYSTEM ARCHIVE LORE</span>
-                </div>
-                &ldquo;{lore}&rdquo;
-              </div>
-            )}
-
-            {currentTab?.id === "mechanics" && mechanics && (
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-200 font-mono leading-relaxed whitespace-normal break-words min-h-[72px]">
-                <span className="text-amber-400 font-bold block text-[9.5px] uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-400" />
-                  SYSTEM MECHANICS & IMPACT:
-                </span>
-                {mechanics}
-              </div>
-            )}
-
-            {currentTab?.id === "stats" && stats && stats.length > 0 && (
-              <div className="p-3 rounded-xl bg-[#070D1E] border border-cyan-500/25 space-y-2 min-h-[72px]">
-                <span className="text-[9.5px] font-mono font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                  ATTRIBUTES & BREAKDOWN
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {stats.map((s, idx) => {
-                    const IconComponent = s.icon || Star;
-                    return (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-3 p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] font-mono"
+                {/* Tags Footer on Left Page */}
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1 pt-1.5 border-t border-[#B89F70]">
+                    {tags.map((t, i) => (
+                      <span
+                        key={i}
+                        className="font-pixel text-[9px] text-[#4A2D1B] bg-[#E2CF9F] px-1.5 py-0.5 border border-[#B89F70]"
                       >
-                        <span className="text-slate-400 flex items-center gap-1.5 flex-shrink-0">
-                          <IconComponent className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                          <span>{s.label}</span>
-                        </span>
-                        <span className={`font-bold text-right break-words ${s.color || "text-emerald-400"}`}>
-                          {s.value}
-                        </span>
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* =========================================================
+                  RIGHT PAGE: THE TURNING READING PAGE LEAF (3D FLIP)
+                  ========================================================= */}
+              <div className="sm:col-span-6 flex flex-col justify-between pl-1 sm:pl-3 pr-1 sm:pr-2 py-1 relative overflow-hidden">
+                {/* 3D Flipping Page Leaf Container */}
+                <div
+                  key={flipKey}
+                  className={`flex-1 flex flex-col justify-between relative ${
+                    flipDirection === "forward"
+                      ? "animate-page-flip-forward"
+                      : "animate-page-flip-backward"
+                  }`}
+                  style={{
+                    transformStyle: "preserve-3d",
+                    perspective: 900,
+                  }}
+                >
+                  {/* Subtle Page Leaf Vector Underlay */}
+                  <PixelPageLeafSvg className="absolute inset-0 w-full h-full pointer-events-none -z-10 opacity-70" />
+
+                  {/* Page Header: Current Chapter & Page Counter */}
+                  <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#B89F70]">
+                    <div className="flex items-center gap-1.5 font-pixel text-[11px] sm:text-xs font-bold text-[#2A160E] uppercase tracking-wider">
+                      {currentTab?.icon && React.createElement(currentTab.icon, { className: "w-3.5 h-3.5 text-[#3B1E12] flex-shrink-0" })}
+                      <span className="leading-none pt-0.5">{currentTab?.label}</span>
+                    </div>
+                    <span className="font-pixel text-[10px] text-[#7C5A32] font-mono leading-none pt-0.5">
+                      p. {activeTabIndex + 1} of {availableTabs.length}
+                    </span>
+                  </div>
+
+                  {/* Page Body Text on Antique Parchment */}
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[140px] sm:max-h-[170px] space-y-1.5">
+                    {currentTab?.id === "overview" && description && (
+                      <p className="font-pixel text-xs text-[#2A160E] leading-relaxed whitespace-pre-line break-words font-medium">
+                        {description}
+                      </p>
+                    )}
+
+                    {currentTab?.id === "improve" && howToImprove && (
+                      <div className="space-y-1">
+                        {Array.isArray(howToImprove) ? (
+                          <ul className="space-y-1">
+                            {howToImprove.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5 font-pixel text-xs text-[#2A160E] leading-relaxed">
+                                <span className="w-1.5 h-1.5 bg-[#3B1E12] mt-1.5 flex-shrink-0" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="font-pixel text-xs text-[#2A160E] leading-relaxed font-medium">
+                            {howToImprove}
+                          </p>
+                        )}
                       </div>
-                    );
-                  })}
+                    )}
+
+                    {currentTab?.id === "lore" && lore && (
+                      <p className="font-pixel text-xs text-[#381E13] italic leading-relaxed whitespace-normal break-words font-medium">
+                        &ldquo;{lore}&rdquo;
+                      </p>
+                    )}
+
+                    {currentTab?.id === "mechanics" && mechanics && (
+                      <p className="font-pixel text-xs text-[#2A160E] leading-relaxed whitespace-normal break-words font-medium">
+                        {mechanics}
+                      </p>
+                    )}
+
+                    {currentTab?.id === "stats" && stats && stats.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        {stats.map((s, idx) => {
+                          const IconComponent = s.icon || PixelStarIcon;
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between gap-2 p-1 bg-[#E4D1A4] border border-[#B89F70] font-pixel text-[11px] sm:text-xs text-[#2A160E]"
+                            >
+                              <span className="text-[#4A2D1B] flex items-center gap-1.5 flex-shrink-0">
+                                <IconComponent className="w-3.5 h-3.5 text-[#3B1E12] flex-shrink-0" />
+                                <span>{s.label}</span>
+                              </span>
+                              <span className="font-bold text-right text-[#2A160E]">
+                                {s.value}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Page Turning Interactive Navigation with Polished Positions */}
+                  {availableTabs.length > 1 && (
+                    <div className="pt-1.5 mt-1.5 border-t border-[#B89F70] flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={handlePrevTab}
+                          className="w-6 h-6 bg-[#421B1A] border border-[#2C1111] text-[#FDE68A] hover:bg-[#5C2C2B] transition-colors cursor-pointer shadow-[1px_1px_0_0_#000] flex items-center justify-center"
+                          title="Previous Page"
+                        >
+                          <PixelChevronLeftIcon className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleNextTab}
+                          className="w-6 h-6 bg-[#421B1A] border border-[#2C1111] text-[#FDE68A] hover:bg-[#5C2C2B] transition-colors cursor-pointer shadow-[1px_1px_0_0_#000] flex items-center justify-center"
+                          title="Next Page"
+                        >
+                          <PixelChevronRightIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleNextTab}
+                        className="flex items-center gap-1.5 font-pixel text-[10px] sm:text-xs text-[#FDE68A] bg-[#421B1A] border border-[#2C1111] px-2.5 py-1 shadow-[1px_1px_0_0_#000] hover:bg-[#5C2C2B] transition-colors cursor-pointer group active:translate-y-0.5"
+                      >
+                        <span className="leading-none pt-0.5">Turn Page: {availableTabs[(activeTabIndex + 1) % availableTabs.length]?.label}</span>
+                        <PixelChevronRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
-
-          {/* Interactive Bottom Explorer Navigation */}
-          {availableTabs.length > 1 && (
-            <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
-              <span className="text-[9.5px] font-mono text-slate-500">
-                Explore: {activeTabIndex + 1} of {availableTabs.length}
-              </span>
-              <button
-                type="button"
-                onClick={handleNextTab}
-                className="flex items-center gap-1 text-[10px] font-mono text-cyan-400 hover:text-cyan-300 font-bold px-2 py-0.5 rounded-md bg-cyan-950/50 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-sm"
-              >
-                <span>Next: {availableTabs[(activeTabIndex + 1) % availableTabs.length]?.label}</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {/* Tags Footer */}
-          {tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800/40">
-              {tags.map((t, i) => (
-                <span
-                  key={i}
-                  className="text-[9px] font-mono text-cyan-400/90 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-500/30"
-                >
-                  #{t}
-                </span>
-              ))}
-            </div>
-          )}
         </div>,
         document.body
       )}
@@ -492,3 +526,4 @@ export function SystemTooltip({
   );
 }
 
+export default SystemTooltip;

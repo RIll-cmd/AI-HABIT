@@ -1,346 +1,649 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { useCharacterStore } from "@/store/useCharacterStore";
+import { useSkillStore } from "@/features/skills/store/useSkillStore";
 import { calculateLevelData } from "@/features/progression/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { CurrencyIcon } from "@/components/CurrencyDisplay";
-import { SystemTooltip } from "@/components/ui/SystemTooltip";
-import { CURRENCY_LORE } from "@/features/lore/loreData";
 import { CHARACTER_AVATAR_SPRITE } from "@/utils/sprites";
-import { playUIMenuSFX } from "@/utils/audio";
+import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
+import { PixelProgress } from "@/components/ui/pixel/PixelProgress";
+import { GuildSealWatermark } from "@/components/ui/pixel/GuildSealWatermark";
 import {
-  Swords,
-  Sparkles,
-  Zap,
-  Award,
-  TrendingUp,
-  Sliders,
-  TreePine,
-  Palette,
-  History,
-  ShieldAlert,
-  Crown,
-  Shield,
-  Bot,
-  Activity,
-} from "lucide-react";
+  PixelAwardIcon,
+  PixelLightningIcon,
+  PixelCrownIcon,
+  PixelSlidersIcon,
+  PixelTreeIcon,
+  PixelPaletteIcon,
+  PixelHistoryIcon,
+  PixelSwordIcon,
+} from "@/components/ui/pixel/PixelIcons";
+import { X, Edit3, Check, Sparkles } from "lucide-react";
 
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
+const AVAILABLE_CLASSES = [
+  "ADVENTURER",
+  "NOVICE WARRIOR",
+  "APPRENTICE MAGE",
+  "SHADOW ROGUE",
+  "ACOLYTE PRIEST",
+  "PALADIN",
+  "BERSERKER",
+  "ARCH-WIZARD",
+  "STORMWEAVER",
+  "SHADOW MONARCH",
+  "ASSASSIN",
+  "CRUSADER",
+];
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { character, gainExp } = useCharacterStore();
+  const { character, gainExp, updateIdentity } = useCharacterStore();
+  const { definitions, playerSkills, fetchSkills } = useSkillStore();
+
   const totalExp = character?.exp || 0;
   const levelData = calculateLevelData(totalExp);
 
-  const name = character?.name || "Shadow Monarch";
-  const rank = character?.rank || "E";
+  const name = character?.name || "KAZUMA SATOU";
+  const rank = character?.rank || "F";
+  const gender = character?.gender || "M";
+  const age = character?.age ?? 16;
+  const race = character?.race || "HUMAN";
+  const activeClass = character?.specialization?.name || (character as any)?.class || "ADVENTURER";
   const gold = character?.gold ?? 0;
-  const gems = character?.gems ?? 0;
-  const towerTokens = character?.towerTokens ?? 0;
   const power = character?.power || 50;
+
+  useEffect(() => {
+    if (character?.id) {
+      fetchSkills(character.id);
+    }
+  }, [character?.id, fetchSkills]);
+
+  // Actual unlocked skills from the Elemental Skill Matrix
+  const unlockedSkills = definitions.filter((d) =>
+    playerSkills.some((ps) => ps.skillDefinitionId === d.id)
+  );
+
+  // Edit Modal State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(name);
+  const [editGender, setEditGender] = useState(gender);
+  const [editAge, setEditAge] = useState(age);
+  const [editRace, setEditRace] = useState(race);
+  const [editClass, setEditClass] = useState(activeClass.toUpperCase());
+
+  const openEditModal = () => {
+    setEditName(character?.name || name);
+    setEditGender(character?.gender || gender);
+    setEditAge(character?.age ?? age);
+    setEditRace(character?.race || race);
+    setEditClass((character?.specialization?.name || (character as any)?.class || "ADVENTURER").toUpperCase());
+    setIsEditing(true);
+    playUIMenuSFX("confirm");
+  };
+
+  const handleSaveCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateIdentity({
+      name: editName.trim() || name,
+      gender: editGender.trim() || gender,
+      age: Number(editAge) || age,
+      race: editRace.trim().toUpperCase() || race,
+      class: editClass.trim().toUpperCase() || activeClass,
+      specialization: {
+        id: `spec-${editClass.toLowerCase().replace(/\s+/g, "-")}`,
+        name: editClass.trim().toUpperCase(),
+        baseClass: editClass.trim().toUpperCase(),
+        tier: 1,
+        requiredLevel: 1,
+        passivePerk: `${editClass} Mastery`,
+      },
+    } as any);
+    playBuffSFX();
+    setIsEditing(false);
+  };
+
+  const stats = character?.stats || {
+    strength: 13,
+    knowledge: 15,
+    discipline: 12,
+    focus: 14,
+    endurance: 11,
+    recovery: 10,
+    consistency: 99,
+  };
 
   const tabs = [
     {
       name: "Stat Matrix",
+      rune: "ᚱ",
       href: "/profile/stats",
-      icon: Sliders,
-      activeColor: "border-cyan-500 text-cyan-300 bg-cyan-950/60 shadow-[0_0_20px_rgba(6,182,212,0.25)]",
+      icon: PixelSlidersIcon,
     },
     {
       name: "Skill Tree",
+      rune: "ᛋ",
       href: "/profile/skills",
-      icon: TreePine,
+      icon: PixelTreeIcon,
       badgeText: character?.availableSP ? `${character.availableSP} SP` : character?.specialization?.name || undefined,
-      badgeColor: character?.availableSP ? "bg-amber-500/20 text-amber-300 border-amber-500/50" : "bg-purple-500/20 text-purple-300 border-purple-500/50",
-      activeColor: "border-purple-500 text-purple-300 bg-purple-950/60 shadow-[0_0_20px_rgba(168,85,247,0.25)]",
+      badgeVariant: character?.availableSP ? ("gold" as const) : ("purple" as const),
     },
     {
       name: "Customization",
+      rune: "ᛏ",
       href: "/profile/customize",
-      icon: Palette,
-      activeColor: "border-indigo-500 text-indigo-300 bg-indigo-950/60 shadow-[0_0_20px_rgba(99,102,241,0.25)]",
+      icon: PixelPaletteIcon,
     },
     {
       name: "Chronicles",
+      rune: "ᚺ",
       href: "/profile/history",
-      icon: History,
-      activeColor: "border-amber-500 text-amber-300 bg-amber-950/60 shadow-[0_0_20px_rgba(245,158,11,0.25)]",
+      icon: PixelHistoryIcon,
     },
   ];
 
   return (
-    <div suppressHydrationWarning className="space-y-6 pb-12 font-sans animate-in fade-in duration-300 relative">
-      {/* Background Floating Runes & Particle Field */}
-      <FloatingRuneField density="low" className="opacity-60" />
+    <div suppressHydrationWarning className="space-y-6 pb-12 font-sans select-none relative">
+      {/* Tavern Pixel Animated Background (Profile and its subroutes only) */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: "url('/tavern_background.gif')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          imageRendering: "pixelated",
+        }}
+      >
+        {/* Subtle Ambient Vignette Overlay */}
+        <div className="absolute inset-0 bg-[#0d0517]/35 bg-[radial-gradient(ellipse_at_center,_transparent_40%,_rgba(13,5,23,0.65)_100%)]" />
+      </div>
 
-      {/* ========================================================= */}
-      {/* HERO & CORE IDENTITY HUD HEADER */}
-      {/* ========================================================= */}
-      <div className="relative rounded-[28px] bg-gradient-to-br from-[#0B1126]/95 via-[#070D1E]/95 to-[#040814]/98 border border-cyan-500/20 p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden backdrop-blur-2xl">
-        {/* Floating Runes & Ambient Particles inside Hero */}
-        <FloatingRuneField density="high" />
-
-        {/* Animated Cyber Accent Lines */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent pointer-events-none" />
+      <div className="relative z-10 space-y-6">
+        {/* ========================================================= */}
+        {/* KONOSUBA AUTHENTIC ADVENTURER STATUS GUILD CARD           */}
+        {/* ========================================================= */}
+        <div className="konosuba-adventurer-card p-4 sm:p-6 relative overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.9)] border-4 border-[#381e10]">
         
-        {/* Ambient Glow Orbs */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style={{ animationDelay: '2s' }} />
+        {/* Double-Line Inset Engraved Inner Frame */}
+        <div className="absolute inset-1.5 border-2 border-[#522e18] pointer-events-none z-20" />
+        <div className="absolute inset-2.5 border border-[#8c5225]/40 pointer-events-none z-20" />
+        
+        {/* Corner Rivet Cornerstones */}
+        <div className="absolute top-3 left-3 w-2 h-2 bg-[#381e10] border border-[#fef08a] z-30 pointer-events-none shadow-xs" />
+        <div className="absolute top-3 right-3 w-2 h-2 bg-[#381e10] border border-[#fef08a] z-30 pointer-events-none shadow-xs" />
+        <div className="absolute bottom-3 left-3 w-2 h-2 bg-[#381e10] border border-[#fef08a] z-30 pointer-events-none shadow-xs" />
+        <div className="absolute bottom-3 right-3 w-2 h-2 bg-[#381e10] border border-[#fef08a] z-30 pointer-events-none shadow-xs" />
 
-        {/* Subtle Runes & Grid Overlay */}
-        <div className="absolute inset-0 bg-repeating-linear-gradient pointer-events-none opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(6,182,212,0.02) 3px, rgba(6,182,212,0.02) 6px)' }} />
-        <span className="rune-static text-cyan-400/15" style={{ top: '12%', right: '18%', fontSize: '14px' }}>ᚦ</span>
-        <span className="rune-static text-purple-400/15" style={{ bottom: '15%', right: '35%', fontSize: '12px' }}>ᛗ</span>
+        {/* Background Authenticated Crimson Magic Circle & Giant Rank Watermark */}
+        <GuildSealWatermark rank={rank} />
 
-        <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
-          {/* LEFT: AVATAR, IDENTITY & ATTRIBUTE SUMMARY */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1 min-w-0">
+        {/* Top Ornate Runic Engraved Border Pattern Ribbon (Centered Anime Reference) */}
+        <div className="relative z-10 w-full bg-[#381e10] text-[#eedcb8] border-2 border-[#1a0c05] py-1 px-4 mb-4 select-none shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
+          <div className="w-full text-center flex flex-col items-center justify-center gap-0.5">
+            <div className="w-full text-center font-mono text-[9px] sm:text-[11px] tracking-[0.3em] text-[#d4af37] font-bold flex items-center justify-center gap-2">
+              <span className="hidden sm:inline opacity-70">ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉ</span>
+              <span>᛫ ᛭ ᛫ ADVENTURER STATUS CARD ᛫ ᛭ ᛫</span>
+              <span className="hidden sm:inline opacity-70">ᛋᛏᛒᛖᛗᛚᛜᛞᛟᚠᚢᚦᚨᚱ</span>
+            </div>
+            <div className="w-full text-center font-mono text-[8px] sm:text-[9px] tracking-[0.25em] text-[#eedcb8]/75 flex items-center justify-center gap-1 truncate">
+              <span>ᚲᚨᛉᚢᛗᚨ ᛋᚨᛏᛟᚢ ᛞᚨᛉᚢᛖᛟ ᚱᚨᚲᛖ ᛫ ᛖᚢᛋᛞ ᛉ ᛖ ᚨ ᚢ ᚾ ᚺ ᛞ ᛞ ᛉ ᛖ ᚱ ᚨ ᛖ ᛋ ᛟ ᚲ ᚲ ᛉ ᛞ</span>
+            </div>
+          </div>
+        </div>
+
+        {/* TOP SECTION: NAME, RUNIC GLYPHS, TITLE, DEMOGRAPHICS & PORTRAIT */}
+        <div className="relative z-10 flex flex-row items-start justify-between gap-3 sm:gap-4 pb-3 border-b-2 border-[#522e18]">
+          
+          {/* Left: Identity Details & Demographics */}
+          <div className="flex-1 space-y-1.5 min-w-0">
+            {/* Player Name, Active Title Badge & Serial */}
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black font-pixel text-[#241208] tracking-wider uppercase">
+                {name}
+              </h1>
+
+              {/* Title Badge (Positioned at Top Header) */}
+              <div className="flex items-center gap-1.5 text-xs font-pixel text-[#2b170c] bg-[#ebd099] border-2 border-[#693e15] px-2.5 py-1 shadow-[inset_1px_1px_0_0_#ffffff]">
+                <span className="w-2 h-2 bg-[#b45309]" />
+                <span className="font-bold">TITLE: {character?.title || "Hydration Monarch"}</span>
+              </div>
+
+              <span className="text-xs font-pixel text-[#824f2b] font-bold tracking-wider px-2 py-0.5 bg-[#ecd9b5]/60 border border-[#824f2b]/40">
+                #ASC-0491
+              </span>
+            </div>
+
+            {/* Translated Ancient Runic Name (Exact Anime Font Look) */}
+            <div className="text-xs sm:text-sm font-mono text-[#633a20] tracking-[0.25em] font-bold select-none truncate">
+              ᚲᚨᛉᚢᛗᚨ ᛋᚨᛏᛟᚢ ᛞᚨᛉᚢᛖᛟ ᚱᚨᚲᛖ
+            </div>
+
+            {/* Demographics Row (Interactive / Editable) */}
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-pixel font-bold text-[#361c0c] pt-0.5">
+              <span className="hover:text-amber-950 cursor-pointer" onClick={openEditModal}>
+                GEN: <strong>{gender}</strong>
+              </span>
+              <span className="text-[#6d4c3d]">|-|</span>
+              <span className="hover:text-amber-950 cursor-pointer" onClick={openEditModal}>
+                AGE: <strong>{age}</strong>
+              </span>
+              <span className="text-[#6d4c3d]">|-|</span>
+              <span className="hover:text-amber-950 cursor-pointer" onClick={openEditModal}>
+                RAC: <strong>{race}</strong>
+              </span>
+              <span className="text-[#6d4c3d]">|-|</span>
+              <span className="hover:text-amber-950 cursor-pointer" onClick={openEditModal}>
+                CLASS: <strong className="text-[#8c2d0f]">{activeClass.toUpperCase()}</strong>
+              </span>
+
+              {/* Edit Credentials Trigger Button */}
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="inline-flex items-center gap-1.5 ml-1 px-2 py-1 bg-[#caa97e] border-2 border-[#4a2813] text-[#361c0c] text-xs font-bold hover:bg-[#dfcaac] active:translate-y-0.5 cursor-pointer shadow-[inset_0_0_6px_rgba(89,59,34,0.3)]"
+                title="Edit Character Credentials & Class"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>EDIT</span>
+              </button>
+            </div>
+
+            {/* Runic Bio / Lore Script Row */}
+            <div className="text-[10px] sm:text-xs font-mono text-[#6d4c3d] tracking-wider select-none truncate max-w-xl">
+              ᛖᚢᛋᛞ: 7 ᛉ ᛖ ᚨ ᚢ ᚾ: ᚺ ᛞ ᛞ ᛉ ᛖ ᚱ ᚨ ᛖ: ᛋ ᛟ ᚲ ᚲ ᛉ ᛞ ᛫ ASCENDANT GUILD REGISTRY
+            </div>
+          </div>
+
+          {/* Right: Character Portrait ID Box & Level Tag */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="text-right font-pixel">
+              <div className="text-xl sm:text-2xl font-black text-[#221208] flex items-center justify-end gap-1">
+                <span className="text-xs sm:text-sm text-[#6d4c3d] font-bold">LV</span>
+                <span>{levelData.currentLevel}</span>
+              </div>
+              <div className="flex items-center justify-end gap-1 text-[8px] sm:text-[9px] text-[#9e704a] mt-0.5">
+                <span>◆</span>
+                <span>◆</span>
+                <span>◆</span>
+                <span className="text-xs text-[#361c0c] font-bold ml-1">RANK {rank.toUpperCase()}</span>
+              </div>
+            </div>
+
+            {/* Portrait Frame Box */}
+            <div className="w-18 h-18 sm:w-22 sm:h-22 md:w-26 md:h-26 bg-[#caa97e] border-3 border-[#361b0c] shadow-[inset_0_0_12px_rgba(89,59,34,0.45),inset_2px_2px_4px_rgba(0,0,0,0.35)] flex items-center justify-center p-1.5 relative overflow-hidden shrink-0">
+              <img
+                src={character?.avatar || CHARACTER_AVATAR_SPRITE}
+                alt={name}
+                onError={(e) => {
+                  e.currentTarget.src = CHARACTER_AVATAR_SPRITE;
+                }}
+                className="w-full h-full object-contain relative z-10"
+                style={{ imageRendering: "pixelated" }}
+              />
+              {/* Corner Security Prongs */}
+              <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-[#4a2813]" />
+              <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-[#4a2813]" />
+              <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-[#4a2813]" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-[#4a2813]" />
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* MIDDLE SECTION: 2 BALANCED POLISHED COLUMNS               */}
+        {/* ========================================================= */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 py-3 border-b-2 border-[#4a2813]">
+          
+          {/* COLUMN 1: STATS PARAMETER TABLE WITH LOCKED 3-COLUMN ALIGNMENT */}
+          <div className="md:col-span-7 space-y-2 font-pixel text-xs">
+            {/* Table Header Banner */}
+            <div className="bg-[#331c0e] text-[#fef08a] px-3 py-1.5 grid grid-cols-12 items-center text-xs font-bold border border-[#180b04]">
+              <div className="col-span-6 sm:col-span-6 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-amber-400 rotate-45" />
+                <span className="tracking-wider">ATTRIBUTE</span>
+              </div>
+              <div className="col-span-4 sm:col-span-4 text-center text-[10px] text-[#e2b17a]">
+                RUNE GLYPH
+              </div>
+              <div className="col-span-2 sm:col-span-2 text-right text-[10px] text-[#e2b17a]">
+                VALUE
+              </div>
+            </div>
+
+            {/* Stat Rows with Locked Grid Layout (Zero Drift/Misalignment) */}
+            <div className="space-y-1 bg-[#caa97e]/40 p-2.5 border border-[#4a2813]/50 shadow-[inset_0_0_12px_rgba(89,59,34,0.3)]">
+              <div className="grid grid-cols-12 items-center py-1 border-b border-[#4a2813]/20">
+                <div className="col-span-6 sm:col-span-6 text-[#221208] font-bold truncate">STRENGTH</div>
+                <div className="col-span-4 sm:col-span-4 text-center font-mono text-[10px] text-[#6d4c3d]">ᛋᛏᚱ ⬦</div>
+                <div className="col-span-2 sm:col-span-2 text-right font-bold text-[#221208] text-sm">{stats.strength}</div>
+              </div>
+              <div className="grid grid-cols-12 items-center py-1 border-b border-[#4a2813]/20">
+                <div className="col-span-6 sm:col-span-6 text-[#221208] font-bold truncate">HEALTH / ENDURANCE</div>
+                <div className="col-span-4 sm:col-span-4 text-center font-mono text-[10px] text-[#6d4c3d]">ᚺᛚᛏ ⬦</div>
+                <div className="col-span-2 sm:col-span-2 text-right font-bold text-[#221208] text-sm">{stats.endurance}</div>
+              </div>
+              <div className="grid grid-cols-12 items-center py-1 border-b border-[#4a2813]/20">
+                <div className="col-span-6 sm:col-span-6 text-[#221208] font-bold truncate">MAGIC POW / KNOWLEDGE</div>
+                <div className="col-span-4 sm:col-span-4 text-center font-mono text-[10px] text-[#6d4c3d]">ᛗᚷᚲ ⬦</div>
+                <div className="col-span-2 sm:col-span-2 text-right font-bold text-[#221208] text-sm">{stats.knowledge}</div>
+              </div>
+              <div className="grid grid-cols-12 items-center py-1 border-b border-[#4a2813]/20">
+                <div className="col-span-6 sm:col-span-6 text-[#221208] font-bold truncate">DEXTERITY / FOCUS</div>
+                <div className="col-span-4 sm:col-span-4 text-center font-mono text-[10px] text-[#6d4c3d]">ᛞᛪᛏ ⬦</div>
+                <div className="col-span-2 sm:col-span-2 text-right font-bold text-[#221208] text-sm">{stats.focus}</div>
+              </div>
+              <div className="grid grid-cols-12 items-center py-1 border-b border-[#4a2813]/20">
+                <div className="col-span-6 sm:col-span-6 text-[#221208] font-bold truncate">AGILITY / CONSISTENCY</div>
+                <div className="col-span-4 sm:col-span-4 text-center font-mono text-[10px] text-[#6d4c3d]">ᛇᚷᛚ ⬦</div>
+                <div className="col-span-2 sm:col-span-2 text-right font-bold text-[#221208] text-sm">{stats.consistency || 99}</div>
+              </div>
+              <div className="grid grid-cols-12 items-center py-1">
+                <div className="col-span-6 sm:col-span-6 text-[#221208] font-bold truncate">LUCK / DISCIPLINE</div>
+                <div className="col-span-4 sm:col-span-4 text-center font-mono text-[10px] text-[#6d4c3d]">ᛚᚲᚲ ⬦</div>
+                <div className="col-span-2 sm:col-span-2 text-right font-bold text-[#8c2d0f] text-sm">{stats.discipline}</div>
+              </div>
+            </div>
+
+            {/* Currencies & Power Telemetry */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[#6d4c3d] font-bold">GOLD:</span>
+                <strong className="text-amber-950 font-black">{gold.toLocaleString()}g</strong>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[#6d4c3d] font-bold">POWER:</span>
+                <strong className="text-[#221208] font-black">{power.toLocaleString()}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* COLUMN 2: LEARNED SKILLS & DIRECTIVES (md:col-span-5) */}
+          <div className="md:col-span-5 space-y-2 font-pixel text-xs flex flex-col justify-between">
+            <div className="space-y-2">
+              {/* Table Header Banner */}
+              <div className="bg-[#331c0e] text-[#fef08a] px-3 py-1.5 flex items-center justify-between text-xs font-bold border border-[#180b04]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 bg-amber-400 rotate-45" />
+                  <span className="tracking-wider">ᛋᚲᛁᛚᛚ LEARNED SKILLS & ABILITIES</span>
+                </div>
+                <Link href="/skills" className="text-[10px] text-amber-300 underline hover:text-amber-100">
+                  Matrix ({unlockedSkills.length})
+                </Link>
+              </div>
+
+              {/* Dynamic Unlocked Skills List */}
+              <div className="space-y-2 max-h-[170px] overflow-y-auto custom-scrollbar">
+                {unlockedSkills.length > 0 ? (
+                  unlockedSkills.map((skill) => (
+                    <div
+                      key={skill.id}
+                      className="p-2.5 bg-[#caa97e] border-2 border-[#4a2813] shadow-[inset_0_0_8px_rgba(89,59,34,0.35)] flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-[#6d4c3d] font-bold uppercase">{skill.elementPath || "SKILL"} TIER {skill.tier}</span>
+                        </div>
+                        <div className="text-xs font-bold text-[#221208] mt-0.5 tracking-wide">
+                          ✦ {skill.name.toUpperCase()} ✦
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-emerald-900 font-bold px-2 py-0.5 bg-emerald-200/80 border border-emerald-800 shadow-xs">
+                        MASTERED
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    {/* Specialization Class Perk if awakened */}
+                    {character?.specialization?.passivePerk ? (
+                      <div className="p-2.5 bg-[#caa97e] border-2 border-[#4a2813] shadow-[inset_0_0_8px_rgba(89,59,34,0.35)] flex items-center justify-between">
+                        <div>
+                          <span className="text-[9px] text-[#6d4c3d] font-bold uppercase">CLASS PASSIVE</span>
+                          <div className="text-xs font-bold text-[#221208] mt-0.5 tracking-wide">
+                            ✦ {character.specialization.passivePerk.toUpperCase()} ✦
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-amber-950 font-bold px-2 py-0.5 bg-amber-200/80 border border-amber-800">
+                          ACTIVE
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {/* Empty Skill Slots Ready for Unlocking in /skills */}
+                    <div className="p-3 bg-[#caa97e]/30 border border-dashed border-[#4a2813]/70 text-center space-y-1">
+                      <span className="text-xs text-[#593b22] uppercase font-bold block">[ EMPTY SKILL SLOT ]</span>
+                      <Link
+                        href="/skills"
+                        className="inline-flex items-center gap-1 text-[10px] text-[#8c2d0f] font-bold underline hover:text-amber-950"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Unlock in Elemental Skill Matrix →</span>
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Simulate Training Action */}
+            <div className="pt-2">
+              <PixelButton
+                onClick={() => {
+                  gainExp(150, "Completed Training Simulation");
+                  playUIMenuSFX();
+                }}
+                variant="gold"
+                size="sm"
+                className="w-full flex items-center justify-center gap-2 text-xs font-bold h-10"
+              >
+                <PixelLightningIcon className="w-4 h-4 text-amber-900" />
+                <span>Simulate (+150 EXP)</span>
+              </PixelButton>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* BOTTOM SECTION: EXP PROGRESSION & UNIFORM SIZED TABS      */}
+        {/* ========================================================= */}
+        <div className="relative z-10 pt-3 space-y-3">
+          {/* Level Progression */}
+          <div className="flex items-center justify-between text-xs font-pixel text-[#361c0c]">
+            <span className="font-bold uppercase tracking-wider flex items-center gap-2">
+              <span>ᛖᛪᛈ CERTIFICATION EXP:</span>
+              <strong className="text-[#221208]">{levelData.currentExpInLevel} / {levelData.expToNextLevel}</strong>
+            </span>
+            <span className="text-[#6d4c3d] font-bold">({levelData.progressPercentage}%)</span>
+          </div>
+
+          <PixelProgress
+            value={levelData.progressPercentage}
+            color="gold"
+            showShimmer
+            className="h-3.5 border-2 border-[#361b0c]"
+          />
+
+          {/* ========================================================= */}
+          {/* UNIFORM SIZED NAVIGATION TAB BUTTONS (EXACT SAME HEIGHT)  */}
+          {/* ========================================================= */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 font-pixel text-xs">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const isActive = pathname === t.href || (pathname === "/profile" && t.href === "/profile/stats");
+              return (
+                <Link key={t.href} href={t.href} onClick={() => playUIMenuSFX()} className="w-full">
+                  <button
+                    type="button"
+                    className={`w-full h-11 sm:h-12 flex items-center justify-center gap-2 px-3 py-2 uppercase font-bold transition-none cursor-pointer border-2 active:translate-y-0.5 ${
+                      isActive
+                        ? "bg-[#331c0e] text-[#fef08a] border-[#180b04] shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]"
+                        : "bg-[#caa97e] text-[#221208] border-[#4a2813] hover:bg-[#dfcaac] shadow-[inset_0_0_8px_rgba(89,59,34,0.3)]"
+                    }`}
+                  >
+                    <span className="font-mono text-[#6d4c3d] font-bold text-sm shrink-0">{t.rune}</span>
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#fef08a]" : "text-[#4a2813]"}`} />
+                    <span className="truncate">{t.name}</span>
+                    {t.badgeText && (
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 font-mono font-bold shrink-0 border ${
+                          isActive
+                            ? "bg-amber-400 text-amber-950 border-amber-300"
+                            : "bg-[#331c0e] text-[#fef08a] border-[#180b04]"
+                        }`}
+                      >
+                        {t.badgeText}
+                      </span>
+                    )}
+                  </button>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ========================================================= */}
+      {/* EDIT CHARACTER CREDENTIALS MODAL (NAME, GEN, AGE, RAC, CLS) */}
+      {/* ========================================================= */}
+      {isEditing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs font-pixel">
+          <div className="konosuba-adventurer-card max-w-md w-full p-5 border-4 border-[#381e10] shadow-[0_16px_36px_rgba(0,0,0,0.9)] space-y-4">
             
-            {/* Holographic Avatar Frame */}
-            <div className="relative shrink-0 group">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-[#0f1738] to-[#080d22] border-2 border-cyan-500/40 flex items-center justify-center p-1.5 shadow-[0_0_30px_rgba(6,182,212,0.25)] group-hover:border-cyan-400/70 group-hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all duration-400 relative overflow-hidden">
-                {/* Background Shimmer */}
-                <div className="absolute inset-0 bg-gradient-to-t from-cyan-950/60 to-transparent pointer-events-none" />
-                
-                <img
-                  src={character?.avatar || CHARACTER_AVATAR_SPRITE}
-                  alt={name}
-                  onError={(e) => {
-                    e.currentTarget.src = CHARACTER_AVATAR_SPRITE;
-                  }}
-                  className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_12px_rgba(6,182,212,0.5)] group-hover:scale-110 transition-transform duration-500"
-                  style={{ imageRendering: "pixelated" }}
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b-2 border-[#522e18] pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-amber-800 rotate-45" />
+                <h3 className="text-sm font-bold text-[#241208] uppercase tracking-wider">
+                  Edit Adventurer Credentials
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="p-1 text-[#522e18] hover:text-[#241208] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <form onSubmit={handleSaveCredentials} className="space-y-3 text-xs">
+              {/* Name */}
+              <div className="space-y-1">
+                <label className="block text-[10px] text-[#633a20] uppercase font-bold">
+                  Adventurer Name
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-[#ebd9b5] border-2 border-[#522e18] text-[#241208] font-bold focus:outline-none focus:border-amber-900"
+                  required
                 />
               </div>
 
-              {/* LVL Stepper Badge */}
-              <motion.div
-                key={`lvl-${levelData.currentLevel}`}
-                initial={{ scale: 1.25, color: "#67e8f9" }}
-                animate={{ scale: 1, color: "#FFFFFF" }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 text-white text-[11px] font-mono font-bold border border-cyan-400/60 shadow-[0_0_15px_rgba(6,182,212,0.6)] whitespace-nowrap"
-              >
-                LVL {levelData.currentLevel}
-              </motion.div>
-            </div>
-
-            {/* Identity & Rank Details */}
-            <div className="space-y-2 min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] truncate">
-                  {name}
-                </h1>
-
-                {/* Rank Badge */}
-                <span className="px-3 py-1 rounded-xl bg-purple-950/80 border border-purple-500/60 text-purple-300 font-mono text-xs font-bold shadow-[0_0_20px_rgba(168,85,247,0.35)] flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                  <span>{rank}-Rank Sovereign</span>
-                </span>
-
-                {/* Available Skill Points for Skill Tree */}
-                {character?.availableSP && character.availableSP > 0 ? (
-                  <Link href="/profile/skills">
-                    <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/60 font-mono font-bold text-xs uppercase px-2.5 py-1 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.4)] flex items-center gap-1.5 hover:bg-amber-500/30 transition-all cursor-pointer">
-                      <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      <span>{character.availableSP} SP READY FOR SKILL TREE</span>
-                    </Badge>
-                  </Link>
-                ) : null}
-              </div>
-
-              {/* Title & Specialization Class */}
-              <div className="flex flex-wrap items-center gap-2.5 pt-0.5">
-                <div className="flex items-center gap-1.5 text-xs text-purple-300 font-semibold bg-purple-950/30 border border-purple-500/20 px-2.5 py-0.5 rounded-lg">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400 glow-purple" />
-                  <span>{character?.title || "Shadow Seeker"}</span>
+              {/* Row: Gender & Age */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] text-[#633a20] uppercase font-bold">
+                    Gender (GEN)
+                  </label>
+                  <select
+                    value={editGender}
+                    onChange={(e) => setEditGender(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-[#ebd9b5] border-2 border-[#522e18] text-[#241208] font-bold focus:outline-none focus:border-amber-900"
+                  >
+                    <option value="M">M (Male)</option>
+                    <option value="F">F (Female)</option>
+                    <option value="X">X (Other)</option>
+                  </select>
                 </div>
 
-                {character?.specialization ? (
-                  <span className="px-2.5 py-0.5 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
-                    <Crown className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Awakened Class: {character.specialization.name}</span>
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-lg bg-slate-900 border border-slate-700/80 text-slate-400 font-mono text-[11px]">
-                    Unawakened Novice
-                  </span>
-                )}
-              </div>
-
-              {/* Live Currencies & Power Score Hub */}
-              <div className="flex flex-wrap items-center gap-3 text-xs font-mono pt-1">
-                {/* Gold */}
-                <SystemTooltip
-                  title={CURRENCY_LORE.gold.name}
-                  category={CURRENCY_LORE.gold.category}
-                  rarity={CURRENCY_LORE.gold.rarity}
-                  description={CURRENCY_LORE.gold.description}
-                  lore={CURRENCY_LORE.gold.lore}
-                  mechanics={CURRENCY_LORE.gold.mechanics}
-                  stats={[
-                    { label: "Your Balance", value: `${gold.toLocaleString()} Gold`, color: "text-amber-400" },
-                    { label: "Asset Type", value: "Primary Economy" }
-                  ]}
-                  tags={CURRENCY_LORE.gold.tags}
-                >
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-950/25 border border-amber-500/25 hover:border-amber-400/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition-all cursor-help">
-                    <CurrencyIcon type="GOLD" size="xs" />
-                    <span className="text-amber-300 font-bold">{gold.toLocaleString()}g</span>
-                  </div>
-                </SystemTooltip>
-
-                {/* Gems */}
-                <SystemTooltip
-                  title={CURRENCY_LORE.gems.name}
-                  category={CURRENCY_LORE.gems.category}
-                  rarity={CURRENCY_LORE.gems.rarity}
-                  description={CURRENCY_LORE.gems.description}
-                  lore={CURRENCY_LORE.gems.lore}
-                  mechanics={CURRENCY_LORE.gems.mechanics}
-                  stats={[
-                    { label: "Your Balance", value: `${gems.toLocaleString()} Gems`, color: "text-cyan-400" },
-                    { label: "Asset Type", value: "Astral Premium" }
-                  ]}
-                  tags={CURRENCY_LORE.gems.tags}
-                >
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-950/25 border border-cyan-500/25 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.25)] transition-all cursor-help">
-                    <CurrencyIcon type="GEMS" size="xs" />
-                    <span className="text-cyan-300 font-bold">{gems.toLocaleString()}</span>
-                  </div>
-                </SystemTooltip>
-
-                {/* Tower Tokens */}
-                <SystemTooltip
-                  title={CURRENCY_LORE.towerTokens.name}
-                  category={CURRENCY_LORE.towerTokens.category}
-                  rarity={CURRENCY_LORE.towerTokens.rarity}
-                  description={CURRENCY_LORE.towerTokens.description}
-                  lore={CURRENCY_LORE.towerTokens.lore}
-                  mechanics={CURRENCY_LORE.towerTokens.mechanics}
-                  stats={[
-                    { label: "Your Balance", value: `${towerTokens.toLocaleString()} Tokens`, color: "text-indigo-400" },
-                    { label: "Asset Type", value: "Dimensional Sigils" }
-                  ]}
-                  tags={CURRENCY_LORE.towerTokens.tags}
-                >
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-950/25 border border-indigo-500/25 hover:border-indigo-400/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.25)] transition-all cursor-help">
-                    <CurrencyIcon type="TOWER_TOKENS" size="xs" />
-                    <span className="text-indigo-300 font-bold">{towerTokens.toLocaleString()}</span>
-                  </div>
-                </SystemTooltip>
-
-                {/* Power Score */}
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                  <Zap className="w-3.5 h-3.5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                  <span className="text-slate-400 text-[10px] uppercase tracking-wider">POWER:</span>
-                  <span className="text-cyan-200 font-bold font-mono animate-number-glow">{power.toLocaleString()}</span>
+                <div className="space-y-1">
+                  <label className="block text-[10px] text-[#633a20] uppercase font-bold">
+                    Age (AGE)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="9999"
+                    value={editAge}
+                    onChange={(e) => setEditAge(Number(e.target.value))}
+                    className="w-full px-2.5 py-1.5 bg-[#ebd9b5] border-2 border-[#522e18] text-[#241208] font-bold focus:outline-none focus:border-amber-900"
+                    required
+                  />
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* RIGHT: AIRA SYSTEM DIAGNOSTIC PANEL & QUICK ACTION */}
-          <div className="w-full xl:w-auto flex flex-col sm:flex-row items-stretch xl:items-center gap-3">
-            {/* AIRA Live Status Pill */}
-            <div className="p-3.5 px-4 rounded-2xl bg-gradient-to-br from-[#091024]/90 to-[#0c1636]/90 border border-cyan-500/25 flex items-center gap-3 shadow-inner">
-              <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)] shrink-0 animate-energy-pulse">
-                <Bot className="w-5 h-5" />
-              </div>
-              <div className="text-left font-mono">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">AIRA ARCHIVE LINK</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {/* Row: Race & Class */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] text-[#633a20] uppercase font-bold">
+                    Race / Lineage (RAC)
+                  </label>
+                  <input
+                    type="text"
+                    value={editRace}
+                    onChange={(e) => setEditRace(e.target.value)}
+                    placeholder="e.g. HUMAN, GODDESS"
+                    className="w-full px-2.5 py-1.5 bg-[#ebd9b5] border-2 border-[#522e18] text-[#241208] font-bold uppercase focus:outline-none focus:border-amber-900"
+                    required
+                  />
                 </div>
-                <div className="text-xs text-slate-300 truncate max-w-[200px]">
-                  All biometric & combat telemetry nominal.
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] text-[#633a20] uppercase font-bold">
+                    Adventurer Class (CLS)
+                  </label>
+                  <select
+                    value={editClass}
+                    onChange={(e) => setEditClass(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-[#ebd9b5] border-2 border-[#522e18] text-[#241208] font-bold uppercase focus:outline-none focus:border-amber-900"
+                  >
+                    {AVAILABLE_CLASSES.map((cls) => (
+                      <option key={cls} value={cls}>
+                        {cls}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            </div>
 
-            {/* Quick Training Simulation Button */}
-            <Button
-              onClick={() => {
-                gainExp(150, "Completed Training Simulation");
-                playUIMenuSFX();
-              }}
-              variant="default"
-              className="h-12 px-5 rounded-2xl font-bold font-mono text-xs uppercase tracking-wider bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-blue-600/30 hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all active:scale-[0.97]"
-            >
-              <Zap className="w-4 h-4 mr-2 text-amber-300 fill-amber-300 animate-pulse" />
-              <span>Simulate (+150 EXP)</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* ========================================================= */}
-        {/* EXP PROGRESSION BAR WITH ANIMATED STAR ICON */}
-        {/* ========================================================= */}
-        <div className="mt-6 pt-5 border-t border-cyan-500/10 space-y-2">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-slate-300 font-bold uppercase tracking-wider flex items-center gap-2">
-              <CurrencyIcon type="EXP" size="sm" />
-              <span>Level {levelData.currentLevel} Progression</span>
-            </span>
-            <span className="text-slate-400 flex items-center gap-1.5">
-              <strong className="text-cyan-300 font-bold">{levelData.currentExpInLevel.toLocaleString()}</strong>
-              <span>/</span>
-              <span>{levelData.expToNextLevel.toLocaleString()} EXP</span>
-              <span className="text-purple-300 font-bold ml-1">({levelData.progressPercentage}%)</span>
-            </span>
-          </div>
-
-          <div className="w-full h-3 bg-[#080D20] rounded-full border border-cyan-500/20 p-0.5 relative overflow-hidden shadow-inner">
-            <motion.div
-              className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.6)] bar-shimmer"
-              initial={false}
-              animate={{ width: `${levelData.progressPercentage}%` }}
-              transition={{ type: "spring", stiffness: 90, damping: 15 }}
-            />
-          </div>
-        </div>
-
-        {/* ========================================================= */}
-        {/* SUB-ROUTES NAVIGATION TABS */}
-        {/* ========================================================= */}
-        <div className="mt-6 pt-4 border-t border-cyan-500/10 flex items-center gap-2.5 overflow-x-auto pb-1 custom-scrollbar">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const isActive = pathname === t.href || (pathname === "/profile" && t.href === "/profile/stats");
-            return (
-              <Link key={t.href} href={t.href} onClick={() => playUIMenuSFX()}>
+              {/* Actions */}
+              <div className="pt-3 border-t-2 border-[#522e18] flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-bold transition-all duration-300 cursor-pointer ${
-                    isActive
-                      ? `${t.activeColor} border-2`
-                      : "border border-slate-800/80 bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-900/80 hover:border-slate-700"
-                  }`}
+                  onClick={() => setIsEditing(false)}
+                  className="px-3 py-1.5 bg-[#ebd9b5] border-2 border-[#522e18] text-[#381e10] hover:bg-[#dfba7c] cursor-pointer"
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-cyan-300" : "text-slate-500"}`} />
-                  <span>{t.name}</span>
-                  {t.badgeText && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md border font-bold ${t.badgeColor || "bg-slate-800 text-slate-300"}`}>
-                      {t.badgeText}
-                    </span>
-                  )}
+                  Cancel
                 </button>
-              </Link>
-            );
-          })}
+
+                <PixelButton
+                  type="submit"
+                  variant="gold"
+                  size="sm"
+                  className="flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5 text-amber-900" />
+                  <span>Save Credentials</span>
+                </PixelButton>
+              </div>
+            </form>
+
+          </div>
         </div>
-      </div>
+      )}
 
       {/* SUB-ROUTE CONTENT CONTAINER */}
-      <div className="relative z-10">{children}</div>
+      <div>{children}</div>
+      </div>
     </div>
   );
 }
-

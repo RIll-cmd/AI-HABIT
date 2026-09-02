@@ -4,65 +4,62 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import {
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle2,
-  Dumbbell,
-  HeartPulse,
-  Brain,
-  Zap,
-  Target,
-  Clock,
-  Shield,
-  BookOpen,
-  Calendar,
-  Flame,
-  Star,
-  Activity,
-  Layers,
-  Coins,
-  Settings,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { HabitDifficulty, PrimaryStat, ScheduleType } from "../types";
 import { getBaseReward } from "../utils";
 import { useHabitStore } from "../store";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
+import { PixelProgress } from "@/components/ui/pixel/PixelProgress";
+import {
+  PixelSparklesIcon,
+  PixelDumbbellIcon,
+  PixelHeartIcon,
+  PixelBookIcon,
+  PixelTargetIcon,
+  PixelLightningIcon,
+  PixelShieldIcon,
+  PixelActivityIcon,
+  PixelCheckIcon,
+  PixelArrowRightIcon,
+  PixelArrowLeftIcon,
+  PixelFlameIcon,
+  PixelCoinsIcon,
+  PixelStarIcon,
+  PixelLayersIcon,
+  PixelCalendarIcon,
+  PixelHistoryIcon,
+} from "@/components/ui/pixel/PixelIcons";
 
 const CATEGORIES = [
-  { id: "Health", label: "Health", icon: HeartPulse, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" },
-  { id: "Fitness", label: "Fitness", icon: Dumbbell, color: "text-blue-400 bg-blue-500/10 border-blue-500/30" },
-  { id: "Productivity", label: "Productivity", icon: Target, color: "text-purple-400 bg-purple-500/10 border-purple-500/30" },
-  { id: "Mindfulness", label: "Mindfulness", icon: Brain, color: "text-pink-400 bg-pink-500/10 border-pink-500/30" },
-  { id: "Learning", label: "Learning", icon: BookOpen, color: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
-  { id: "Finance", label: "Finance", icon: Coins, color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30" },
+  { id: "Health", label: "Health", icon: PixelHeartIcon, color: "text-emerald-400" },
+  { id: "Fitness", label: "Fitness", icon: PixelDumbbellIcon, color: "text-red-400" },
+  { id: "Productivity", label: "Productivity", icon: PixelTargetIcon, color: "text-purple-400" },
+  { id: "Mindfulness", label: "Mindfulness", icon: PixelSparklesIcon, color: "text-pink-400" },
+  { id: "Learning", label: "Learning", icon: PixelBookIcon, color: "text-amber-400" },
+  { id: "Finance", label: "Finance", icon: PixelCoinsIcon, color: "text-yellow-400" },
 ];
 
-const PRIMARY_STATS: { id: PrimaryStat; label: string; icon: any; color: string; desc: string }[] = [
-  { id: "strength", label: "Strength", icon: Dumbbell, color: "text-red-400 border-red-500/30 bg-red-500/10", desc: "Physical power & fitness" },
-  { id: "knowledge", label: "Knowledge", icon: BookOpen, color: "text-blue-400 border-blue-500/30 bg-blue-500/10", desc: "Learning & mental sharpness" },
-  { id: "discipline", label: "Discipline", icon: Shield, color: "text-purple-400 border-purple-500/30 bg-purple-500/10", desc: "Willpower & task execution" },
-  { id: "focus", label: "Focus", icon: Target, color: "text-amber-400 border-amber-500/30 bg-amber-500/10", desc: "Concentration & deep work" },
-  { id: "endurance", label: "Endurance", icon: Zap, color: "text-orange-400 border-orange-500/30 bg-orange-500/10", desc: "Stamina & persistence" },
-  { id: "recovery", label: "Recovery", icon: HeartPulse, color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10", desc: "Rest, health & vitality" },
-  { id: "consistency", label: "Consistency", icon: Activity, color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10", desc: "Streak stability & habit strength" },
+const PRIMARY_STATS: { id: PrimaryStat; label: string; icon: any; desc: string }[] = [
+  { id: "strength", label: "Strength", icon: PixelDumbbellIcon, desc: "Physical power & fitness" },
+  { id: "knowledge", label: "Knowledge", icon: PixelBookIcon, desc: "Learning & mental sharpness" },
+  { id: "discipline", label: "Discipline", icon: PixelShieldIcon, desc: "Willpower & task execution" },
+  { id: "focus", label: "Focus", icon: PixelTargetIcon, desc: "Concentration & deep work" },
+  { id: "endurance", label: "Endurance", icon: PixelLightningIcon, desc: "Stamina & persistence" },
+  { id: "recovery", label: "Recovery", icon: PixelHeartIcon, desc: "Rest, health & vitality" },
+  { id: "consistency", label: "Consistency", icon: PixelActivityIcon, desc: "Streak stability & habit strength" },
 ];
 
-const DIFFICULTIES: { id: HabitDifficulty; label: string; desc: string; color: string }[] = [
-  { id: "EASY", label: "Easy", desc: "Quick daily routines (15 EXP, 5 Gold, +2 Stat)", color: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:border-emerald-400" },
-  { id: "MEDIUM", label: "Medium", desc: "Standard focused effort (35 EXP, 12 Gold, +5 Stat)", color: "border-blue-500/40 text-blue-400 bg-blue-500/10 hover:border-blue-400" },
-  { id: "HARD", label: "Hard", desc: "Challenging growth missions (75 EXP, 25 Gold, +10 Stat)", color: "border-amber-500/40 text-amber-400 bg-amber-500/10 hover:border-amber-400" },
+const DIFFICULTIES: { id: HabitDifficulty; label: string; desc: string }[] = [
+  { id: "EASY", label: "Easy", desc: "Quick daily routines (+15 EXP, +5 Gold, +2 Stat)" },
+  { id: "MEDIUM", label: "Medium", desc: "Standard focused effort (+35 EXP, +12 Gold, +5 Stat)" },
+  { id: "HARD", label: "Hard", desc: "Challenging growth missions (+75 EXP, +25 Gold, +10 Stat)" },
 ];
 
 const SCHEDULE_TYPES: { id: ScheduleType; label: string; desc: string; icon: any }[] = [
-  { id: "DAILY", label: "Daily", desc: "Repeats every single day", icon: Calendar },
-  { id: "X_TIMES_WEEK", label: "Weekly", desc: "Repeats once per week", icon: Clock },
-  { id: "MONTHLY", label: "Monthly", desc: "Repeats once per month", icon: Layers },
-  { id: "CUSTOM", label: "Custom (RRule)", desc: "Advanced flexible scheduling", icon: Settings },
+  { id: "DAILY", label: "Daily", desc: "Repeats every single day", icon: PixelCalendarIcon },
+  { id: "X_TIMES_WEEK", label: "Weekly", desc: "Repeats once per week", icon: PixelHistoryIcon },
+  { id: "MONTHLY", label: "Monthly", desc: "Repeats once per month", icon: PixelLayersIcon },
+  { id: "CUSTOM", label: "Custom (RRule)", desc: "Advanced flexible scheduling", icon: PixelActivityIcon },
 ];
 
 export interface MissionWizardProps {
@@ -144,47 +141,39 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
   const baseReward = getBaseReward(difficulty);
 
   const slideVariants = {
-    initial: { opacity: 0, x: 20 },
+    initial: { opacity: 0, x: 10 },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 },
+    exit: { opacity: 0, x: -10 },
   };
 
   return (
-    <Card className="w-full max-w-2xl border-white/10 bg-[#151C33] shadow-2xl text-slate-100 relative overflow-hidden">
-      {/* Top Ambient Glow */}
-      <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-600/20 blur-3xl pointer-events-none rounded-full" />
-      <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 blur-3xl pointer-events-none rounded-full" />
-
-      <CardHeader className="border-b border-white/10 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-              <Sparkles className="w-5 h-5" />
+    <div className="w-full max-w-2xl bg-[#1A102F] border-4 border-[#3b1861] shadow-[0_-4px_0_0_#000,0_4px_0_0_#000,-4px_0_0_0_#000,4px_0_0_0_#000] text-white font-pixel select-none space-y-4 p-5 sm:p-6 relative">
+      {/* Wizard Header */}
+      <div className="border-b-2 border-black/40 pb-3.5 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#120824] border border-[#3b1861] flex items-center justify-center text-cyan-400">
+              <PixelSparklesIcon className="w-4 h-4 text-cyan-400" />
             </div>
             <div>
-              <CardTitle className="text-xl font-heading text-white">
+              <h2 className="text-sm sm:text-base font-bold pixel-text-outlined uppercase tracking-wider text-white">
                 Forge Habit Template
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Step {step} of {totalSteps}: Create a permanent habit routine
-              </CardDescription>
+              </h2>
+              <p className="text-[9px] text-white/60 uppercase">
+                Step {step} of {totalSteps}: Permanent Habit Routine
+              </p>
             </div>
           </div>
-          <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">
+          <PixelBadge variant="purple" size="sm">
             Phase 3 Engine
-          </Badge>
+          </PixelBadge>
         </div>
 
         {/* Step Progress Bar */}
-        <div className="w-full bg-slate-800/60 h-1.5 rounded-full mt-4 overflow-hidden flex">
-          <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300 ease-out"
-            style={{ width: `${(step / totalSteps) * 100}%` }}
-          />
-        </div>
-      </CardHeader>
+        <PixelProgress value={step} max={totalSteps} variant="primary" height="sm" />
+      </div>
 
-      <CardContent className="p-6">
+      <div>
         <AnimatePresence mode="wait">
           {/* STEP 1: NAME & DESCRIPTION */}
           {step === 1 && (
@@ -194,32 +183,32 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
+              transition={{ duration: 0.15 }}
+              className="space-y-3.5 text-xs"
             >
               <div>
-                <label className="text-sm font-medium text-slate-200 block mb-1">
-                  Habit Name <span className="text-red-400">*</span>
+                <label className="text-white/80 block mb-1 font-bold uppercase text-[10px] tracking-wider">
+                  Habit Name <span className="text-rose-400">*</span>
                 </label>
-                <Input
+                <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Morning Hydration, 30-Min Cardio, Deep Reading"
-                  className="bg-[#0B1020] border-white/10 text-white focus:border-blue-500 h-12"
+                  className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 p-2.5 text-white placeholder-white/30 focus:outline-none text-xs"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-200 block mb-1">
-                  Description <span className="text-xs text-slate-400">(Optional)</span>
+                <label className="text-white/80 block mb-1 font-bold uppercase text-[10px] tracking-wider">
+                  Description <span className="text-white/40 text-[9px]">(Optional)</span>
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief summary of your daily execution target..."
                   rows={3}
-                  className="w-full rounded-xl bg-[#0B1020] border border-white/10 p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                  className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 p-2.5 text-white placeholder-white/30 focus:outline-none text-xs resize-none"
                 />
               </div>
             </motion.div>
@@ -233,31 +222,32 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
-              className="space-y-3"
+              transition={{ duration: 0.15 }}
+              className="space-y-3 text-xs"
             >
-              <p className="text-sm text-slate-300 font-medium mb-2">
+              <p className="text-white/80 font-bold uppercase text-[10px] tracking-wider">
                 Select Domain Category:
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   const isSelected = category === cat.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={cat.id}
                       onClick={() => setCategory(cat.id)}
-                      className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col items-center justify-center text-center space-y-2 ${
+                      className={`p-3 border-2 flex flex-col items-center justify-center text-center space-y-2 cursor-pointer active:translate-y-0.5 ${
                         isSelected
-                          ? "border-blue-500 bg-blue-500/20 text-white shadow-lg shadow-blue-500/10 scale-[1.02]"
-                          : "border-white/10 bg-[#0B1020] text-slate-300 hover:border-white/20 hover:bg-[#111827]"
+                          ? "border-cyan-400 bg-[#25123D] text-cyan-300 shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.2)]"
+                          : "border-[#3b1861] bg-[#120824] text-white/70 hover:border-white/40"
                       }`}
                     >
-                      <div className={`p-2.5 rounded-xl border ${cat.color}`}>
-                        <Icon className="w-5 h-5" />
+                      <div className="w-8 h-8 bg-[#1A102F] border border-[#3b1861] flex items-center justify-center">
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <span className="text-sm font-semibold">{cat.label}</span>
-                    </div>
+                      <span className="text-xs font-bold uppercase">{cat.label}</span>
+                    </button>
                   );
                 })}
               </div>
@@ -272,41 +262,42 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
-              className="space-y-3"
+              transition={{ duration: 0.15 }}
+              className="space-y-3 text-xs"
             >
-              <p className="text-sm text-slate-300 font-medium mb-2">
+              <p className="text-white/80 font-bold uppercase text-[10px] tracking-wider">
                 Select Primary Attribute Stat to Train:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
                 {PRIMARY_STATS.map((st) => {
                   const Icon = st.icon;
                   const isSelected = primaryStat === st.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={st.id}
                       onClick={() => setPrimaryStat(st.id)}
-                      className={`cursor-pointer rounded-xl p-3.5 border transition-all duration-200 flex items-center space-x-3 ${
+                      className={`p-2.5 border-2 flex items-center gap-2.5 text-left cursor-pointer active:translate-y-0.5 ${
                         isSelected
-                          ? "border-purple-500 bg-purple-500/20 text-white shadow-md shadow-purple-500/10"
-                          : "border-white/10 bg-[#0B1020] text-slate-300 hover:border-white/20 hover:bg-[#111827]"
+                          ? "border-purple-400 bg-[#25123D] text-white shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.2)]"
+                          : "border-[#3b1861] bg-[#120824] text-white/70 hover:border-white/40"
                       }`}
                     >
-                      <div className={`p-2 rounded-lg border ${st.color}`}>
-                        <Icon className="w-5 h-5" />
+                      <div className="w-7 h-7 bg-[#1A102F] border border-[#3b1861] flex items-center justify-center text-purple-400 shrink-0">
+                        <Icon className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold capitalize text-white">
+                        <div className="text-xs font-bold uppercase text-white">
                           {st.label}
                         </div>
-                        <div className="text-xs text-slate-400 truncate">
+                        <div className="text-[10px] text-white/50 truncate">
                           {st.desc}
                         </div>
                       </div>
                       {isSelected && (
-                        <CheckCircle2 className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                        <PixelCheckIcon className="w-4 h-4 text-purple-400 shrink-0" />
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -321,40 +312,41 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
-              className="space-y-3"
+              transition={{ duration: 0.15 }}
+              className="space-y-3 text-xs"
             >
-              <p className="text-sm text-slate-300 font-medium mb-2">
+              <p className="text-white/80 font-bold uppercase text-[10px] tracking-wider">
                 Select Difficulty Tier:
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {DIFFICULTIES.map((diff) => {
                   const isSelected = difficulty === diff.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={diff.id}
                       onClick={() => setDifficulty(diff.id)}
-                      className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex items-center justify-between ${
+                      className={`w-full p-3 border-2 flex items-center justify-between text-left cursor-pointer active:translate-y-0.5 ${
                         isSelected
-                          ? "border-blue-500 bg-blue-500/20 text-white shadow-lg shadow-blue-500/10"
-                          : "border-white/10 bg-[#0B1020] text-slate-300 hover:border-white/20 hover:bg-[#111827]"
+                          ? "border-cyan-400 bg-[#25123D] text-white shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.2)]"
+                          : "border-[#3b1861] bg-[#120824] text-white/70 hover:border-white/40"
                       }`}
                     >
                       <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-base font-bold text-white">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold uppercase text-white">
                             {diff.label}
                           </span>
-                          <Badge variant="outline" className={diff.color}>
+                          <PixelBadge variant={diff.id === "HARD" ? "danger" : diff.id === "MEDIUM" ? "cyan" : "success"} size="sm">
                             {diff.id}
-                          </Badge>
+                          </PixelBadge>
                         </div>
-                        <p className="text-xs text-slate-400">{diff.desc}</p>
+                        <p className="text-[10px] text-white/60">{diff.desc}</p>
                       </div>
                       {isSelected && (
-                        <CheckCircle2 className="w-6 h-6 text-blue-400 flex-shrink-0" />
+                        <PixelCheckIcon className="w-4 h-4 text-cyan-400 shrink-0" />
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -369,63 +361,59 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
-              className="space-y-3"
+              transition={{ duration: 0.15 }}
+              className="space-y-3 text-xs"
             >
-              <p className="text-sm text-slate-300 font-medium mb-2">
+              <p className="text-white/80 font-bold uppercase text-[10px] tracking-wider">
                 Select Repetition Cadence:
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {SCHEDULE_TYPES.map((sch) => {
                   const Icon = sch.icon;
                   const isSelected = scheduleType === sch.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={sch.id}
                       onClick={() => setScheduleType(sch.id)}
-                      className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex items-center space-x-4 ${
+                      className={`w-full p-3 border-2 flex items-center gap-3 text-left cursor-pointer active:translate-y-0.5 ${
                         isSelected
-                          ? "border-emerald-500 bg-emerald-500/20 text-white shadow-lg shadow-emerald-500/10"
-                          : "border-white/10 bg-[#0B1020] text-slate-300 hover:border-white/20 hover:bg-[#111827]"
+                          ? "border-emerald-400 bg-[#25123D] text-white shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.2)]"
+                          : "border-[#3b1861] bg-[#120824] text-white/70 hover:border-white/40"
                       }`}
                     >
-                      <div className="p-3 rounded-xl bg-slate-800/80 border border-white/10 text-emerald-400">
-                        <Icon className="w-6 h-6" />
+                      <div className="w-8 h-8 bg-[#1A102F] border border-[#3b1861] flex items-center justify-center text-emerald-400 shrink-0">
+                        <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-base font-bold text-white">
+                        <div className="text-xs font-bold uppercase text-white">
                           {sch.label}
                         </div>
-                        <div className="text-xs text-slate-400">{sch.desc}</div>
+                        <div className="text-[10px] text-white/60">{sch.desc}</div>
                       </div>
                       {isSelected && (
-                        <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0" />
+                        <PixelCheckIcon className="w-4 h-4 text-emerald-400 shrink-0" />
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
 
               {scheduleType === "CUSTOM" && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-4 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10"
-                >
-                  <label className="text-sm font-medium text-blue-200 block mb-2">
+                <div className="mt-3 p-3 bg-[#120824] border-2 border-[#3b1861] space-y-1.5">
+                  <label className="text-[10px] font-bold text-cyan-300 uppercase block">
                     Custom Recurrence Rule (RFC 5545)
                   </label>
-                  <Input
+                  <input
                     value={rruleString}
                     onChange={(e) => setRruleString(e.target.value)}
                     placeholder="e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
-                    className="bg-[#0B1020] border-blue-500/30 text-white focus:border-blue-500 h-10 font-mono text-sm"
+                    className="w-full bg-[#1A102F] border border-[#3b1861] p-2 text-white text-xs"
                   />
-                  <p className="text-xs text-blue-300/70 mt-2">
+                  <p className="text-[9px] text-white/50">
                     Example: FREQ=WEEKLY;INTERVAL=2 (Every 2 weeks)
                   </p>
-                </motion.div>
+                </div>
               )}
             </motion.div>
           )}
@@ -438,55 +426,55 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
+              transition={{ duration: 0.15 }}
+              className="space-y-3 text-xs"
             >
-              <div className="rounded-2xl border border-white/15 bg-[#0B1020] p-5 space-y-4 relative overflow-hidden">
+              <div className="border-2 border-[#3b1861] bg-[#120824] p-3.5 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 mb-1">
+                    <PixelBadge variant="cyan" size="sm" className="mb-1">
                       {category} • {scheduleType}
-                    </Badge>
-                    <h4 className="text-xl font-bold text-white font-heading">
+                    </PixelBadge>
+                    <h4 className="text-xs sm:text-sm font-bold uppercase text-white">
                       {name}
                     </h4>
                     {description && (
-                      <p className="text-xs text-slate-400 mt-1">{description}</p>
+                      <p className="text-[10px] text-white/60 mt-1">{description}</p>
                     )}
                   </div>
-                  <Badge variant="outline" className="border-purple-500/30 text-purple-400 bg-purple-500/10 capitalize">
+                  <PixelBadge variant="purple" size="sm">
                     {primaryStat}
-                  </Badge>
+                  </PixelBadge>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 border-t border-white/10 pt-4">
-                  <div className="bg-[#151C33] rounded-xl p-3 text-center border border-white/5">
-                    <div className="text-xs text-slate-400 mb-0.5">Base EXP</div>
-                    <div className="text-lg font-extrabold text-blue-400 flex items-center justify-center space-x-1">
-                      <Flame className="w-4 h-4 text-blue-400" />
+                <div className="grid grid-cols-3 gap-2.5 border-t border-[#3b1861] pt-3">
+                  <div className="bg-[#1A0D2E] p-2 text-center border border-[#3b1861]">
+                    <div className="text-[9px] text-white/50 mb-0.5">Base EXP</div>
+                    <div className="text-xs font-bold text-cyan-300 flex items-center justify-center gap-1">
+                      <PixelFlameIcon className="w-3 h-3 text-cyan-300" />
                       <span>+{baseReward.exp}</span>
                     </div>
                   </div>
 
-                  <div className="bg-[#151C33] rounded-xl p-3 text-center border border-white/5">
-                    <div className="text-xs text-slate-400 mb-0.5">Base Gold</div>
-                    <div className="text-lg font-extrabold text-amber-400 flex items-center justify-center space-x-1">
-                      <Coins className="w-4 h-4 text-amber-400" />
+                  <div className="bg-[#1A0D2E] p-2 text-center border border-[#3b1861]">
+                    <div className="text-[9px] text-white/50 mb-0.5">Base Gold</div>
+                    <div className="text-xs font-bold text-amber-300 flex items-center justify-center gap-1">
+                      <PixelCoinsIcon className="w-3 h-3 text-amber-300" />
                       <span>+{baseReward.gold}</span>
                     </div>
                   </div>
 
-                  <div className="bg-[#151C33] rounded-xl p-3 text-center border border-white/5">
-                    <div className="text-xs text-slate-400 mb-0.5">Base Stat</div>
-                    <div className="text-lg font-extrabold text-purple-400 flex items-center justify-center space-x-1">
-                      <Star className="w-4 h-4 text-purple-400" />
+                  <div className="bg-[#1A0D2E] p-2 text-center border border-[#3b1861]">
+                    <div className="text-[9px] text-white/50 mb-0.5">Base Stat</div>
+                    <div className="text-xs font-bold text-purple-300 flex items-center justify-center gap-1">
+                      <PixelStarIcon className="w-3 h-3 text-purple-300" />
                       <span>+{baseReward.stat}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-900/60 rounded-xl p-3 border border-white/5 flex items-center justify-between text-xs text-slate-300">
-                  <span>Difficulty Tier: <strong className="text-white">{difficulty}</strong></span>
+                <div className="bg-[#1A0D2E] p-2.5 border border-[#3b1861] flex items-center justify-between text-[10px] text-white/70">
+                  <span>Difficulty: <strong className="text-white">{difficulty}</strong></span>
                   <span>Schedule: <strong className="text-white">{scheduleType}</strong></span>
                 </div>
               </div>
@@ -495,43 +483,49 @@ export function MissionWizard({ onClose }: MissionWizardProps) {
         </AnimatePresence>
 
         {/* Wizard Footer Navigation Controls */}
-        <div className="flex items-center justify-between mt-6 border-t border-white/10 pt-4">
-          <Button
+        <div className="flex items-center justify-between mt-4 border-t-2 border-black/40 pt-3">
+          <PixelButton
             type="button"
-            variant="ghost"
+            variant="dark"
+            size="sm"
             onClick={handleBack}
             disabled={step === 1 || isSubmitting}
-            className="text-slate-400 hover:text-white hover:bg-slate-800/60"
+            className="text-xs"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
+            <PixelArrowLeftIcon className="w-3 h-3 mr-1" /> Back
+          </PixelButton>
 
           {step < totalSteps ? (
-            <Button
+            <PixelButton
               type="button"
+              variant="cyan"
+              size="sm"
               onClick={handleNext}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+              className="text-xs"
             >
-              Next <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+              Next <PixelArrowRightIcon className="w-3 h-3 ml-1" />
+            </PixelButton>
           ) : (
-            <Button
+            <PixelButton
               type="button"
+              variant="gold"
+              size="sm"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-blue-500/20"
+              className="text-xs"
             >
               {isSubmitting ? (
                 <span>Forging Habit...</span>
               ) : (
                 <span className="flex items-center">
-                  Forge Habit Mission <Sparkles className="w-4 h-4 ml-2" />
+                  Forge Habit Mission <PixelSparklesIcon className="w-3 h-3 ml-1" />
                 </span>
               )}
-            </Button>
+            </PixelButton>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+

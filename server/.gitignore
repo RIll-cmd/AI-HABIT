@@ -1,14 +1,18 @@
 # Python Virtual Environments
+*venv*/
 venv/
 .venv/
 env/
 ENV/
+venv311/
 
 # Python Cache & Compiled Files
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Node modules & Prisma Engine Cache
 node_modules/
@@ -26,12 +30,25 @@ prisma/dev.db-journal
 # Environment & Secret Files
 .env
 .env.local
+.env.development
+.env.production
 .env.*
+*.env
+*.env.*
 !.env.example
+!*.env.example
+
+# Neon Branch & Config Context
 .neon
 .neon.*
 
+# Certificates & Keys
+*.pem
+*.key
+*.cert
 
+# Temporary / Debug files
+debug_imports.py
 
 # IDE & OS Files
 .vscode/

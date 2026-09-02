@@ -1,146 +1,129 @@
 "use client";
 
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useCharacterStore } from "@/store/useCharacterStore";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/shared/EmptyState";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
 import {
-  History,
-  Award,
-  ArrowUpRight,
-  Clock,
-  Zap,
-  Swords,
-  Shield,
-  Dumbbell,
-  Sparkles,
-} from "lucide-react";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
+  PixelHistoryIcon,
+  PixelAwardIcon,
+  PixelSparklesIcon,
+  PixelDumbbellIcon,
+  PixelLightningIcon,
+} from "@/components/ui/pixel/PixelIcons";
 
 export default function HistoryPage() {
   const { character, gainExp } = useCharacterStore();
   const history = character?.history || [];
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans select-none">
       {/* HEADER BANNER */}
-      <div className="p-6 rounded-[24px] bg-[#0B1020]/90 border border-amber-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
-        {/* Floating Runes & Particles */}
-        <FloatingRuneField density="medium" />
-
-        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="space-y-1 z-10">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <History className="w-5 h-5 text-amber-400" />
-              Chronological Progression Feed (Chronicles)
-            </h2>
-            <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/60 font-mono font-bold text-xs uppercase px-2.5 py-0.5">
-              {history.length} LOGGED ENTRIES
-            </Badge>
+      <div className="konosuba-adventurer-card p-4 sm:p-5 shadow-[0_8px_16px_rgba(0,0,0,0.6)] space-y-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-base sm:text-lg font-bold font-pixel text-[#241208] flex items-center gap-2">
+                <PixelHistoryIcon className="w-4 h-4 text-amber-800" />
+                <span>ᚺᛁᛋᛏᛟᚱᚤ GUILD ADVENTURER DEEDS & CHRONICLES</span>
+              </h2>
+              <PixelBadge variant="gold">
+                {history.length} LOGGED DEEDS
+              </PixelBadge>
+            </div>
+            <p className="text-xs font-pixel text-[#633a20] max-w-2xl leading-relaxed">
+              A permanent chronological audit log recording every milestone, stat allocation, training deed, and level certification on your card.
+            </p>
           </div>
-          <p className="text-xs text-slate-400">
-            A permanent chronological audit log recording every milestone, stat allocation, boss victory, and level progression.
-          </p>
         </div>
       </div>
 
       {/* ACTIVITY FEED TIMELINE */}
       {history.length === 0 ? (
-        <EmptyState
-          icon={History}
-          title="No Progression Chronicles Logged"
-          description="Complete training simulations, stat allocations, or daily missions to generate historical activity logs."
-          action={
-            <Button
-              onClick={() => gainExp(150, "Completed Training Simulation")}
-              variant="outline"
-              size="sm"
-              className="text-xs border-white/10 bg-white/5 hover:bg-white/10 text-white font-mono"
-            >
-              <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
-              Run Simulation (+150 EXP)
-            </Button>
-          }
-        />
+        <div className="konosuba-adventurer-card text-center py-12 space-y-4 shadow-[0_6px_12px_rgba(0,0,0,0.6)]">
+          <div className="w-12 h-12 bg-[#ebd9b5] border-2 border-[#522e18] mx-auto flex items-center justify-center">
+            <PixelHistoryIcon className="w-6 h-6 text-[#633a20]" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-pixel font-bold text-sm text-[#241208]">No Progression Chronicles Logged</h3>
+            <p className="font-pixel text-xs text-[#633a20] max-w-md mx-auto">
+              Complete training simulations, stat allocations, or daily missions to generate historical activity logs.
+            </p>
+          </div>
+          <PixelButton
+            onClick={() => gainExp(150, "Completed Training Simulation")}
+            variant="gold"
+            className="inline-flex items-center gap-1.5 text-xs"
+          >
+            <PixelLightningIcon className="w-3.5 h-3.5 text-amber-900" />
+            <span>Run Simulation (+150 EXP)</span>
+          </PixelButton>
+        </div>
       ) : (
-        <div className="space-y-3">
-          <AnimatePresence initial={false}>
-            {[...history].reverse().map((item, index) => {
-              const isLevelUp = item.type === "LEVEL_UP";
-              const isStatAllocation = item.type === "STAT_ALLOCATION";
-              const isWorkout = item.type === "WORKOUT";
+        <div className="space-y-2.5">
+          {[...history].reverse().map((item, index) => {
+            const isLevelUp = item.type === "LEVEL_UP";
+            const isStatAllocation = item.type === "STAT_ALLOCATION";
+            const isWorkout = item.type === "WORKOUT";
 
-              return (
-                <motion.div
-                  key={item.id || index}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{
-                    duration: 0.3,
-                    delay: Math.min(index * 0.04, 0.2),
-                  }}
-                  className={`p-4 rounded-[18px] bg-[#151C33] border ${
-                    isLevelUp
-                      ? "border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-gradient-to-r from-amber-950/20 to-slate-900"
-                      : isStatAllocation
-                      ? "border-emerald-500/40 bg-gradient-to-r from-emerald-950/20 to-slate-900"
-                      : "border-white/10 hover:border-blue-500/30"
-                  } transition-all flex items-center justify-between gap-4`}
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className={`w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0 ${
-                        isLevelUp
-                          ? "bg-amber-950/60 text-amber-400 border border-amber-500/40"
-                          : isStatAllocation
-                          ? "bg-emerald-950/60 text-emerald-400 border border-emerald-500/40"
-                          : isWorkout
-                          ? "bg-indigo-950/60 text-indigo-400 border border-indigo-500/40"
-                          : "bg-blue-950/60 text-blue-400 border border-blue-500/40"
-                      }`}
-                    >
-                      {isLevelUp ? (
-                        <Award className="w-5 h-5" />
-                      ) : isStatAllocation ? (
-                        <Sparkles className="w-5 h-5" />
-                      ) : isWorkout ? (
-                        <Dumbbell className="w-5 h-5" />
-                      ) : (
-                        <ArrowUpRight className="w-5 h-5" />
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-semibold text-white font-sans leading-relaxed">
-                        {item.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-400">
-                        <Clock className="w-3 h-3 text-slate-500" />
-                        <span>
-                          {new Date(item.createdAt).toLocaleString(undefined, {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
-                        </span>
-                      </div>
-                    </div>
+            return (
+              <div
+                key={item.id || index}
+                className={`p-3.5 bg-[#caa97e] border-2 border-[#4a2813] shadow-[2px_2px_0_0_#221208,inset_0_0_12px_rgba(89,59,34,0.35)] flex items-center justify-between gap-4 transition-colors ${
+                  isLevelUp
+                    ? "border-amber-950 bg-[#dfcaac]"
+                    : isStatAllocation
+                    ? "border-emerald-950 bg-[#c2d6be]"
+                    : "hover:border-amber-950"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 border border-[#4a2813] flex items-center justify-center shrink-0 shadow-inner ${
+                      isLevelUp
+                        ? "bg-amber-200 text-amber-950"
+                        : isStatAllocation
+                        ? "bg-emerald-200 text-emerald-950"
+                        : isWorkout
+                        ? "bg-sky-200 text-sky-950"
+                        : "bg-[#dfcaac] text-[#6d4c3d]"
+                    }`}
+                  >
+                    {isLevelUp ? (
+                      <PixelAwardIcon className="w-4 h-4" />
+                    ) : isStatAllocation ? (
+                      <PixelSparklesIcon className="w-4 h-4" />
+                    ) : isWorkout ? (
+                      <PixelDumbbellIcon className="w-4 h-4" />
+                    ) : (
+                      <PixelHistoryIcon className="w-4 h-4" />
+                    )}
                   </div>
 
-                  <Badge
-                    variant={isLevelUp ? "gold" : "default"}
-                    className="font-mono text-xs shrink-0"
-                  >
-                    {isStatAllocation ? `+${item.amount} SP` : `+${item.amount} EXP`}
-                  </Badge>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                  <div>
+                    <p className="text-xs font-pixel font-bold text-[#221208] leading-relaxed">
+                      {item.description}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-pixel text-[#593b22] font-bold">
+                      <span>
+                        {new Date(item.createdAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <PixelBadge
+                  variant={isLevelUp ? "gold" : isStatAllocation ? "success" : "dark"}
+                  className="font-pixel text-xs shrink-0"
+                >
+                  {isStatAllocation ? `+${item.amount} SP` : `+${item.amount} EXP`}
+                </PixelBadge>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

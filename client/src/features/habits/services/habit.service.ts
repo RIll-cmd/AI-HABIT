@@ -41,6 +41,32 @@ export interface MissionCompletePayload {
   statsEarned?: number;
 }
 
+export interface HabitLogResponse {
+  success: boolean;
+  habit: Habit;
+  mission: Mission;
+  rewards: {
+    exp: number;
+    gold: number;
+    stat: number;
+    statName: string;
+    gems: number;
+    streak: number;
+    habitStrength: number;
+  };
+}
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("ascend_session");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
+
 /**
  * Creates a new Habit template for a character
  */
@@ -51,7 +77,8 @@ export async function createHabit(
   try {
     const res = await fetch(`${API_BASE_URL}/api/habits/${characterId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
 
@@ -79,7 +106,8 @@ export async function fetchHabits(characterId: string): Promise<Habit[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/habits/${characterId}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
 
     if (!res.ok) {
@@ -100,13 +128,46 @@ export async function fetchHabits(characterId: string): Promise<Habit[]> {
 }
 
 /**
+ * Logs completion of a habit directly for today
+ */
+export async function logHabit(
+  habitId: string,
+  payload: { completionType: CompletionType; targetValue?: number | null; notes?: string | null }
+): Promise<HabitLogResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/habits/${habitId}/log`, {
+      method: "POST",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(
+        `[habit.service] Failed to log habit (HTTP ${res.status} ${res.statusText}):`,
+        errorText
+      );
+      return null;
+    }
+
+    const data = await res.json();
+    return data as HabitLogResponse;
+  } catch (error) {
+    console.error("[habit.service] Error logging habit:", error);
+    return null;
+  }
+}
+
+/**
  * Triggers the backend mission generator for the given character.
  */
 export async function generateTodayMissions(characterId: string): Promise<void> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/habits/${characterId}/generate-missions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       console.error(`[habit.service] Failed to generate missions (HTTP ${res.status} ${res.statusText})`);
@@ -123,7 +184,8 @@ export async function fetchTodayMissions(characterId: string): Promise<Mission[]
   try {
     const res = await fetch(`${API_BASE_URL}/api/missions/today/${characterId}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
 
     if (!res.ok) {
@@ -153,7 +215,8 @@ export async function completeMission(
   try {
     const res = await fetch(`${API_BASE_URL}/api/missions/${missionId}/complete`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
 
@@ -184,7 +247,8 @@ export async function updateHabitStatus(
   try {
     const res = await fetch(`${API_BASE_URL}/api/habits/${habitId}/status`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
 
@@ -215,7 +279,8 @@ export async function updateHabitDetails(
   try {
     const res = await fetch(`${API_BASE_URL}/api/habits/${habitId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
 
@@ -232,4 +297,5 @@ export async function updateHabitDetails(
     return null;
   }
 }
+
 

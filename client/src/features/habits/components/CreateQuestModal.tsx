@@ -1,8 +1,16 @@
-import React, { useState } from "react";
-import { X, Plus, Sparkles, Target, Award, Calendar, Tag } from "lucide-react";
-import { QuestRank, QuestStatus } from "../types/kanban";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { QuestRank } from "../types/kanban";
 import { useKanbanMissionStore } from "../store/useKanbanMissionStore";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
+import {
+  PixelXIcon,
+  PixelPlusIcon,
+  PixelTrashIcon,
+  PixelPushpinIcon,
+  PixelSwordIcon,
+} from "@/components/ui/pixel/PixelIcons";
 
 export interface CreateQuestModalProps {
   isOpen: boolean;
@@ -17,6 +25,7 @@ export const CreateQuestModal: React.FC<CreateQuestModalProps> = ({
 }) => {
   const { addQuest } = useKanbanMissionStore();
 
+  const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [rank, setRank] = useState<QuestRank>("C");
@@ -26,13 +35,17 @@ export const CreateQuestModal: React.FC<CreateQuestModalProps> = ({
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<string[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (isOpen && initialDueDate) {
       setDueDate(initialDueDate);
     }
   }, [isOpen, initialDueDate]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,63 +112,67 @@ export const CreateQuestModal: React.FC<CreateQuestModalProps> = ({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl animate-in fade-in duration-200">
-      <div className="bg-gradient-to-br from-[#0C1226]/98 via-[#080E20]/98 to-[#050914]/98 border border-cyan-500/30 rounded-[28px] p-6 sm:p-7 w-full max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] relative text-slate-100 space-y-5 animate-in zoom-in-95 duration-200 backdrop-blur-2xl overflow-hidden">
-        {/* Top Glow Edge */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent pointer-events-none" />
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs font-pixel select-none">
+      <div className="relative pixel-parchment-royal border-4 border-[#381e0f] shadow-[0_12px_28px_rgba(0,0,0,0.8)] p-5 sm:p-6 w-full max-w-lg text-[#261408] space-y-4 max-h-[90vh] overflow-y-auto">
+        {/* Top Pushpin */}
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <PixelPushpinIcon className="w-6 h-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+        </div>
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-cyan-500/15">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-              <Target className="w-5 h-5" />
+        <div className="flex items-center justify-between pb-3 border-b-2 border-[#8a572c]/40">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#ebd099] border-2 border-[#542d17] flex items-center justify-center text-[#542d17]">
+              <PixelSwordIcon className="w-4 h-4 text-[#542d17]" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold font-heading text-white tracking-tight">
-                Construct Directive
+              <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider text-[#261408]">
+                Create New Mission
               </h3>
-              <p className="text-[10.5px] font-mono text-slate-400">System Kanban Mission Engine</p>
+              <p className="text-[10px] text-[#7a4820] uppercase font-bold">Quest Board Directive</p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => {
               playUIMenuSFX();
               onClose();
             }}
-            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/60 transition-colors cursor-pointer"
+            className="w-6 h-6 bg-[#ebd099] border border-[#542d17] hover:bg-[#dfba79] flex items-center justify-center text-[#542d17] cursor-pointer active:translate-y-0.5"
+            title="Close"
           >
-            <X className="w-5 h-5" />
+            <PixelXIcon className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           {/* Title Input */}
           <div>
-            <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
-              DIRECTIVE TITLE *
+            <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
+              MISSION TITLE *
             </label>
             <input
               type="text"
               required
-              placeholder="e.g., Daily High-Volume Compound Lifts — Bench 80kg"
+              placeholder="e.g., Deep Focus Sprint (2-Hour Coding Session)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(6,182,212,0.25)] rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none transition-all font-sans text-xs"
+              className="w-full bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] placeholder-[#8a572c]/60 focus:outline-none text-xs shadow-[inset_1px_1px_0_0_#d4a373]"
             />
           </div>
 
           {/* Rank & Category Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
-                THREAT RANK *
+              <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
+                MISSION RANK *
               </label>
               <select
                 value={rank}
                 onChange={(e) => setRank(e.target.value as QuestRank)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2.5 text-white focus:outline-none cursor-pointer transition-all"
+                className="w-full bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] focus:outline-none cursor-pointer text-xs font-bold shadow-[inset_1px_1px_0_0_#d4a373]"
               >
                 <option value="F">F-Rank (+50 EXP, +15g)</option>
                 <option value="D">D-Rank (+100 EXP, +25g)</option>
@@ -167,70 +184,70 @@ export const CreateQuestModal: React.FC<CreateQuestModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
+              <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
                 CATEGORY
               </label>
               <input
                 type="text"
-                placeholder="e.g., Fitness, Deep Work, Habit"
+                placeholder="Deep Work, Fitness, Learning"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none transition-all"
+                className="w-full bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] placeholder-[#8a572c]/60 focus:outline-none text-xs shadow-[inset_1px_1px_0_0_#d4a373]"
               />
             </div>
           </div>
 
           {/* Hashtags & Due Date Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
+              <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
                 HASHTAGS
               </label>
               <input
                 type="text"
-                placeholder="#workout, #daily"
+                placeholder="#daily, #focus"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none transition-all"
+                className="w-full bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] placeholder-[#8a572c]/60 focus:outline-none text-xs shadow-[inset_1px_1px_0_0_#d4a373]"
               />
             </div>
 
             <div>
-              <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
+              <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
                 DUE DATE
               </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2.5 text-white focus:outline-none cursor-pointer transition-all"
+                className="w-full bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] focus:outline-none cursor-pointer text-xs shadow-[inset_1px_1px_0_0_#d4a373]"
               />
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
-              DESCRIPTION / DIRECTIVE LOG
+            <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
+              MISSION DESCRIPTION / NOTES
             </label>
             <textarea
               rows={2}
-              placeholder="Directive objectives, target metrics, or operational protocol..."
+              placeholder="Key objectives, success criteria, or action notes..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none transition-all font-sans text-xs"
+              className="w-full bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] placeholder-[#8a572c]/60 focus:outline-none text-xs shadow-[inset_1px_1px_0_0_#d4a373]"
             />
           </div>
 
-          {/* Subtasks Builder */}
+          {/* Subtask Checklist Section */}
           <div>
-            <label className="block text-slate-300 mb-1.5 font-bold uppercase text-[10px] tracking-wider">
+            <label className="block text-[#4a2e1b] mb-1 font-bold uppercase text-[10px] tracking-wider">
               SUBTASK CHECKLIST
             </label>
             <div className="flex items-center gap-2 mb-2">
               <input
                 type="text"
-                placeholder="Add subtask step..."
+                placeholder="Add checklist step..."
                 value={subtaskInput}
                 onChange={(e) => setSubtaskInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -239,31 +256,31 @@ export const CreateQuestModal: React.FC<CreateQuestModalProps> = ({
                     handleAddSubtask(e);
                   }
                 }}
-                className="flex-1 bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none text-xs"
+                className="flex-1 bg-[#fcedc7] border-2 border-[#542d17] focus:border-amber-700 p-2 text-[#261408] placeholder-[#8a572c]/60 focus:outline-none text-xs shadow-[inset_1px_1px_0_0_#d4a373]"
               />
-              <button
+              <PixelButton
                 type="button"
+                size="sm"
+                variant="gold"
                 onClick={handleAddSubtask}
-                className="bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-xl font-bold cursor-pointer transition-all active:scale-95"
+                className="text-xs"
               >
-                + Add
-              </button>
+                <PixelPlusIcon className="w-3 h-3 mr-1" />
+                Add
+              </PixelButton>
             </div>
 
             {subtasks.length > 0 && (
-              <div className="space-y-1.5 bg-[#060B18] p-3 rounded-xl border border-cyan-500/15 max-h-32 overflow-y-auto custom-scrollbar">
-                {subtasks.map((st, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between text-[11px] text-slate-300 px-2 py-1 rounded-lg bg-slate-900/60"
-                  >
-                    <span>• {st}</span>
+              <div className="space-y-1.5 bg-[#f4e0b2] p-2.5 border-2 border-[#542d17] max-h-32 overflow-y-auto">
+                {subtasks.map((st, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-[#261408] gap-2">
+                    <span className="truncate">▪ {st}</span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveSubtask(idx)}
-                      className="text-rose-400 hover:text-rose-300 p-0.5 cursor-pointer"
+                      onClick={() => handleRemoveSubtask(i)}
+                      className="text-red-700 hover:text-red-900 cursor-pointer p-0.5"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <PixelTrashIcon className="w-3 h-3" />
                     </button>
                   </div>
                 ))}
@@ -272,28 +289,27 @@ export const CreateQuestModal: React.FC<CreateQuestModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-3.5 border-t border-cyan-500/15 flex items-center justify-end gap-3">
-            <button
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t-2 border-[#8a572c]/40">
+            <PixelButton
               type="button"
+              variant="dark"
+              size="sm"
               onClick={() => {
                 playUIMenuSFX();
                 onClose();
               }}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold border border-slate-800 transition-all cursor-pointer"
+              className="text-xs"
             >
               Cancel
-            </button>
+            </PixelButton>
 
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer active:scale-95"
-            >
-              Construct Directive
-            </button>
+            <PixelButton type="submit" variant="gold" size="sm" className="text-xs">
+              Pin Mission to Board
+            </PixelButton>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
-

@@ -4,7 +4,13 @@ import React, { useState, useEffect } from "react";
 import { Habit, HabitDifficulty, ScheduleType } from "../types";
 import { useHabitStore } from "../store/useHabitStore";
 import { toast } from "sonner";
-import { X, Save, Target, Calendar, Sparkles } from "lucide-react";
+import {
+  PixelXIcon,
+  PixelSaveIcon,
+  PixelTargetIcon,
+  PixelCalendarIcon,
+} from "@/components/ui/pixel/PixelIcons";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
 import { playBuffSFX, playUIMenuSFX } from "@/utils/audio";
 
 interface EditHabitModalProps {
@@ -111,7 +117,7 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
       const result = await updateHabitDetails(habit.id, payload);
       if (result) {
         playBuffSFX();
-        toast.success("Habit protocol updated successfully!");
+        toast.success("Habit updated successfully!");
         onClose();
       } else {
         toast.error("Failed to update habit.");
@@ -125,68 +131,69 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-gradient-to-br from-[#0C1226]/98 via-[#080E20]/98 to-[#050914]/98 border border-cyan-500/30 rounded-[28px] w-full max-w-xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.8)] relative text-slate-100 animate-in zoom-in-95 duration-200 backdrop-blur-2xl">
-        {/* Top Glow Accent */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent pointer-events-none" />
-
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 font-pixel select-none animate-in fade-in duration-150">
+      <div className="bg-[#1A102F] border-4 border-[#3b1861] shadow-[0_-4px_0_0_#000,0_4px_0_0_#000,-4px_0_0_0_#000,4px_0_0_0_#000] w-full max-w-xl max-h-[90vh] overflow-y-auto text-white">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-cyan-500/15">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-              <Target className="w-5 h-5" />
+        <div className="flex items-center justify-between p-4 border-b-2 border-[#3b1861] bg-[#120824]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#1A0D2E] border-2 border-[#3b1861] flex items-center justify-center text-cyan-400">
+              <PixelTargetIcon className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold font-heading text-white tracking-tight">
-                Edit Habit Protocol
+              <h2 className="text-xs sm:text-sm font-bold pixel-text-outlined uppercase text-white">
+                Edit Habit
               </h2>
-              <p className="text-[10.5px] font-mono text-slate-400">
-                Configure execution quotas and schedule settings
+              <p className="text-[9px] text-white/50 uppercase">
+                Configure frequency, targets, and rewards
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => {
               playUIMenuSFX();
               onClose();
             }}
-            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/60 transition-colors cursor-pointer"
+            className="w-7 h-7 bg-[#1A0D2E] border border-[#3b1861] text-white/60 hover:text-white flex items-center justify-center cursor-pointer active:translate-y-0.5 focus-visible:ring-2 focus-visible:ring-cyan-400"
+            aria-label="Close Modal"
           >
-            <X className="w-5 h-5" />
+            <PixelXIcon className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 font-mono text-xs">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 text-xs">
           {/* Name & Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-slate-300 uppercase mb-1.5 tracking-wider">
-                HABIT TITLE *
+              <label className="block text-[10px] font-bold text-white/70 uppercase mb-1">
+                HABIT NAME *
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 focus:shadow-[0_0_12px_rgba(6,182,212,0.25)] rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-all font-sans text-xs"
-                placeholder="e.g. Daily Hydration Protocol"
+                className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 px-3 py-2 text-white text-xs focus:outline-none"
+                placeholder="e.g., Drink 2.5L Water"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-300 uppercase mb-1.5 tracking-wider">
+              <label className="block text-[10px] font-bold text-white/70 uppercase mb-1">
                 CATEGORY
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2.5 text-white focus:outline-none cursor-pointer transition-all"
+                className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 px-3 py-2 text-white text-xs focus:outline-none cursor-pointer"
               >
                 <option value="Health">Health</option>
                 <option value="Fitness">Fitness</option>
                 <option value="Mindset">Mindset</option>
                 <option value="Productivity">Productivity</option>
                 <option value="Finance">Finance</option>
+                <option value="Daily Routine">Daily Routine</option>
+                <option value="Learning">Learning</option>
                 <option value="General">General</option>
               </select>
             </div>
@@ -194,34 +201,34 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
 
           {/* Description */}
           <div>
-            <label className="block text-[10px] font-bold text-slate-300 uppercase mb-1.5 tracking-wider">
-              DESCRIPTION / LOGIC
+            <label className="block text-[10px] font-bold text-white/70 uppercase mb-1">
+              DESCRIPTION / REASON (OPTIONAL)
             </label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3.5 py-2 text-white focus:outline-none transition-all font-sans text-xs"
-              placeholder="e.g. Maintain high baseline cellular hydration"
+              className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 px-3 py-2 text-white text-xs focus:outline-none resize-none"
+              placeholder="e.g., Maintain high energy and hydration levels throughout the day."
             />
           </div>
 
           {/* Schedule & Target Frequency */}
-          <div className="p-4 bg-[#060B18] border border-cyan-500/20 rounded-2xl space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-cyan-300 uppercase tracking-wider">
-              <Calendar className="w-4 h-4 text-cyan-400" />
+          <div className="p-3 bg-[#120824] border-2 border-[#3b1861] space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300 uppercase">
+              <PixelCalendarIcon className="w-3.5 h-3.5 text-cyan-400" />
               <span>Target Frequency & Schedule</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                <label className="block text-[9px] font-bold text-white/60 uppercase mb-1">
                   SCHEDULE INTERVAL
                 </label>
                 <select
                   value={scheduleType}
                   onChange={(e) => setScheduleType(e.target.value as ScheduleType)}
-                  className="w-full bg-[#0B1020] border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-cyan-400 focus:outline-none cursor-pointer"
+                  className="w-full bg-[#1A0D2E] border border-[#3b1861] px-2.5 py-1.5 text-white text-xs focus:border-cyan-400 focus:outline-none cursor-pointer"
                 >
                   <option value="DAILY">DAILY</option>
                   <option value="X_TIMES_WEEK">X TIMES PER WEEK</option>
@@ -232,8 +239,8 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
 
               {scheduleType === "DAILY" && (
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                    TIMES PER DAY (QUOTA)
+                  <label className="block text-[9px] font-bold text-white/60 uppercase mb-1">
+                    TARGET DAILY AMOUNT
                   </label>
                   <input
                     type="number"
@@ -241,15 +248,15 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
                     max="30"
                     value={targetValue}
                     onChange={(e) => setTargetValue(parseInt(e.target.value) || 1)}
-                    className="w-full bg-[#0B1020] border border-slate-800 rounded-xl px-3 py-2 text-cyan-300 font-bold focus:border-cyan-400 focus:outline-none"
-                    placeholder="e.g., 3, 4, or 5 times daily"
+                    className="w-full bg-[#1A0D2E] border border-[#3b1861] px-2.5 py-1.5 text-cyan-300 font-bold text-xs focus:border-cyan-400 focus:outline-none"
+                    placeholder="e.g., 8 (glasses of water)"
                   />
                 </div>
               )}
 
               {scheduleType === "X_TIMES_WEEK" && (
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-[9px] font-bold text-white/60 uppercase mb-1">
                     TIMES PER WEEK
                   </label>
                   <input
@@ -258,14 +265,14 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
                     max="7"
                     value={timesPerWeek}
                     onChange={(e) => setTimesPerWeek(parseInt(e.target.value) || 1)}
-                    className="w-full bg-[#0B1020] border border-slate-800 rounded-xl px-3 py-2 text-cyan-300 font-bold focus:border-cyan-400 focus:outline-none"
+                    className="w-full bg-[#1A0D2E] border border-[#3b1861] px-2.5 py-1.5 text-cyan-300 font-bold text-xs focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
               )}
 
               {scheduleType === "MONTHLY" && (
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-[9px] font-bold text-white/60 uppercase mb-1">
                     TIMES PER MONTH
                   </label>
                   <input
@@ -274,7 +281,7 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
                     max="31"
                     value={timesPerMonth}
                     onChange={(e) => setTimesPerMonth(parseInt(e.target.value) || 1)}
-                    className="w-full bg-[#0B1020] border border-slate-800 rounded-xl px-3 py-2 text-cyan-300 font-bold focus:border-cyan-400 focus:outline-none"
+                    className="w-full bg-[#1A0D2E] border border-[#3b1861] px-2.5 py-1.5 text-cyan-300 font-bold text-xs focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
               )}
@@ -282,80 +289,81 @@ export const EditHabitModal: React.FC<EditHabitModalProps> = ({ habit, isOpen, o
 
             {/* Target Unit */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                TARGET UNIT
+              <label className="block text-[9px] font-bold text-white/60 uppercase mb-1">
+                MEASUREMENT UNIT
               </label>
               <input
                 type="text"
                 value={targetUnit}
                 onChange={(e) => setTargetUnit(e.target.value)}
-                className="w-full bg-[#0B1020] border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-cyan-400 focus:outline-none text-xs"
-                placeholder="e.g. Glasses, Pages, Reps, Liters"
+                className="w-full bg-[#1A0D2E] border border-[#3b1861] px-2.5 py-1.5 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                placeholder="e.g., Glasses, Pages, Reps, Minutes"
               />
             </div>
           </div>
 
           {/* Difficulty & Primary Stat */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-slate-300 uppercase mb-1.5 tracking-wider">
-                THREAT DIFFICULTY
+              <label className="block text-[10px] font-bold text-white/70 uppercase mb-1">
+                HABIT DIFFICULTY
               </label>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value as HabitDifficulty)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2 text-white focus:outline-none cursor-pointer"
+                className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 px-3 py-2 text-white text-xs focus:outline-none cursor-pointer"
               >
-                <option value="EASY">EASY (+Low Rewards)</option>
-                <option value="MEDIUM">MEDIUM (+Balanced Rewards)</option>
-                <option value="HARD">HARD (+High Rewards)</option>
+                <option value="EASY">EASY (&lt; 10 mins • Standard Rewards)</option>
+                <option value="MEDIUM">MEDIUM (15–30 mins • Balanced Rewards)</option>
+                <option value="HARD">HARD (45+ mins • High Rewards)</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-300 uppercase mb-1.5 tracking-wider">
-                PRIMARY STAT REWARD
+              <label className="block text-[10px] font-bold text-white/70 uppercase mb-1">
+                PRIMARY STAT BOOST
               </label>
               <select
                 value={primaryStat}
                 onChange={(e) => setPrimaryStat(e.target.value)}
-                className="w-full bg-[#060B18] border border-cyan-500/25 focus:border-cyan-400 rounded-xl px-3 py-2 text-white focus:outline-none cursor-pointer capitalize"
+                className="w-full bg-[#120824] border-2 border-[#3b1861] focus:border-cyan-400 px-3 py-2 text-white text-xs focus:outline-none cursor-pointer capitalize"
               >
-                <option value="discipline">Discipline</option>
-                <option value="consistency">Consistency</option>
-                <option value="strength">Strength</option>
-                <option value="endurance">Endurance</option>
-                <option value="focus">Focus</option>
-                <option value="knowledge">Knowledge</option>
-                <option value="recovery">Recovery</option>
+                <option value="discipline">Discipline (Habit Willpower)</option>
+                <option value="consistency">Consistency (Streak Stability)</option>
+                <option value="focus">Focus (Deep Concentration)</option>
+                <option value="strength">Strength (Physical Power)</option>
+                <option value="endurance">Endurance (Stamina)</option>
+                <option value="knowledge">Knowledge (Mental Acuity)</option>
+                <option value="recovery">Recovery (Rest & Balance)</option>
               </select>
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-cyan-500/15">
-            <button
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t-2 border-[#3b1861]">
+            <PixelButton
               type="button"
+              variant="dark"
+              size="sm"
               onClick={() => {
                 playUIMenuSFX();
                 onClose();
               }}
-              className="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 font-bold transition-all cursor-pointer"
             >
               Cancel
-            </button>
-            <button
+            </PixelButton>
+            <PixelButton
               type="submit"
+              variant="cyan"
+              size="sm"
               disabled={isSaving}
-              className="px-6 py-2.5 rounded-xl font-extrabold bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)] disabled:opacity-50 cursor-pointer active:scale-95"
             >
-              <Save className="w-4 h-4" />
-              <span>{isSaving ? "Saving..." : "Save Protocol"}</span>
-            </button>
+              <PixelSaveIcon className="w-3.5 h-3.5 mr-1" />
+              <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+            </PixelButton>
           </div>
         </form>
       </div>
     </div>
   );
 };
-

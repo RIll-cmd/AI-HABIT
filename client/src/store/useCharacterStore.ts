@@ -49,7 +49,7 @@ const getStoredCharacterId = () => {
 
 const defaultStats: CharacterStats = {
   id: "stats-1",
-  characterId: "char-1",
+  characterId: "char-id-123",
   strength: 1,
   knowledge: 1,
   discipline: 1,
@@ -60,12 +60,15 @@ const defaultStats: CharacterStats = {
 };
 
 const defaultCharacter: Character = {
-  id: "char-1",
+  id: "char-id-123",
   userId: "user-1",
   name: "Shadow Monarch",
   avatar: "/Character_sprite_placeholder/walk_down.gif",
   theme: "dark-rpg",
   title: "Hydration Monarch",
+  gender: "M",
+  age: 16,
+  race: "HUMAN",
   level: 1,
   exp: 0,
   power: 97,

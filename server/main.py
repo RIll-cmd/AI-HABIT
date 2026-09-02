@@ -98,6 +98,23 @@ app.add_middleware(
 
 
 @app.middleware("http")
+async def add_security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    
+    # Enforce HSTS in production or over HTTPS
+    is_production = os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production"
+    if is_production or request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        
+    return response
+
+
+@app.middleware("http")
 async def db_connection_lifecycle_middleware(request: Request, call_next):
     from db import ensure_db_connected, db
     try:
@@ -204,8 +221,21 @@ async def get_user(user_id_or_email: str):
     if not user:
         raise HTTPException(status_code=404, detail=f"User '{user_id_or_email}' not found")
 
-    return user
+    # Security: Strip password hash and private tokens before returning user metadata
+    char_dict = None
+    if user.character:
+        char_dict = user.character.model_dump() if hasattr(user.character, "model_dump") else user.character
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "isEmailVerified": bool(user.isEmailVerified),
+        "createdAt": user.createdAt.isoformat() if hasattr(user.createdAt, "isoformat") else str(user.createdAt),
+        "character": char_dict
+    }
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

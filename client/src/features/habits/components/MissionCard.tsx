@@ -1,10 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
-  Flame,
   CheckCircle2,
-  Star,
   Target,
   Dumbbell,
   HeartPulse,
@@ -13,12 +11,11 @@ import {
   Zap,
   Activity,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Mission, Habit, CompletionType, HabitDifficulty } from "../types";
 import { getBaseReward, calculateFinalReward } from "../utils";
 import { playUISound } from "@/utils/audio";
+import { PixelButton } from "@/components/ui/pixel/PixelButton";
+import { PixelBadge } from "@/components/ui/pixel/PixelBadge";
 
 export interface MissionCardProps {
   mission: Mission;
@@ -40,19 +37,24 @@ const STAT_ICONS: Record<string, any> = {
 };
 
 export function MissionCard({ mission, onComplete }: MissionCardProps) {
-  const habit = mission.habit || ({
-    id: mission.habitId || "habit-default",
-    characterId: mission.characterId,
-    name: "Daily Routine Mission",
-    category: "General",
-    difficulty: "EASY" as HabitDifficulty,
-    primaryStat: "discipline",
-    status: "ACTIVE",
-    scheduleType: "DAILY",
-    startDate: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  } as Habit);
+  const [showBurst, setShowBurst] = useState(false);
+  const [burstExp, setBurstExp] = useState(0);
+
+  const habit =
+    mission.habit ||
+    ({
+      id: mission.habitId || "habit-default",
+      characterId: mission.characterId,
+      name: "Daily Routine Mission",
+      category: "General",
+      difficulty: "EASY" as HabitDifficulty,
+      primaryStat: "discipline",
+      status: "ACTIVE",
+      scheduleType: "DAILY",
+      startDate: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Habit);
 
   const difficulty = (habit.difficulty || "EASY") as HabitDifficulty;
   const baseReward = getBaseReward(difficulty);
@@ -61,147 +63,127 @@ export function MissionCard({ mission, onComplete }: MissionCardProps) {
   const eliteReward = calculateFinalReward(baseReward, "ELITE");
 
   const StatIcon = STAT_ICONS[habit.primaryStat?.toLowerCase()] || Target;
-
   const isCompleted = mission.status === "COMPLETED";
 
-  const accentColor = isCompleted
-    ? "from-emerald-500 via-emerald-400 to-emerald-500"
-    : difficulty === "HARD"
-    ? "from-amber-500 via-orange-400 to-amber-500"
-    : difficulty === "MEDIUM"
-    ? "from-blue-500 via-cyan-400 to-blue-500"
-    : "from-emerald-500 via-cyan-400 to-emerald-500";
+  const handleComplete = (type: CompletionType, exp: number) => {
+    setBurstExp(exp);
+    setShowBurst(true);
+    playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
+    onComplete(mission.id, habit, type);
+    setTimeout(() => setShowBurst(false), 2000);
+  };
 
   return (
-    <Card className={`bg-[#0a1024]/90 border-cyan-500/10 transition-all duration-400 hover:border-cyan-400/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] relative overflow-hidden rounded-2xl sweep-light ${
-      isCompleted ? "border-emerald-500/30 bg-emerald-950/15 shadow-[0_0_20px_rgba(16,185,129,0.1)] animate-energy-pulse" : ""
-    }`}>
-      {/* Animated top accent bar with gradient sweep */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden">
-        <div className={`h-full bg-gradient-to-r ${accentColor} animate-gradient-shift`} style={{ backgroundSize: '200% 100%' }} />
-      </div>
-
-      {/* Rune accent for completed */}
-      {isCompleted && (
-        <span suppressHydrationWarning className="rune-static text-emerald-400/15" style={{ top: '10%', right: '5%', fontSize: '12px', animationDelay: '0s' }}>ᛊ</span>
+    <div
+      className={`p-3.5 bg-[#1A0D2E] border border-[#3b1861] relative overflow-hidden select-none ${
+        isCompleted
+          ? "border-emerald-500/60 bg-[#14291e]"
+          : "hover:border-white/40"
+      }`}
+    >
+      {/* Task Completion Burst Particles & Floating Text */}
+      {showBurst && (
+        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center overflow-hidden">
+          <div className="font-pixel text-sm font-bold text-white drop-shadow-[0_2px_4px_#000] animate-[pixel-burst_1.2s_steps(8)_forwards]">
+            +{burstExp} EXP!
+          </div>
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-white border border-black animate-[pixel-burst_0.8s_steps(6)_forwards]"
+              style={{
+                top: `${40 + (i % 3) * 10}%`,
+                left: `${30 + (i * 7) % 50}%`,
+                animationDelay: `${i * 0.05}s`,
+              }}
+            />
+          ))}
+        </div>
       )}
 
-      <CardContent className="p-4 pt-5 space-y-3 relative z-10">
+      <div className="space-y-2.5 relative z-10">
         {/* Header Badges & Title */}
         <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 min-w-0">
+          <div className="space-y-1.5 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px]">
+              <PixelBadge variant="purple" className="text-xs">
                 {habit.category || "General"}
-              </Badge>
-              <Badge
-                variant="outline"
-                className={`text-[10px] ${
+              </PixelBadge>
+              <PixelBadge
+                variant={
                   difficulty === "HARD"
-                    ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
+                    ? "warning"
                     : difficulty === "MEDIUM"
-                    ? "border-blue-500/40 text-blue-400 bg-blue-500/10"
-                    : "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
-                }`}
+                    ? "primary"
+                    : "success"
+                }
+                className="text-xs"
               >
                 {difficulty}
-              </Badge>
+              </PixelBadge>
             </div>
-            <h4 className="text-base font-bold text-white font-heading truncate">
+            <h4 className="font-pixel text-xs sm:text-sm font-bold text-white truncate">
               {habit.name}
             </h4>
-            {habit.description && (
-              <p className="text-xs text-slate-400 line-clamp-1">
-                {habit.description}
-              </p>
-            )}
           </div>
 
-          <div className="flex items-center space-x-1 shrink-0 bg-slate-800/80 px-2 py-1 rounded-lg border border-white/5 hover:border-purple-500/20 transition-colors">
-            <StatIcon className="w-3.5 h-3.5 text-purple-400 glow-purple" />
-            <span className="text-[11px] font-medium text-slate-300 capitalize">
-              {habit.primaryStat}
-            </span>
+          <div className="flex items-center gap-1.5 bg-[#120824] px-2 py-1 border border-[#3b1861] text-xs font-pixel text-white font-bold">
+            <StatIcon className="w-3.5 h-3.5 text-white" />
+            <span className="capitalize">{habit.primaryStat}</span>
           </div>
         </div>
 
-        {/* COMPLETED STATE DISPLAY */}
+        {/* COMPLETED STATE */}
         {isCompleted ? (
-          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 flex items-center justify-between text-xs shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-            <div className="flex items-center space-x-2 text-emerald-400 font-semibold">
-              <CheckCircle2 className="w-4 h-4 glow-emerald" />
-              <span>Completed ({mission.completionType || "NORMAL"})</span>
+          <div className="p-2.5 bg-[#0f241a] border border-emerald-500/40 flex items-center justify-between font-pixel text-xs">
+            <div className="flex items-center gap-1.5 text-white font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>CLEARED ({mission.completionType || "NORMAL"})</span>
             </div>
-            <div className="flex items-center space-x-3 font-mono font-bold">
-              <span className="text-blue-400 flex items-center space-x-1">
-                <Flame className="w-3.5 h-3.5" />
-                <span>+{mission.expEarned || normalReward.exp} EXP</span>
-              </span>
-              <span className="text-purple-400 flex items-center space-x-1">
-                <Star className="w-3.5 h-3.5" />
-                <span>+{mission.statsEarned || normalReward.stat} Stat</span>
-              </span>
+            <div className="flex items-center gap-2 text-white font-bold">
+              <span>+{mission.expEarned || normalReward.exp} EXP</span>
+              <span>+{mission.statsEarned || normalReward.stat} STAT</span>
             </div>
           </div>
         ) : (
-          /* PENDING ACTION TIER BUTTONS */
-          <div className="space-y-2 pt-1 border-t border-white/5">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>Select Completion Tier:</span>
-              <span className="text-slate-500 font-mono">100% Rewards</span>
-            </div>
+          /* PENDING TIER BUTTONS */
+          <div className="pt-2 border-t border-[#3b1861] space-y-1">
             <div className="grid grid-cols-3 gap-2">
-              <Button
-                type="button"
-                variant="outline"
+              <PixelButton
                 size="sm"
-                onClick={() => {
-                  playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
-                  onComplete(mission.id, habit, "MINI");
-                }}
-                className="border-white/10 hover:border-slate-400 hover:bg-slate-800/80 hover:shadow-[0_0_12px_rgba(148,163,184,0.1)] flex flex-col items-center py-2.5 h-auto text-slate-300 transition-all duration-300"
+                variant="dark"
+                onClick={() => handleComplete("MINI", miniReward.exp)}
+                className="flex flex-col py-1.5 h-auto text-xs"
               >
-                <span className="text-xs font-bold text-slate-200">MINI (40%)</span>
-                <span className="text-[10px] text-blue-400 font-mono font-semibold">
-                  +{miniReward.exp} EXP
-                </span>
-              </Button>
+                <span>MINI (40%)</span>
+                <span className="text-white mt-0.5">+{miniReward.exp} EXP</span>
+              </PixelButton>
 
-              <Button
-                type="button"
-                variant="outline"
+              <PixelButton
                 size="sm"
-                onClick={() => {
-                  playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
-                  onComplete(mission.id, habit, "NORMAL");
-                }}
-                className="border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] text-white flex flex-col items-center py-2.5 h-auto transition-all duration-300"
+                variant="primary"
+                onClick={() => handleComplete("NORMAL", normalReward.exp)}
+                className="flex flex-col py-1.5 h-auto text-xs"
               >
-                <span className="text-xs font-bold text-blue-300">NORMAL (100%)</span>
-                <span className="text-[10px] text-blue-400 font-mono font-semibold">
-                  +{normalReward.exp} EXP
-                </span>
-              </Button>
+                <span>NORMAL</span>
+                <span className="text-white mt-0.5">+{normalReward.exp} EXP</span>
+              </PixelButton>
 
-              <Button
-                type="button"
-                variant="outline"
+              <PixelButton
                 size="sm"
-                onClick={() => {
-                  playUISound("/sounds/General/8_Buffs_Heals_SFX/02_Heal_02.wav");
-                  onComplete(mission.id, habit, "ELITE");
-                }}
-                className="border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] text-white flex flex-col items-center py-2.5 h-auto transition-all duration-300"
+                variant="warning"
+                onClick={() => handleComplete("ELITE", eliteReward.exp)}
+                className="flex flex-col py-1.5 h-auto text-xs"
               >
-                <span className="text-xs font-bold text-amber-300">ELITE (170%)</span>
-                <span className="text-[10px] text-amber-400 font-mono font-semibold">
-                  +{eliteReward.exp} EXP
-                </span>
-              </Button>
+                <span>ELITE (170%)</span>
+                <span className="text-white mt-0.5">+{eliteReward.exp} EXP</span>
+              </PixelButton>
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+
+export default MissionCard;

@@ -1,18 +1,20 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from db import db
 from db_utils import ensure_character_exists
+from auth_utils import get_current_user, get_current_user_optional, verify_character_ownership
 from schemas.inventory import PlayerItemSchema, EquipmentActionResponse, ToggleActionResponse
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 
 @router.get("/{character_id}", response_model=List[PlayerItemSchema])
-async def get_inventory(character_id: str):
+async def get_inventory(character_id: str, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
     Fetch all PlayerItem records for a character including nested ItemDefinition details.
     """
     await ensure_character_exists(character_id)
+
 
     inventory_items = await db.playeritem.find_many(
         where={"characterId": character_id},
@@ -85,7 +87,7 @@ async def grant_item(character_id: str, item_definition_id: str, quantity: int =
 
 
 @router.patch("/{player_item_id}/equip", response_model=EquipmentActionResponse)
-async def equip_item(player_item_id: str):
+async def equip_item(player_item_id: str, current_user: dict = Depends(get_current_user)):
     """
     Toggles the isEquipped boolean. Auto-unequips existing items in the same slot.
     """
@@ -99,6 +101,10 @@ async def equip_item(player_item_id: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"PlayerItem with ID '{player_item_id}' not found.",
         )
+
+    is_owner = await verify_character_ownership(target_record.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this inventory item.")
 
     character_id = target_record.characterId
     item_def = target_record.itemDefinition
@@ -155,7 +161,7 @@ async def equip_item(player_item_id: str):
 
 
 @router.patch("/{player_item_id}/toggle-lock", response_model=ToggleActionResponse)
-async def toggle_lock(player_item_id: str):
+async def toggle_lock(player_item_id: str, current_user: dict = Depends(get_current_user)):
     """
     Toggles isLocked.
     """
@@ -166,6 +172,10 @@ async def toggle_lock(player_item_id: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"PlayerItem with ID '{player_item_id}' not found.",
         )
+
+    is_owner = await verify_character_ownership(target_record.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this inventory item.")
 
     updated_record = await db.playeritem.update(
         where={"id": player_item_id},
@@ -183,7 +193,7 @@ async def toggle_lock(player_item_id: str):
 from schemas.inventory import PlayerItemSchema, EquipmentActionResponse, ToggleActionResponse, ItemUseResponse
 
 @router.patch("/{player_item_id}/toggle-favorite", response_model=ToggleActionResponse)
-async def toggle_favorite(player_item_id: str):
+async def toggle_favorite(player_item_id: str, current_user: dict = Depends(get_current_user)):
     """
     Toggles isFavorite.
     """
@@ -194,6 +204,10 @@ async def toggle_favorite(player_item_id: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"PlayerItem with ID '{player_item_id}' not found.",
         )
+
+    is_owner = await verify_character_ownership(target_record.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this inventory item.")
 
     updated_record = await db.playeritem.update(
         where={"id": player_item_id},
@@ -209,7 +223,7 @@ async def toggle_favorite(player_item_id: str):
 
 
 @router.post("/{player_item_id}/use", response_model=ItemUseResponse)
-async def use_item(player_item_id: str):
+async def use_item(player_item_id: str, current_user: dict = Depends(get_current_user)):
     """
     Consumes a consumable item (e.g. Health Potion, EXP Elixir, Double-Gold Potion).
     Applies the effect to the character and decrements quantity.
@@ -224,6 +238,12 @@ async def use_item(player_item_id: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"PlayerItem with ID '{player_item_id}' not found.",
         )
+
+    is_owner = await verify_character_ownership(target_record.characterId, current_user)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this inventory item.")
+
+
 
     item_def = target_record.itemDefinition
     character = target_record.character

@@ -1,0 +1,52 @@
+"use client";
+
+import React, { useState } from "react";
+import {
+  LandingNavbar,
+  StripeHeroSection,
+  MetricsMarquee,
+  BentoFeatures,
+  AuthSection,
+  LandingFooter,
+} from "@/components/v2/landing";
+import { AuthTabState } from "@/components/v2/auth/AuthCard";
+
+export default function V2LandingPage() {
+  const [selectedAuthTab, setSelectedAuthTab] = useState<AuthTabState>("register");
+
+  const handleNavigateToAuth = (tab: AuthTabState) => {
+    setSelectedAuthTab(tab);
+    const el = document.getElementById("auth-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  return (
+    <div
+      suppressHydrationWarning
+      className="relative w-full min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-cyan-950"
+    >
+      {/* 1. Stripe-Style Navbar with Sign In & Launch CTA */}
+      <LandingNavbar
+        onSignInClick={() => handleNavigateToAuth("login")}
+        onGetStartedClick={() => handleNavigateToAuth("register")}
+      />
+
+      {/* 2. Stripe-Style Split Hero (Left Copy, Right Floating Live UI Cards) */}
+      <StripeHeroSection onSelectTab={(tab) => setSelectedAuthTab(tab)} />
+
+      {/* 3. Horizontal Telemetry & Social Proof Marquee */}
+      <MetricsMarquee />
+
+      {/* 4. Modular Interactive Bento Feature Grid with Modal Expansions */}
+      <BentoFeatures />
+
+      {/* 5. Centered Floating Auth Card Portal over Galaxy WebGL Shader */}
+      <AuthSection initialTab={selectedAuthTab} />
+
+      {/* 6. System Telemetry Footer */}
+      <LandingFooter />
+    </div>
+  );
+}

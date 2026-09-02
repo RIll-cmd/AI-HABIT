@@ -1,65 +1,96 @@
 "use client";
 
 import React from "react";
-import { Brain, Sparkles, BookOpen, Target, Clock, Zap, Headphones } from "lucide-react";
+import { BookOpen, Sparkles, Scroll, Flame, Award } from "lucide-react";
 import { PomodoroTimer } from "@/features/learning/components/PomodoroTimer";
 import { HabitLinkSelector } from "@/features/learning/components/HabitLinkSelector";
 import { AmbientSoundPlayer } from "@/features/learning/components/AmbientSoundPlayer";
 import { FocusStatistics } from "@/features/learning/components/FocusStatistics";
-import { FloatingRuneField } from "@/components/shared/FloatingRuneField";
+import { ForbiddenGrimoireCard } from "@/features/learning/components/ForbiddenGrimoireCard";
+import { PixelAncientLibraryBackground } from "@/components/ui/pixel/PixelAncientLibraryBackground";
+import { useLearningStore } from "@/features/learning/store/useLearningStore";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { cn } from "@/lib/utils";
 
 export default function LearningPage() {
+  const { completedCycles, getFocusStreak, isArchivistMode } = useLearningStore();
+  const streak = getFocusStreak();
+
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 pb-24 space-y-8 text-slate-100 relative">
-      <FloatingRuneField density="low" />
+    <div className="max-w-7xl mx-auto p-3 sm:p-5 md:p-8 pb-28 space-y-6 text-slate-100 relative select-none">
+      {/* 1. Realtime Animated Ancient Library Canvas Background */}
+      <PixelAncientLibraryBackground />
 
-      {/* Hero Header Banner */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#0C152B] via-[#0E2038] to-[#081022] border-2 border-cyan-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* 2. Scriptorium Master Archivist Desk Banner */}
+      <div className="relative bg-[#231109] border-4 border-[#140804] p-5 sm:p-7 shadow-[0_8px_16px_rgba(0,0,0,0.85)] overflow-hidden transition-all duration-300">
+        {/* 4 Beveled Gold Corner Brackets */}
+        <div className="absolute top-1 left-1 w-6 h-6 border-t-2 border-l-2 border-[#f59e0b] pointer-events-none" />
+        <div className="absolute top-1 right-1 w-6 h-6 border-t-2 border-r-2 border-[#f59e0b] pointer-events-none" />
+        <div className="absolute bottom-1 left-1 w-6 h-6 border-b-2 border-l-2 border-[#f59e0b] pointer-events-none" />
+        <div className="absolute bottom-1 right-1 w-6 h-6 border-b-2 border-r-2 border-[#f59e0b] pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)]">
-              <Brain className="w-8 h-8 animate-pulse" />
-            </div>
-            <div>
-              <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-                COGNITIVE MASTERY & HABIT-INTEGRATED FOCUS
+        {/* Ambient Woodgrain Overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.08)_0%,transparent_70%)] pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-pixel font-bold text-[#f59e0b] uppercase tracking-widest bg-[#150904] px-2 py-0.5 border border-[#542d17]">
+                ✦ Grand Citadel Scriptorium ✦
               </span>
-              <h1 className="text-2xl md:text-3xl font-black font-heading text-white tracking-tight mt-0.5">
-                Learning Command & Pomodoro Engine
-              </h1>
-              <p className="text-xs text-slate-400 mt-1 max-w-xl font-sans">
-                Enter deep cognitive flow states with the integrated Pomodoro Timer. Link focus blocks directly to your daily habits and missions to level up real-world Knowledge (KNO), Focus (FOC), and Discipline (DIS) stats!
-              </p>
+              <span className="text-xs font-mono text-slate-400">Bibliotheca Arcana</span>
             </div>
+
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-pixel font-bold text-[#fef08a] tracking-wide drop-shadow-[0_2px_0_#000]">
+              Archives & Scribe Chamber
+            </h1>
+
+            <p className="text-xs md:text-sm text-slate-300 max-w-2xl font-sans leading-relaxed text-pretty font-medium">
+              Enter deep cognitive flow states beneath the towering mahogany bookshelves of the ancient library. Inscribing Pomodoro focus rites scales your character&apos;s real-world <span className="text-[#fde047] font-bold">Knowledge (KNO)</span>, <span className="text-[#38bdf8] font-bold">Focus (FOC)</span>, and <span className="text-[#fb7185] font-bold">Discipline (DIS)</span> attributes!
+            </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-[#0B1020]/90 border border-cyan-500/20 p-3.5 rounded-2xl font-mono text-xs shadow-xl">
-            <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                Standard Phase
+          {/* Quick HUD Telemetry Strip */}
+          <div className="flex items-center gap-6 p-3 bg-[#170a04] border-2 border-[#542d17] font-pixel text-xs flex-shrink-0 w-full sm:w-auto justify-between sm:justify-end shadow-[inset_1px_1px_0_0_#3d1d0c]">
+            <div className="text-left sm:text-right">
+              <span className="text-xs text-[#fbbf24] block font-bold">
+                Scribe Streak
               </span>
-              <span className="text-base font-black text-cyan-300">25m Focus / 5m Rest</span>
+              <span className="text-base sm:text-lg font-bold text-[#34d399] flex items-center gap-1.5 justify-start sm:justify-end tabular-nums">
+                <Flame className="w-4 h-4 text-[#f59e0b]" /> <NumberTicker value={streak} /> Days
+              </span>
+            </div>
+
+            <div className="h-8 w-0.5 bg-[#542d17] hidden sm:block" />
+
+            <div className="text-left sm:text-right">
+              <span className="text-xs text-[#fbbf24] block font-bold">
+                Focus Blocks
+              </span>
+              <span className="text-base sm:text-lg font-bold text-[#fef08a] flex items-center gap-1.5 justify-start sm:justify-end tabular-nums">
+                <Award className="w-4 h-4 text-[#f59e0b]" /> <NumberTicker value={completedCycles} /> Rites
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
-        {/* Left Column: Pomodoro Timer & Habit Linker */}
+      {/* 3. Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
+        {/* Left Column: Pomodoro Chrono-Desk, Habit Linker, & Ambient Soundscape */}
         <div className="lg:col-span-7 space-y-6">
           <PomodoroTimer />
-          <HabitLinkSelector />
-          <AmbientSoundPlayer />
+          
+          <div className={cn("space-y-6 transition-opacity duration-300", isArchivistMode && "opacity-25 pointer-events-none")}>
+            <HabitLinkSelector />
+            <AmbientSoundPlayer />
+          </div>
         </div>
 
-        {/* Right Column: Focus Statistics & Historical Logs */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Right Column: Scribe Telemetry Chronicles & Forbidden Grimoire Flashcards */}
+        <div className={cn("lg:col-span-5 space-y-6 transition-opacity duration-300", isArchivistMode && "opacity-25 pointer-events-none")}>
           <FocusStatistics />
+          <ForbiddenGrimoireCard />
         </div>
       </div>
     </div>
